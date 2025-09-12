@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Profesores - Control de Asistencias</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .main-container {
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            border: none;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 20px 20px 0 0 !important;
+            border: none;
+            padding: 20px 30px;
+            font-weight: 600;
+        }
+        
+        .card-body {
+            padding: 30px;
+        }
+        
+        .form-label {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .form-select, .form-control {
+            border-radius: 15px;
+            border: 2px solid #e9ecef;
+            padding: 12px 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .form-select:focus, .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        
+        .btn {
+            border-radius: 15px;
+            padding: 12px 30px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            border: none;
+        }
+        
+        .btn-success:hover {
+            background: linear-gradient(135deg, #20c997 0%, #28a745 100%);
+            transform: translateY(-2px);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+            border: none;
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background: linear-gradient(135deg, #fd7e14 0%, #ffc107 100%);
+            transform: translateY(-2px);
+        }
+        
+        .btn-outline-light {
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .btn-outline-light:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: white;
+            color: white;
+            transform: translateY(-2px);
+        }
+        
+        .table {
+            border-radius: 15px;
+            overflow: hidden;
+        }
+        
+        .table thead th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            font-weight: 600;
+            padding: 15px;
+        }
+        
+        .table tbody td {
+            padding: 15px;
+            vertical-align: middle;
+            border-color: #e9ecef;
+        }
+        
+        .table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .badge {
+            padding: 8px 15px;
+            border-radius: 10px;
+            font-size: 0.85em;
+        }
+        
+        .alert {
+            border-radius: 15px;
+            border: none;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .section-badge {
+            display: inline-block;
+            margin: 2px;
+            padding: 5px 10px;
+            background: linear-gradient(135deg, #17a2b8 0%, #6c757d 100%);
+            color: white;
+            border-radius: 8px;
+            font-size: 0.8em;
+        }
+        
+        .teacher-info {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .stats-number {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="main-container">
+            <div class="header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1><i class="fas fa-chalkboard-teacher"></i> Gestión de Profesores</h1>
+                        <p class="mb-0">Asignación de secciones a profesores para control de asistencias</p>
+                    </div>
+                    <div>
+                        <a href="/admin_dashboard" class="btn btn-outline-light btn-lg me-2">
+                            <i class="fas fa-chart-line"></i> Dashboard
+                        </a>
+                        <a href="/gestion_matricula" class="btn btn-outline-light btn-lg me-2">
+                            <i class="fas fa-users"></i> Matrícula
+                        </a>
+                        <a href="/" class="btn btn-outline-light btn-lg">
+                            <i class="fas fa-home"></i> Inicio
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alertas -->
+            <div id="alertas"></div>
+
+            <!-- Formulario para crear nuevo usuario -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4><i class="fas fa-user-plus"></i> Crear Nuevo Usuario</h4>
+                    <button type="button" id="btnToggleForm" class="btn btn-outline-light">
+                        <i class="fas fa-exchange-alt"></i> Cambiar a Asignación
+                    </button>
+                </div>
+                <div class="card-body">
+                    <form id="usuarioForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label"><i class="fas fa-user"></i> Nombre:</label>
+                                <input type="text" id="nombre" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label"><i class="fas fa-user"></i> Apellido:</label>
+                                <input type="text" id="apellido" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <label class="form-label"><i class="fas fa-envelope"></i> Email:</label>
+                                <input type="email" id="email" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label"><i class="fas fa-lock"></i> Contraseña:</label>
+                                <input type="password" id="contraseña" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <label class="form-label"><i class="fas fa-user-tag"></i> Rol:</label>
+                                <select id="rol" class="form-select" required>
+                                    <option value="">Seleccionar rol</option>
+                                    <option value="profesor">Profesor</option>
+                                    <option value="administrador">Administrador</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mt-4">
+                            <div class="col-md-12 text-center">
+                                <button type="button" id="btnCrearUsuario" class="btn btn-success btn-lg">
+                                    <i class="fas fa-user-plus"></i> Crear Usuario
+                                </button>
+                                <button type="button" id="btnLimpiarUsuario" class="btn btn-secondary btn-lg ms-2">
+                                    <i class="fas fa-broom"></i> Limpiar
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Formulario para gestionar profesores -->
+            <div class="card" id="cardAsignacion" style="display: none;">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4><i class="fas fa-chalkboard-teacher"></i> Asignar Secciones a Profesor</h4>
+                    <button type="button" id="btnToggleFormBack" class="btn btn-outline-light">
+                        <i class="fas fa-exchange-alt"></i> Cambiar a Crear Usuario
+                    </button>
+                </div>
+                <div class="card-body">
+                    <form id="profesorForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label"><i class="fas fa-user"></i> Profesor:</label>
+                                <select id="profesor" class="form-select" required>
+                                    <option value="">Seleccionar profesor</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label"><i class="fas fa-graduation-cap"></i> Etapa Educativa:</label>
+                                <select id="etapa" class="form-select" required>
+                                    <option value="">Seleccionar etapa</option>
+                                    <option value="Maternal">Maternal</option>
+                                    <option value="Primaria">Primaria</option>
+                                    <option value="Secundaria">Secundaria</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <label class="form-label"><i class="fas fa-chalkboard"></i> Secciones Disponibles:</label>
+                                <div id="seccionesDisponibles" class="border rounded p-3" style="min-height: 100px; background-color: #f8f9fa;">
+                                    <p class="text-muted text-center">Selecciona una etapa para ver las secciones disponibles</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-4">
+                            <div class="col-md-12 text-center">
+                                <button type="button" id="btnAsignar" class="btn btn-success btn-lg">
+                                    <i class="fas fa-plus-circle"></i> Asignar Secciones Seleccionadas
+                                </button>
+                                <button type="button" id="btnLimpiar" class="btn btn-secondary btn-lg ms-2">
+                                    <i class="fas fa-broom"></i> Limpiar
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Información del profesor seleccionado -->
+            <div id="infoProfesor" class="card" style="display: none;">
+                <div class="card-header">
+                    <h4><i class="fas fa-info-circle"></i> Información del Profesor</h4>
+                </div>
+                <div class="card-body">
+                    <div id="contenidoInfoProfesor"></div>
+                </div>
+            </div>
+
+            <!-- Lista de asignaciones actuales -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4><i class="fas fa-list"></i> Asignaciones Actuales</h4>
+                    <button type="button" id="btnActualizar" class="btn btn-outline-light">
+                        <i class="fas fa-sync-alt"></i> Actualizar
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="loading-spinner" id="loadingAsignaciones">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Cargando...</span>
+                        </div>
+                        <p class="mt-3">Cargando asignaciones...</p>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Profesor</th>
+                                    <th>Email</th>
+                                    <th>Secciones Asignadas</th>
+                                    <th>Total Secciones</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaAsignaciones">
+                                <!-- Los datos se cargarán dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        let seccionesSeleccionadas = [];
+        let profesorEditando = null;
+
+        $(document).ready(function() {
+            cargarProfesores();
+            cargarAsignaciones();
+            
+            // Event listeners
+            $('#etapa').change(cargarSeccionesPorEtapa);
+            $('#profesor').change(mostrarInfoProfesor);
+            $('#btnAsignar').click(asignarSecciones);
+            $('#btnLimpiar').click(limpiarFormulario);
+            $('#btnActualizar').click(cargarAsignaciones);
+            
+            // Event listeners para crear usuario
+            $('#btnCrearUsuario').click(crearUsuario);
+            $('#btnLimpiarUsuario').click(limpiarFormularioUsuario);
+            $('#btnToggleForm').click(toggleFormularios);
+            $('#btnToggleFormBack').click(toggleFormularios);
+        });
+
+        function cargarProfesores() {
+            $.ajax({
+                url: '/api/profesores',
+                method: 'GET',
+                success: function(data) {
+                    let html = '<option value="">Seleccionar profesor</option>';
+                    data.forEach(function(profesor) {
+                        html += `<option value="${profesor.id}">${profesor.nombre} ${profesor.apellido}</option>`;
+                    });
+                    $('#profesor').html(html);
+                },
+                error: function() {
+                    mostrarAlerta('Error al cargar profesores', 'danger');
+                }
+            });
+        }
+
+        function cargarSeccionesPorEtapa() {
+            const etapa = $('#etapa').val();
+            if (!etapa) {
+                $('#seccionesDisponibles').html('<p class="text-muted text-center">Selecciona una etapa para ver las secciones disponibles</p>');
+                return;
+            }
+
+            $.ajax({
+                url: `/api/secciones/${etapa}`,
+                method: 'GET',
+                success: function(data) {
+                    let html = '';
+                    if (data.length === 0) {
+                        html = '<p class="text-muted text-center">No hay secciones disponibles para esta etapa</p>';
+                    } else {
+                        data.forEach(function(seccion) {
+                            html += `
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="checkbox" id="seccion_${seccion.id}" value="${seccion.id}">
+                                    <label class="form-check-label" for="seccion_${seccion.id}">
+                                        ${seccion.nombre}
+                                    </label>
+                                </div>
+                            `;
+                        });
+                    }
+                    $('#seccionesDisponibles').html(html);
+                },
+                error: function() {
+                    mostrarAlerta('Error al cargar secciones', 'danger');
+                }
+            });
+        }
+
+        function mostrarInfoProfesor() {
+            const profesorId = $('#profesor').val();
+            if (!profesorId) {
+                $('#infoProfesor').hide();
+                return;
+            }
+
+            $.ajax({
+                url: `/api/profesor/${profesorId}/secciones`,
+                method: 'GET',
+                success: function(data) {
+                    let html = `
+                        <h5>${data.profesor.nombre} ${data.profesor.apellido}</h5>
+                        <p><strong>Email:</strong> ${data.profesor.email}</p>
+                        <p><strong>Secciones asignadas:</strong></p>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Etapa</th>
+                                        <th>Sección</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="seccionesAsignadas">
+                    `;
+
+                    if (data.secciones.length === 0) {
+                        html += '<tr><td colspan="3" class="text-center">No hay secciones asignadas</td></tr>';
+                    } else {
+                        data.secciones.forEach(seccion => {
+                            html += `
+                                <tr id="asignacion-${seccion.id}">
+                                    <td>${seccion.etapa}</td>
+                                    <td>${seccion.seccion}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-danger btn-eliminar-seccion" 
+                                                data-seccion-id="${seccion.id}">
+                                            <i class="fas fa-times"></i> Quitar
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                    }
+                    
+                    html += `
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-3">
+                            <button class="btn btn-outline-primary btn-sm" id="btnActualizarAsignaciones">
+                                <i class="fas fa-sync-alt"></i> Actualizar lista
+                            </button>
+                        </div>
+                    `;
+                    
+                    $('#contenidoInfoProfesor').html(html);
+                    $('#infoProfesor').show();
+                    
+                    // Agregar manejador de eventos para los botones de eliminar
+                    $('.btn-eliminar-seccion').click(function() {
+                        const seccionId = $(this).data('seccion-id');
+                        desasignarSeccion(profesorId, seccionId);
+                    });
+                    
+                    // Manejador para actualizar la lista
+                    $('#btnActualizarAsignaciones').click(function() {
+                        mostrarInfoProfesor();
+                    });
+                },
+                error: function() {
+                    mostrarAlerta('Error al cargar información del profesor', 'danger');
+                }
+            });
+        }
+
+        function toggleFormularios() {
+            const cardUsuario = $('.card').first();
+            const cardAsignacion = $('#cardAsignacion');
+            
+            if (cardUsuario.is(':visible')) {
+                cardUsuario.hide();
+                cardAsignacion.show();
+            } else {
+                cardAsignacion.hide();
+                cardUsuario.show();
+            }
+        }
+
+        function crearUsuario() {
+            const nombre = $('#nombre').val().trim();
+            const apellido = $('#apellido').val().trim();
+            const email = $('#email').val().trim();
+            const contraseña = $('#contraseña').val();
+            const rol = $('#rol').val();
+
+            if (!nombre || !apellido || !email || !contraseña || !rol) {
+                mostrarAlerta('Por favor complete todos los campos', 'warning');
+                return;
+            }
+
+            // Validar formato de email
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                mostrarAlerta('Por favor ingrese un email válido', 'warning');
+                return;
+            }
+
+            // Validar longitud de contraseña
+            if (contraseña.length < 6) {
+                mostrarAlerta('La contraseña debe tener al menos 6 caracteres', 'warning');
+                return;
+            }
+
+            const data = {
+                nombre: nombre,
+                apellido: apellido,
+                email: email,
+                contraseña: contraseña,
+                rol: rol
+            };
+
+            $.ajax({
+                url: '/api/usuario',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                success: function(response) {
+                    mostrarAlerta(`Usuario ${rol} creado correctamente`, 'success');
+                    limpiarFormularioUsuario();
+                    if (rol === 'profesor') {
+                        cargarProfesores();
+                        cargarAsignaciones();
+                    }
+                },
+                error: function(xhr) {
+                    const error = xhr.responseJSON ? xhr.responseJSON.error : 'Error al crear usuario';
+                    mostrarAlerta(error, 'danger');
+                }
+            });
+        }
+
+        function limpiarFormularioUsuario() {
+            $('#nombre').val('');
+            $('#apellido').val('');
+            $('#email').val('');
+            $('#contraseña').val('');
+            $('#rol').val('');
+        }
+
+        function asignarSecciones() {
+            const profesorId = $('#profesor').val();
+            const seccionesSeleccionadas = [];
+            
+            // Obtener solo las secciones que no están ya asignadas
+            $('#seccionesDisponibles input[type="checkbox"]:checked:not(:disabled)').each(function() {
+                seccionesSeleccionadas.push(parseInt($(this).val()));
+            });
+
+            if (!profesorId) {
+                mostrarAlerta('Por favor selecciona un profesor', 'warning');
+                return;
+            }
+
+            if (seccionesSeleccionadas.length === 0) {
+                mostrarAlerta('Por favor selecciona al menos una sección disponible', 'warning');
+                return;
+            }
+
+            $.ajax({
+                url: '/api/profesor/asignar-secciones',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    profesor_id: parseInt(profesorId),
+                    secciones: seccionesSeleccionadas
+                }),
+                success: function(response) {
+                    mostrarAlerta('Secciones asignadas correctamente', 'success');
+                    
+                    // Actualizar la lista de secciones disponibles
+                    const etapa = $('#etapa').val();
+                    if (etapa) {
+                        cargarSeccionesPorEtapa();
+                    }
+                    
+                    // Actualizar la información del profesor
+                    mostrarInfoProfesor();
+                    
+                    // Actualizar la tabla de asignaciones
+                    cargarAsignaciones();
+                },
+                error: function(xhr) {
+                    const error = xhr.responseJSON ? xhr.responseJSON.error : 'Error al asignar secciones';
+                    mostrarAlerta(error, 'danger');
+                }
+            });
+        }
+        
+        function desasignarSeccion(profesorId, seccionId) {
+            if (!confirm('¿Estás seguro de que deseas quitar esta sección al profesor?')) {
+                return;
+            }
+            
+            $.ajax({
+                url: `/api/profesor/${profesorId}/seccion/${seccionId}`,
+                method: 'DELETE',
+                success: function(response) {
+                    mostrarAlerta('Sección quitada correctamente', 'success');
+                    
+                    // Actualizar la información del profesor
+                    mostrarInfoProfesor();
+                    
+                    // Si hay una etapa seleccionada, actualizar la lista de secciones
+                    const etapa = $('#etapa').val();
+                    if (etapa) {
+                        cargarSeccionesPorEtapa();
+                    }
+                    
+                    // Actualizar la tabla de asignaciones
+                    cargarAsignaciones();
+                },
+                error: function(xhr) {
+                    const error = xhr.responseJSON ? xhr.responseJSON.error : 'Error al quitar la sección';
+                    mostrarAlerta(error, 'danger');
+                }
+            });
+        }
+
+        function cargarAsignaciones() {
+            $('#loadingAsignaciones').show();
+            
+            $.ajax({
+                url: '/api/profesores/asignaciones',
+                method: 'GET',
+                success: function(data) {
+                    let html = '';
+                    data.forEach(function(profesor) {
+                        let seccionesHtml = '';
+                        if (profesor.secciones.length === 0) {
+                            seccionesHtml = '<span class="badge bg-secondary">Sin asignaciones</span>';
+                        } else {
+                            profesor.secciones.forEach(function(seccion) {
+                                seccionesHtml += `<span class="section-badge">${seccion.etapa} - ${seccion.seccion}</span>`;
+                            });
+                        }
+                        
+                        html += `
+                            <tr>
+                                <td><strong>${profesor.nombre} ${profesor.apellido}</strong></td>
+                                <td>${profesor.email}</td>
+                                <td>${seccionesHtml}</td>
+                                <td><span class="badge bg-info">${profesor.secciones.length}</span></td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-warning me-1" onclick="editarAsignaciones(${profesor.id})">
+                                        <i class="fas fa-edit"></i> Editar
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarAsignaciones(${profesor.id})">
+                                        <i class="fas fa-trash"></i> Limpiar
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    $('#tablaAsignaciones').html(html);
+                    $('#loadingAsignaciones').hide();
+                },
+                error: function() {
+                    mostrarAlerta('Error al cargar asignaciones', 'danger');
+                    $('#loadingAsignaciones').hide();
+                }
+            });
+        }
+
+        function editarAsignaciones(profesorId) {
+            $('#profesor').val(profesorId);
+            mostrarInfoProfesor();
+            mostrarAlerta('Profesor seleccionado para editar asignaciones', 'info');
+        }
+
+        function eliminarAsignaciones(profesorId) {
+            if (confirm('¿Estás seguro de que quieres eliminar todas las asignaciones de este profesor?')) {
+                $.ajax({
+                    url: `/api/profesor/${profesorId}/secciones`,
+                    method: 'DELETE',
+                    success: function(response) {
+                        mostrarAlerta('Asignaciones eliminadas correctamente', 'success');
+                        cargarAsignaciones();
+                        if ($('#profesor').val() == profesorId) {
+                            mostrarInfoProfesor();
+                        }
+                    },
+                    error: function() {
+                        mostrarAlerta('Error al eliminar asignaciones', 'danger');
+                    }
+                });
+            }
+        }
+
+        function limpiarFormulario() {
+            $('#profesor').val('');
+            $('#etapa').val('');
+            $('#seccionesDisponibles').html('<p class="text-muted text-center">Selecciona una etapa para ver las secciones disponibles</p>');
+            $('#infoProfesor').hide();
+            seccionesSeleccionadas = [];
+            profesorEditando = null;
+        }
+
+        function mostrarAlerta(mensaje, tipo) {
+            const alerta = `
+                <div class="alert alert-${tipo} alert-dismissible fade show" role="alert">
+                    <i class="fas fa-info-circle"></i> ${mensaje}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            $('#alertas').html(alerta);
+            
+            // Auto-ocultar después de 5 segundos
+            setTimeout(function() {
+                $('.alert').fadeOut();
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

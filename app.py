@@ -2,7 +2,7 @@ from flask import Flask
 from datetime import datetime
 import os
 from sqlalchemy import func, and_, extract
-from models import db, Estudiante, Asistencia
+from models import db, Etapa, Usuario, Seccion, ProfesorSeccion, Matricula, Asistencia
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'tu_clave_secreta_aqui'
