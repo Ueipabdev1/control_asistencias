@@ -1,4 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import UserMixin
 from datetime import datetime
 
 db = SQLAlchemy()
@@ -18,7 +19,7 @@ class Etapa(db.Model):
         return f'<Etapa {self.nombre_etapa}>'
 
 # Modelo para usuarios (administradores y profesores)
-class Usuario(db.Model):
+class Usuario(UserMixin, db.Model):
     __tablename__ = 'usuario'
     
     id_usuario = db.Column(db.Integer, primary_key=True)
@@ -31,6 +32,18 @@ class Usuario(db.Model):
     
     # Relación con secciones (solo para profesores)
     secciones = db.relationship('ProfesorSeccion', backref='profesor', lazy=True)
+    
+    # Métodos requeridos por Flask-Login
+    def get_id(self):
+        return str(self.id_usuario)
+    
+    @property
+    def is_admin(self):
+        return self.rol == 'administrador'
+    
+    @property
+    def is_profesor(self):
+        return self.rol == 'profesor'
     
     def __repr__(self):
         return f'<Usuario {self.nombre} {self.apellido} - {self.rol}>'

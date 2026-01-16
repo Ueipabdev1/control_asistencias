@@ -1,7 +1,32 @@
-from flask import Blueprint, render_template, request, jsonify, redirect, url_for
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash, session, abort
 from datetime import datetime, timedelta
 from sqlalchemy import func, and_, extract
+from flask_login import login_user, logout_user, login_required, current_user
+from functools import wraps
 from models import db, Etapa, Usuario, Seccion, ProfesorSeccion, Matricula, Asistencia
+
+# Decorador para verificar roles
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return redirect(url_for('auth.login'))
+        if current_user.rol != 'administrador':
+            flash('No tienes permisos para acceder a esta página', 'danger')
+            return redirect(url_for('main.index'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def profesor_or_admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return redirect(url_for('auth.login'))
+        if current_user.rol not in ['administrador', 'profesor']:
+            flash('No tienes permisos para acceder a esta página', 'danger')
+            return redirect(url_for('main.index'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 # Blueprint para las rutas principales
 main_bp = Blueprint('main', __name__)
@@ -9,21 +34,39 @@ main_bp = Blueprint('main', __name__)
 # Blueprint para las rutas de administración
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
 
+# Blueprint para autenticación
+auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
+
 # ==================== RUTAS PRINCIPALES ====================
 
 @main_bp.route('/')
+@login_required
 def index():
     """Página principal - Control de asistencias"""
     return render_template('index.html')
 
 @main_bp.route('/secciones')
+@login_required
 def obtener_secciones():
     """API para obtener lista de secciones con su matrícula"""
-    secciones = db.session.query(Seccion, Etapa, Matricula).join(
-        Etapa, Seccion.id_etapa == Etapa.id_etapa
-    ).outerjoin(
-        Matricula, Seccion.id_seccion == Matricula.id_seccion
-    ).all()
+    # Si es administrador, mostrar todas las secciones
+    if current_user.is_admin:
+        secciones = db.session.query(Seccion, Etapa, Matricula).join(
+            Etapa, Seccion.id_etapa == Etapa.id_etapa
+        ).outerjoin(
+            Matricula, Seccion.id_seccion == Matricula.id_seccion
+        ).all()
+    else:
+        # Si es profesor, solo mostrar sus secciones asignadas
+        secciones = db.session.query(Seccion, Etapa, Matricula).join(
+            Etapa, Seccion.id_etapa == Etapa.id_etapa
+        ).outerjoin(
+            Matricula, Seccion.id_seccion == Matricula.id_seccion
+        ).join(
+            ProfesorSeccion, Seccion.id_seccion == ProfesorSeccion.id_seccion
+        ).filter(
+            ProfesorSeccion.id_profesor == current_user.id_usuario
+        ).all()
     
     return jsonify([{
         'id_seccion': s.Seccion.id_seccion,
@@ -35,6 +78,7 @@ def obtener_secciones():
     } for s in secciones])
 
 @main_bp.route('/guardar_asistencia', methods=['POST'])
+@login_required
 def guardar_asistencia():
     """API para guardar asistencias diarias por sección"""
     try:
@@ -51,6 +95,19 @@ def guardar_asistencia():
         seccion = Seccion.query.get(id_seccion)
         if not seccion:
             return jsonify({'success': False, 'message': 'Sección no encontrada'})
+        
+        # Si es profesor, verificar que tiene asignada esta sección
+        if not current_user.is_admin:
+            asignacion = ProfesorSeccion.query.filter_by(
+                id_profesor=current_user.id_usuario,
+                id_seccion=id_seccion
+            ).first()
+            
+            if not asignacion:
+                return jsonify({
+                    'success': False, 
+                    'message': 'No tienes permisos para registrar asistencia en esta sección'
+                }), 403
         
         # Buscar asistencia existente para esta fecha y sección
         asistencia_existente = Asistencia.query.filter_by(
@@ -80,15 +137,28 @@ def guardar_asistencia():
         return jsonify({'success': False, 'message': f'Error al guardar: {str(e)}'})
 
 @main_bp.route('/obtener_asistencia/<fecha>')
+@login_required
 def obtener_asistencia(fecha):
     """API para obtener asistencias de una fecha específica"""
     try:
         fecha_obj = datetime.strptime(fecha, '%Y-%m-%d').date()
-        asistencias = db.session.query(Asistencia, Seccion, Etapa).join(
+        
+        # Query base
+        query = db.session.query(Asistencia, Seccion, Etapa).join(
             Seccion, Asistencia.id_seccion == Seccion.id_seccion
         ).join(
             Etapa, Seccion.id_etapa == Etapa.id_etapa
-        ).filter(Asistencia.fecha == fecha_obj).all()
+        ).filter(Asistencia.fecha == fecha_obj)
+        
+        # Si es profesor, filtrar solo sus secciones asignadas
+        if not current_user.is_admin:
+            query = query.join(
+                ProfesorSeccion, Seccion.id_seccion == ProfesorSeccion.id_seccion
+            ).filter(
+                ProfesorSeccion.id_profesor == current_user.id_usuario
+            )
+        
+        asistencias = query.all()
         
         return jsonify([{
             'id_seccion': a.Asistencia.id_seccion,
@@ -105,20 +175,26 @@ def obtener_asistencia(fecha):
 # ==================== RUTAS DE ADMINISTRACIÓN ====================
 
 @main_bp.route('/admin_dashboard')
+@login_required
+@admin_required
 def admin_dashboard():
-    """Dashboard administrativo"""
+    """Dashboard administrativo - Solo administradores"""
     return render_template('admin_dashboard.html')
 
 @main_bp.route('/gestion_matricula')
+@login_required
+@admin_required
 def gestion_matricula():
-    """Gestión de matrícula por secciones"""
+    """Gestión de matrícula por secciones - Solo administradores"""
     return render_template('gestion_matricula.html')
 
 # ==================== RUTAS PARA GESTIÓN DE PROFESORES ====================
 
 @main_bp.route('/gestion_profesores')
+@login_required
+@admin_required
 def gestion_profesores():
-    """Gestión de profesores y asignación de secciones"""
+    """Gestión de profesores y asignación de secciones - Solo administradores"""
     return render_template('gestion_profesores.html')
 
 # ==================== API ENDPOINTS PARA USUARIOS ====================
@@ -500,7 +576,7 @@ def obtener_estadisticas():
         fecha_inicio = request.args.get('fecha_inicio')
         fecha_fin = request.args.get('fecha_fin')
         etapa = request.args.get('etapa', '')
-        periodo = request.args.get('periodo', 'daily')
+        seccion = request.args.get('seccion', '')
         
         # Convertir fechas
         if fecha_inicio:
@@ -517,6 +593,8 @@ def obtener_estadisticas():
         secciones_query = db.session.query(Seccion).join(Etapa)
         if etapa:
             secciones_query = secciones_query.filter(Etapa.nombre_etapa == etapa)
+        if seccion:
+            secciones_query = secciones_query.filter(Seccion.id_seccion == int(seccion))
         
         # Filtro base de asistencias
         asistencias_query = db.session.query(Asistencia).join(Seccion).join(Etapa).filter(
@@ -524,6 +602,8 @@ def obtener_estadisticas():
         )
         if etapa:
             asistencias_query = asistencias_query.filter(Etapa.nombre_etapa == etapa)
+        if seccion:
+            asistencias_query = asistencias_query.filter(Seccion.id_seccion == int(seccion))
         
         # Estadísticas generales
         total_secciones = secciones_query.count()
@@ -535,6 +615,8 @@ def obtener_estadisticas():
         ).join(Seccion).join(Etapa)
         if etapa:
             total_estudiantes = total_estudiantes.filter(Etapa.nombre_etapa == etapa)
+        if seccion:
+            total_estudiantes = total_estudiantes.filter(Seccion.id_seccion == int(seccion))
         total_estudiantes = total_estudiantes.scalar() or 0
         
         # Calcular total de asistentes
@@ -545,9 +627,15 @@ def obtener_estadisticas():
         )
         if etapa:
             total_asistentes = total_asistentes.filter(Etapa.nombre_etapa == etapa)
+        if seccion:
+            total_asistentes = total_asistentes.filter(Seccion.id_seccion == int(seccion))
         total_asistentes = total_asistentes.scalar() or 0
         
-        porcentaje_total = round((total_asistentes / (total_estudiantes * total_asistencias) * 100) if total_estudiantes > 0 and total_asistencias > 0 else 0, 1)
+        # Calcular días analizados
+        dias_analizados = (fecha_fin - fecha_inicio).days + 1
+        
+        # Calcular porcentaje de asistencia: (total asistentes / (matrícula * días)) * 100
+        porcentaje_total = round((total_asistentes / (total_estudiantes * dias_analizados) * 100) if total_estudiantes > 0 and dias_analizados > 0 else 0, 1)
         
         # Estadísticas por género
         stats_genero = db.session.query(
@@ -562,19 +650,33 @@ def obtener_estadisticas():
         
         if etapa:
             stats_genero = stats_genero.filter(Etapa.nombre_etapa == etapa)
+        if seccion:
+            stats_genero = stats_genero.filter(Seccion.id_seccion == int(seccion))
         
         genero_result = stats_genero.first()
-        genero_data = {}
-        if genero_result:
+        genero_data = {
+            'masculino': {
+                'total': 0,
+                'matricula': 0,
+                'porcentaje': 0
+            },
+            'femenino': {
+                'total': 0,
+                'matricula': 0,
+                'porcentaje': 0
+            }
+        }
+        
+        if genero_result and genero_result.total_h is not None:
             genero_data['masculino'] = {
-                'total': genero_result.total_h or 0,
-                'matricula': genero_result.matricula_h or 0,
-                'porcentaje': round((genero_result.total_h / (genero_result.matricula_h * total_asistencias) * 100) if genero_result.matricula_h and total_asistencias else 0, 1)
+                'total': int(genero_result.total_h or 0),
+                'matricula': int(genero_result.matricula_h or 0),
+                'porcentaje': round((genero_result.total_h / (genero_result.matricula_h * dias_analizados) * 100) if genero_result.matricula_h and dias_analizados else 0, 1)
             }
             genero_data['femenino'] = {
-                'total': genero_result.total_m or 0,
-                'matricula': genero_result.matricula_m or 0,
-                'porcentaje': round((genero_result.total_m / (genero_result.matricula_m * total_asistencias) * 100) if genero_result.matricula_m and total_asistencias else 0, 1)
+                'total': int(genero_result.total_m or 0),
+                'matricula': int(genero_result.matricula_m or 0),
+                'porcentaje': round((genero_result.total_m / (genero_result.matricula_m * dias_analizados) * 100) if genero_result.matricula_m and dias_analizados else 0, 1)
             }
         
         # Estadísticas por sección
@@ -589,6 +691,8 @@ def obtener_estadisticas():
         
         if etapa:
             stats_seccion = stats_seccion.filter(Etapa.nombre_etapa == etapa)
+        if seccion:
+            stats_seccion = stats_seccion.filter(Seccion.id_seccion == int(seccion))
         
         stats_seccion = stats_seccion.group_by(Seccion.nombre_seccion).all()
         
@@ -623,72 +727,34 @@ def obtener_estadisticas():
                 'porcentaje': porcentaje
             }
         
-        # Tendencia temporal según el período
-        if periodo == 'daily':
-            # Últimos 7 días
-            tendencia_query = db.session.query(
-                Asistencia.fecha,
-                func.sum(Asistencia.asistentes_h + Asistencia.asistentes_m).label('total_asistentes'),
-                func.sum(Matricula.num_estudiantes_h + Matricula.num_estudiantes_m).label('total_matricula')
-            ).join(Seccion, Asistencia.id_seccion == Seccion.id_seccion
-            ).join(Etapa, Seccion.id_etapa == Etapa.id_etapa
-            ).join(Matricula, Seccion.id_seccion == Matricula.id_seccion
-            ).filter(and_(Asistencia.fecha >= fecha_inicio, Asistencia.fecha <= fecha_fin))
-            
-            if etapa:
-                tendencia_query = tendencia_query.filter(Etapa.nombre_etapa == etapa)
-            tendencia_query = tendencia_query.group_by(Asistencia.fecha).order_by(Asistencia.fecha)
-            
-        elif periodo == 'weekly':
-            # Últimas 4 semanas
-            tendencia_query = db.session.query(
-                func.date_format(Asistencia.fecha, '%Y-%u').label('semana'),
-                func.sum(Asistencia.asistentes_h + Asistencia.asistentes_m).label('total_asistentes'),
-                func.avg(Matricula.num_estudiantes_h + Matricula.num_estudiantes_m).label('promedio_matricula')
-            ).join(Seccion, Asistencia.id_seccion == Seccion.id_seccion
-            ).join(Etapa, Seccion.id_etapa == Etapa.id_etapa
-            ).join(Matricula, Seccion.id_seccion == Matricula.id_seccion
-            ).filter(and_(Asistencia.fecha >= fecha_inicio, Asistencia.fecha <= fecha_fin))
-            
-            if etapa:
-                tendencia_query = tendencia_query.filter(Etapa.nombre_etapa == etapa)
-            tendencia_query = tendencia_query.group_by(func.date_format(Asistencia.fecha, '%Y-%u')).order_by('semana')
-            
-        else:  # monthly
-            # Últimos 6 meses
-            tendencia_query = db.session.query(
-                func.date_format(Asistencia.fecha, '%Y-%m').label('mes'),
-                func.sum(Asistencia.asistentes_h + Asistencia.asistentes_m).label('total_asistentes'),
-                func.avg(Matricula.num_estudiantes_h + Matricula.num_estudiantes_m).label('promedio_matricula')
-            ).join(Seccion, Asistencia.id_seccion == Seccion.id_seccion
-            ).join(Etapa, Seccion.id_etapa == Etapa.id_etapa
-            ).join(Matricula, Seccion.id_seccion == Matricula.id_seccion
-            ).filter(and_(Asistencia.fecha >= fecha_inicio, Asistencia.fecha <= fecha_fin))
-            
-            if etapa:
-                tendencia_query = tendencia_query.filter(Etapa.nombre_etapa == etapa)
-            tendencia_query = tendencia_query.group_by(func.date_format(Asistencia.fecha, '%Y-%m')).order_by('mes')
+        # Tendencia temporal por fecha (agrupación diaria)
+        tendencia_query = db.session.query(
+            Asistencia.fecha,
+            func.sum(Asistencia.asistentes_h + Asistencia.asistentes_m).label('total_asistentes'),
+            func.sum(Matricula.num_estudiantes_h + Matricula.num_estudiantes_m).label('total_matricula')
+        ).join(Seccion, Asistencia.id_seccion == Seccion.id_seccion
+        ).join(Etapa, Seccion.id_etapa == Etapa.id_etapa
+        ).join(Matricula, Seccion.id_seccion == Matricula.id_seccion
+        ).filter(and_(Asistencia.fecha >= fecha_inicio, Asistencia.fecha <= fecha_fin))
+        
+        if etapa:
+            tendencia_query = tendencia_query.filter(Etapa.nombre_etapa == etapa)
+        if seccion:
+            tendencia_query = tendencia_query.filter(Seccion.id_seccion == int(seccion))
+        
+        tendencia_query = tendencia_query.group_by(Asistencia.fecha).order_by(Asistencia.fecha)
         
         tendencia_data = []
         for item in tendencia_query.all():
-            if periodo == 'daily':
-                total_esperado = item.total_matricula or 0
-                porcentaje = round((item.total_asistentes / total_esperado * 100) if total_esperado > 0 else 0, 1)
-            else:
-                # Para weekly y monthly, calcular basado en días del período
-                dias_periodo = 7 if periodo == 'weekly' else 30  # Aproximado para monthly
-                total_esperado = (item.promedio_matricula or 0) * dias_periodo
-                porcentaje = round((item.total_asistentes / total_esperado * 100) if total_esperado > 0 else 0, 1)
+            total_esperado = item.total_matricula or 0
+            porcentaje = round((item.total_asistentes / total_esperado * 100) if total_esperado > 0 else 0, 1)
             
             tendencia_data.append({
-                'periodo': str(item[0]),  # fecha, semana o mes
+                'periodo': str(item.fecha),
                 'total_asistentes': item.total_asistentes or 0,
                 'total_esperado': int(total_esperado),
                 'porcentaje': porcentaje
             })
-        
-        # Días analizados
-        dias_analizados = (fecha_fin - fecha_inicio).days + 1
         
         return jsonify({
             'success': True,
@@ -703,7 +769,6 @@ def obtener_estadisticas():
             'por_seccion': seccion_data,
             'por_etapa': etapa_data,
             'tendencia_temporal': tendencia_data,
-            'periodo': periodo,
             'fecha_inicio': fecha_inicio.isoformat(),
             'fecha_fin': fecha_fin.isoformat()
         })
@@ -778,10 +843,149 @@ def gestionar_matricula():
 
 @main_bp.route('/ir_admin')
 def ir_admin():
-    """Redirección al panel de administración"""
     return redirect(url_for('admin.dashboard'))
 
 @admin_bp.route('/ir_inicio')
 def ir_inicio():
-    """Redirección al inicio"""
+    """Redirección a la página de inicio"""
     return redirect(url_for('main.index'))
+
+# ==================== RUTAS DE AUTENTICACIÓN ====================
+
+@auth_bp.route('/login', methods=['GET', 'POST'])
+def login():
+    """Ruta de inicio de sesión"""
+    if current_user.is_authenticated:
+        return redirect(url_for('main.index'))
+    
+    if request.method == 'POST':
+        from app import bcrypt
+        
+        data = request.get_json() if request.is_json else request.form
+        email = data.get('email', '').strip().lower()
+        password = data.get('password', '')
+        remember = data.get('remember', False)
+        
+        if not email or not password:
+            if request.is_json:
+                return jsonify({'success': False, 'message': 'Email y contraseña son requeridos'}), 400
+            flash('Email y contraseña son requeridos', 'danger')
+            return redirect(url_for('auth.login'))
+        
+        usuario = Usuario.query.filter_by(email=email).first()
+        
+        if usuario and bcrypt.check_password_hash(usuario.contraseña, password):
+            login_user(usuario, remember=remember)
+            next_page = request.args.get('next')
+            
+            if request.is_json:
+                return jsonify({
+                    'success': True, 
+                    'message': 'Inicio de sesión exitoso',
+                    'redirect': next_page or url_for('main.index'),
+                    'user': {
+                        'nombre': usuario.nombre,
+                        'apellido': usuario.apellido,
+                        'rol': usuario.rol
+                    }
+                })
+            
+            flash(f'¡Bienvenido {usuario.nombre}!', 'success')
+            return redirect(next_page) if next_page else redirect(url_for('main.index'))
+        else:
+            if request.is_json:
+                return jsonify({'success': False, 'message': 'Email o contraseña incorrectos'}), 401
+            flash('Email o contraseña incorrectos', 'danger')
+            return redirect(url_for('auth.login'))
+    
+    return render_template('login.html')
+
+@auth_bp.route('/logout')
+@login_required
+def logout():
+    """Ruta de cierre de sesión"""
+    logout_user()
+    flash('Has cerrado sesión exitosamente', 'info')
+    return redirect(url_for('auth.login'))
+
+@auth_bp.route('/registro', methods=['GET', 'POST'])
+def registro():
+    """Ruta de registro de nuevos usuarios"""
+    if current_user.is_authenticated:
+        return redirect(url_for('main.index'))
+    
+    if request.method == 'POST':
+        from app import bcrypt
+        
+        data = request.get_json() if request.is_json else request.form
+        nombre = data.get('nombre', '').strip()
+        apellido = data.get('apellido', '').strip()
+        email = data.get('email', '').strip().lower()
+        password = data.get('password', '')
+        confirm_password = data.get('confirm_password', '')
+        rol = data.get('rol', 'profesor')
+        
+        # Validaciones
+        if not all([nombre, apellido, email, password, confirm_password]):
+            if request.is_json:
+                return jsonify({'success': False, 'message': 'Todos los campos son requeridos'}), 400
+            flash('Todos los campos son requeridos', 'danger')
+            return redirect(url_for('auth.registro'))
+        
+        if password != confirm_password:
+            if request.is_json:
+                return jsonify({'success': False, 'message': 'Las contraseñas no coinciden'}), 400
+            flash('Las contraseñas no coinciden', 'danger')
+            return redirect(url_for('auth.registro'))
+        
+        if len(password) < 6:
+            if request.is_json:
+                return jsonify({'success': False, 'message': 'La contraseña debe tener al menos 6 caracteres'}), 400
+            flash('La contraseña debe tener al menos 6 caracteres', 'danger')
+            return redirect(url_for('auth.registro'))
+        
+        if rol not in ['profesor', 'administrador']:
+            rol = 'profesor'
+        
+        # Verificar si el email ya existe
+        usuario_existente = Usuario.query.filter_by(email=email).first()
+        if usuario_existente:
+            if request.is_json:
+                return jsonify({'success': False, 'message': 'Ya existe un usuario con este email'}), 400
+            flash('Ya existe un usuario con este email', 'danger')
+            return redirect(url_for('auth.registro'))
+        
+        try:
+            # Encriptar contraseña
+            hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
+            
+            # Crear nuevo usuario
+            nuevo_usuario = Usuario(
+                nombre=nombre,
+                apellido=apellido,
+                email=email,
+                contraseña=hashed_password,
+                rol=rol
+            )
+            
+            db.session.add(nuevo_usuario)
+            db.session.commit()
+            
+            if request.is_json:
+                return jsonify({
+                    'success': True, 
+                    'message': 'Usuario registrado exitosamente',
+                    'redirect': url_for('auth.login')
+                }), 201
+            
+            flash('¡Registro exitoso! Ahora puedes iniciar sesión', 'success')
+            return redirect(url_for('auth.login'))
+            
+        except Exception as e:
+            db.session.rollback()
+            if request.is_json:
+                return jsonify({'success': False, 'message': f'Error al registrar usuario: {str(e)}'}), 500
+            flash(f'Error al registrar usuario: {str(e)}', 'danger')
+            return redirect(url_for('auth.registro'))
+    
+    return render_template('registro.html')
