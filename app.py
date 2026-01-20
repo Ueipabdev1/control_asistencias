@@ -7,7 +7,9 @@ from flask_bcrypt import Bcrypt
 from models import db, Etapa, Usuario, Seccion, ProfesorSeccion, Matricula, Asistencia
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'tu_clave_secreta_aqui'
+
+# Configuración desde variables de entorno
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'tu_clave_secreta_aqui')
 
 # Inicializar Flask-Login
 login_manager = LoginManager()
@@ -20,8 +22,11 @@ login_manager.login_message_category = 'info'
 bcrypt = Bcrypt(app)
 
 # Configuración para MariaDB/MySQL
-# Actualiza estos valores con tus credenciales de MariaDB
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:0000@localhost/control_asistencias?charset=utf8mb4'
+# En producción (Railway), usa DATABASE_URL de las variables de entorno
+# En desarrollo local, usa la configuración por defecto
+database_url = os.environ.get('DATABASE_URL', 'mysql+pymysql://root:0000@localhost/control_asistencias?charset=utf8mb4')
+
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_pre_ping': True,
