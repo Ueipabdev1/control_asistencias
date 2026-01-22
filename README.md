@@ -108,7 +108,9 @@ control_asistencias/
 ├── requirements.txt        # Dependencias Python
 ├── database_schema.sql     # Esquema de la base de datos
 ├── seed_data.sql           # Datos de prueba
+├── .env                    # Variables de entorno (no versionado)
 ├── .env.example            # Ejemplo de configuración
+├── git_credentials.json    # Credenciales Git (no versionado)
 ├── templates/
 │   ├── base.html           # Plantilla base
 │   ├── login.html          # Página de inicio de sesión
@@ -119,6 +121,17 @@ control_asistencias/
 │   └── gestion_profesores.html # Gestión de profesores
 └── README.md
 ```
+
+## Archivos Sensibles (No Versionados)
+
+Los siguientes archivos contienen información sensible y están excluidos del repositorio:
+
+| Archivo | Descripción |
+|---------|-------------|
+| `.env` | Variables de entorno (credenciales BD, SECRET_KEY) |
+| `git_credentials.json` | Token de acceso GitHub para push/pull |
+
+Estos archivos existen solo en el servidor de producción.
 
 ## Tecnologías Utilizadas
 

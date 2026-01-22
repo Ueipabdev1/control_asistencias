@@ -138,6 +138,9 @@ celerybeat.pid
 .env
 .envrc
 .venv
+
+# Git credentials (sensitive)
+git_credentials.json
 env/
 venv/
 ENV/
