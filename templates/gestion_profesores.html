@@ -295,7 +295,7 @@
     
     function cargarSecciones() {
         $.ajax({
-            url: '/secciones',
+            url: BASE_URL + '/secciones',
             method: 'GET',
             success: function(data) {
                 secciones = data;
@@ -313,7 +313,7 @@
         };
         
         $.ajax({
-            url: '/api/usuario',
+            url: BASE_URL + '/api/usuario',
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify(data),
@@ -331,7 +331,7 @@
     
     function cargarProfesores() {
         $.ajax({
-            url: '/api/profesores/asignaciones',
+            url: BASE_URL + '/api/profesores/asignaciones',
             method: 'GET',
             success: function(data) {
                 profesores = data;
@@ -444,7 +444,7 @@
         }
         
         $.ajax({
-            url: '/api/profesor/asignar-secciones',
+            url: BASE_URL + '/api/profesor/asignar-secciones',
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({

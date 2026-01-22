@@ -205,7 +205,7 @@
     
     function cargarSecciones() {
         $.ajax({
-            url: '/secciones',
+            url: BASE_URL + '/secciones',
             method: 'GET',
             success: function(data) {
                 secciones = data;
@@ -248,7 +248,7 @@
         }
         
         $.ajax({
-            url: '/guardar_asistencia',
+            url: BASE_URL + '/guardar_asistencia',
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify(data),

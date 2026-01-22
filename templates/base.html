@@ -304,6 +304,9 @@
         }
     </style>
     {% block extra_css %}{% endblock %}
+    <script>
+        const BASE_URL = "{{ url_for('main.index') }}".replace(/\/$/, '');
+    </script>
 </head>
 <body>
     <!-- Mobile Menu Button -->

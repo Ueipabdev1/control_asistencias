@@ -1,34 +1,35 @@
 # Sistema de Control de Asistencias
 
-Una aplicación web moderna desarrollada con Flask y AJAX para que los profesores puedan gestionar la asistencia de estudiantes de manera eficiente.
+Una aplicación web moderna desarrollada con Flask para gestionar la asistencia de estudiantes en instituciones educativas.
 
 ## Características
 
-- ✅ Interfaz moderna y responsiva con Bootstrap 5
-- ✅ Gestión dinámica de estudiantes con AJAX
-- ✅ Registro de asistencia por fecha
-- ✅ Campo de observaciones para cada estudiante
-- ✅ Carga y edición de asistencias existentes
-- ✅ Agregar nuevos estudiantes dinámicamente
-- ✅ Base de datos SQLite integrada
-- ✅ Validaciones y alertas en tiempo real
+- Interfaz moderna y responsiva con Bootstrap 5
+- Sistema de autenticación con roles (Administrador/Profesor)
+- Gestión de asistencia por secciones y etapas educativas (Maternal, Primaria, Secundaria)
+- Registro de asistencia diferenciado por género
+- Dashboard administrativo con estadísticas
+- Gestión de matrícula por sección
+- Asignación de profesores a secciones
+- Base de datos MariaDB/MySQL
 
-## Instalación
+## Requisitos
+
+- Python 3.10+
+- MariaDB/MySQL
+- Nginx (para producción)
+
+## Instalación Local
 
 1. **Clonar el repositorio:**
    ```bash
-   git clone <url-del-repositorio>
+   git clone https://github.com/Ueipabdev1/control_asistencias.git
    cd control_asistencias
    ```
 
-2. **Crear un entorno virtual (recomendado):**
+2. **Crear un entorno virtual:**
    ```bash
-   python -m venv venv
-   
-   # En Windows:
-   venv\Scripts\activate
-   
-   # En macOS/Linux:
+   python3 -m venv venv
    source venv/bin/activate
    ```
 
@@ -37,88 +38,131 @@ Una aplicación web moderna desarrollada con Flask y AJAX para que los profesore
    pip install -r requirements.txt
    ```
 
-## Uso
+4. **Configurar la base de datos:**
+   ```bash
+   # Crear la base de datos en MariaDB
+   mysql -u root -p < database_schema.sql
 
-1. **Ejecutar la aplicación:**
+   # (Opcional) Cargar datos de prueba
+   mysql -u root -p control_asistencias < seed_data.sql
+   ```
+
+5. **Configurar variables de entorno:**
+   ```bash
+   cp .env.example .env
+   # Editar .env con las credenciales de la base de datos
+   ```
+
+6. **Ejecutar la aplicación:**
    ```bash
    python app.py
    ```
 
-2. **Abrir en el navegador:**
+7. **Abrir en el navegador:**
    ```
    http://localhost:5000
    ```
 
-## Funcionalidades
+## Despliegue en Producción (UEIPAB)
 
-### Gestión de Estudiantes
-- La aplicación incluye 5 estudiantes de ejemplo al iniciar
-- Puedes agregar nuevos estudiantes usando el formulario en la parte superior
-- Cada estudiante tiene: nombre, apellido y código único
+La aplicación está desplegada en el servidor de desarrollo de UEIPAB.
 
-### Registro de Asistencia
-- Selecciona la fecha de la clase
-- Marca cada estudiante como "Presente" o "Ausente"
-- Agrega observaciones opcionales para cada estudiante
-- Guarda la asistencia con un clic
+### URL de Producción
+```
+https://dev.ueipab.edu.ve/control_asistencias/
+```
 
-### Cargar Asistencias Existentes
-- Selecciona una fecha y haz clic en "Cargar Asistencia Existente"
-- Edita y actualiza asistencias previamente guardadas
+### Configuración del Servidor
+
+| Componente | Configuración |
+|------------|---------------|
+| Puerto | 5006 |
+| Servicio | `control_asistencias.service` |
+| Base de datos | `control_asistencias` (MariaDB) |
+| Usuario DB | `control_asist` |
+| Servidor web | Nginx reverse proxy |
+
+### Comandos Útiles
+
+```bash
+# Estado del servicio
+sudo systemctl status control_asistencias
+
+# Reiniciar servicio
+sudo systemctl restart control_asistencias
+
+# Ver logs
+sudo journalctl -u control_asistencias -f
+
+# Probar configuración de Nginx
+sudo nginx -t && sudo systemctl reload nginx
+```
 
 ## Estructura del Proyecto
 
 ```
 control_asistencias/
-├── app.py                 # Aplicación principal Flask
-├── requirements.txt       # Dependencias del proyecto
-├── asistencias.db        # Base de datos SQLite (se crea automáticamente)
+├── app.py                  # Aplicación principal Flask
+├── models.py               # Modelos SQLAlchemy
+├── routes.py               # Rutas y endpoints API
+├── requirements.txt        # Dependencias Python
+├── database_schema.sql     # Esquema de la base de datos
+├── seed_data.sql           # Datos de prueba
+├── .env.example            # Ejemplo de configuración
 ├── templates/
-│   └── index.html        # Plantilla HTML principal
-└── README.md            # Este archivo
+│   ├── base.html           # Plantilla base
+│   ├── login.html          # Página de inicio de sesión
+│   ├── registro.html       # Registro de usuarios
+│   ├── index.html          # Dashboard principal (profesores)
+│   ├── admin_dashboard.html    # Dashboard administrativo
+│   ├── gestion_matricula.html  # Gestión de matrículas
+│   └── gestion_profesores.html # Gestión de profesores
+└── README.md
 ```
 
 ## Tecnologías Utilizadas
 
-- **Backend:** Flask, SQLAlchemy
+- **Backend:** Flask, Flask-SQLAlchemy, Flask-Login, Flask-Bcrypt
 - **Frontend:** HTML5, CSS3, JavaScript (jQuery), Bootstrap 5
-- **Base de datos:** SQLite
-- **AJAX:** Para comunicación asíncrona
+- **Base de datos:** MariaDB/MySQL
+- **Servidor:** Gunicorn + Nginx
 - **Iconos:** Font Awesome
 
 ## API Endpoints
 
-- `GET /` - Página principal
-- `GET /estudiantes` - Obtener lista de estudiantes
-- `POST /guardar_asistencia` - Guardar asistencia
-- `GET /obtener_asistencia/<fecha>` - Obtener asistencia por fecha
-- `POST /agregar_estudiante` - Agregar nuevo estudiante
+### Autenticación
+- `GET/POST /auth/login` - Inicio de sesión
+- `GET /auth/logout` - Cerrar sesión
+- `GET/POST /auth/registro` - Registro de usuarios
 
-## Personalización
+### Principal
+- `GET /` - Dashboard principal
+- `GET /secciones` - Lista de secciones con matrícula
+- `POST /guardar_asistencia` - Guardar registro de asistencia
 
-### Cambiar el diseño
-Edita los estilos CSS en `templates/index.html` para personalizar la apariencia.
+### Administración
+- `GET /admin/dashboard` - Dashboard administrativo
+- `GET /admin/estadisticas` - Estadísticas de asistencia
+- `GET /admin/gestion-matricula` - Gestión de matrícula
+- `GET /admin/gestion-profesores` - Gestión de profesores
 
-### Agregar campos adicionales
-Modifica los modelos en `app.py` y actualiza la interfaz en `index.html`.
+### API
+- `POST /api/usuario` - Crear usuario
+- `GET /api/profesores/asignaciones` - Lista de profesores con asignaciones
+- `POST /api/profesor/asignar-secciones` - Asignar secciones a profesor
+- `POST /api/matricula` - Guardar matrícula
+- `GET /api/matriculas` - Lista de matrículas
 
-### Configurar base de datos
-Por defecto usa SQLite. Para usar otra base de datos, modifica `SQLALCHEMY_DATABASE_URI` en `app.py`.
+## Usuarios de Prueba
 
-## Desarrollo
+Si se cargaron los datos de prueba (`seed_data.sql`):
 
-Para contribuir al proyecto:
-
-1. Fork el repositorio
-2. Crea una rama para tu feature (`git checkout -b feature/nueva-funcionalidad`)
-3. Commit tus cambios (`git commit -am 'Agregar nueva funcionalidad'`)
-4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
-5. Crea un Pull Request
+| Rol | Email | Contraseña |
+|-----|-------|------------|
+| Administrador | admin@ueipab.edu | password123 |
+| Administrador | maria.gonzalez@ueipab.edu | password123 |
+| Profesor | ana.martinez@ueipab.edu | password123 |
 
 ## Licencia
 
 Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
-
-## Soporte
-
-Si encuentras algún problema o tienes sugerencias, por favor crea un issue en el repositorio.

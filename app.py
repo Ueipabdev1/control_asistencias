@@ -1,12 +1,33 @@
 from flask import Flask
 from datetime import datetime
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 from sqlalchemy import func, and_, extract
 from flask_login import LoginManager
 from flask_bcrypt import Bcrypt
+from werkzeug.middleware.proxy_fix import ProxyFix
 from models import db, Etapa, Usuario, Seccion, ProfesorSeccion, Matricula, Asistencia
 
 app = Flask(__name__)
+
+# Handle reverse proxy with script name prefix
+class ReverseProxied:
+    def __init__(self, app):
+        self.app = app
+
+    def __call__(self, environ, start_response):
+        script_name = environ.get('HTTP_X_SCRIPT_NAME', '')
+        if script_name:
+            environ['SCRIPT_NAME'] = script_name
+            path_info = environ['PATH_INFO']
+            if path_info.startswith(script_name):
+                environ['PATH_INFO'] = path_info[len(script_name):]
+        return self.app(environ, start_response)
+
+app.wsgi_app = ReverseProxied(app.wsgi_app)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
 # Configuración desde variables de entorno
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'tu_clave_secreta_aqui')

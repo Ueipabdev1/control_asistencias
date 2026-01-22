@@ -317,7 +317,7 @@
         const etapa = $('#filtroEtapa').val();
         
         $.ajax({
-            url: '/secciones',
+            url: BASE_URL + '/secciones',
             method: 'GET',
             success: function(secciones) {
                 const $select = $('#filtroSeccion');
@@ -344,7 +344,7 @@
         const seccion = $('#filtroSeccion').val();
         
         $.ajax({
-            url: '/admin/estadisticas',
+            url: BASE_URL + '/admin/estadisticas',
             method: 'GET',
             data: {
                 fecha_inicio: fechaInicio,
