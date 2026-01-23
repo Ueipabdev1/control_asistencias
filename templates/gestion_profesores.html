@@ -374,8 +374,11 @@
                             <p><span class="badge bg-info">${profesor.secciones.length} sección(es) asignada(s)</span></p>
                         </div>
                         <div>
-                            <button class="btn btn-sm btn-success" onclick="abrirModalAsignar(${profesor.id})">
+                            <button class="btn btn-sm btn-success me-2" onclick="abrirModalAsignar(${profesor.id})">
                                 <i class="fas fa-plus"></i> Asignar Secciones
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="eliminarProfesor(${profesor.id}, '${profesor.nombre}', '${profesor.apellido}')">
+                                <i class="fas fa-trash"></i> Eliminar
                             </button>
                         </div>
                     </div>
@@ -475,6 +478,23 @@
             },
             error: function(xhr) {
                 const error = xhr.responseJSON?.error || 'Error al desasignar la sección';
+                alert('❌ ' + error);
+            }
+        });
+    }
+    
+    function eliminarProfesor(profesorId, nombre, apellido) {
+        if (!confirm(`¿Está seguro de eliminar al profesor ${nombre} ${apellido}?\n\nEsta acción eliminará también todas sus asignaciones de secciones.`)) return;
+        
+        $.ajax({
+            url: BASE_URL + `/api/profesor/${profesorId}`,
+            method: 'DELETE',
+            success: function(response) {
+                alert('✅ ' + response.message);
+                cargarProfesores();
+            },
+            error: function(xhr) {
+                const error = xhr.responseJSON?.error || 'Error al eliminar el profesor';
                 alert('❌ ' + error);
             }
         });

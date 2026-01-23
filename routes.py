@@ -262,6 +262,30 @@ def obtener_profesores():
     except Exception as e:
         return jsonify({'error': f'Error al obtener profesores: {str(e)}'}), 500
 
+@main_bp.route('/api/profesor/<int:profesor_id>', methods=['DELETE'])
+def eliminar_profesor(profesor_id):
+    """API para eliminar un profesor"""
+    try:
+        profesor = Usuario.query.get(profesor_id)
+        if not profesor:
+            return jsonify({'error': 'Profesor no encontrado'}), 404
+        
+        if profesor.rol != 'profesor':
+            return jsonify({'error': 'El usuario no es un profesor'}), 400
+        
+        # Las asignaciones se eliminarán automáticamente por el CASCADE en la BD
+        db.session.delete(profesor)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Profesor {profesor.nombre} {profesor.apellido} eliminado correctamente'
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Error al eliminar profesor: {str(e)}'}), 500
+
 @main_bp.route('/api/secciones/<etapa>', methods=['GET'])
 def obtener_secciones_por_etapa(etapa):
     """API para obtener secciones por etapa educativa"""
