@@ -219,12 +219,15 @@ def crear_usuario():
         if usuario_existente:
             return jsonify({'error': 'Ya existe un usuario con este email'}), 400
         
+        # Hashear la contraseña
+        hashed_password = bcrypt.generate_password_hash(data['contraseña']).decode('utf-8')
+        
         # Crear nuevo usuario
         nuevo_usuario = Usuario(
             nombre=data['nombre'].strip(),
             apellido=data['apellido'].strip(),
             email=data['email'].strip().lower(),
-            contraseña=data['contraseña'],  # En producción, esto debería ser hasheado
+            contraseña=hashed_password,
             rol=data['rol']
         )
         
