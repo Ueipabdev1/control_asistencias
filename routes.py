@@ -208,6 +208,71 @@ def admin_dashboard():
     """Dashboard administrativo - Solo administradores"""
     return render_template('admin_dashboard.html')
 
+@main_bp.route('/logs_asistencia')
+@login_required
+@admin_required
+def logs_asistencia():
+    """Vista de logs de asistencia - Solo administradores"""
+    return render_template('logs_asistencia.html')
+
+@main_bp.route('/api/logs_asistencia')
+@login_required
+@admin_required
+def api_logs_asistencia():
+    """API para obtener logs de asistencia con detalles completos"""
+    try:
+        # Obtener parámetros de filtro opcionales
+        fecha_inicio = request.args.get('fecha_inicio')
+        fecha_fin = request.args.get('fecha_fin')
+        
+        # Query base con joins para obtener toda la información
+        query = db.session.query(
+            Asistencia,
+            Seccion,
+            Etapa,
+            Usuario
+        ).join(
+            Seccion, Asistencia.id_seccion == Seccion.id_seccion
+        ).join(
+            Etapa, Seccion.id_etapa == Etapa.id_etapa
+        ).outerjoin(
+            ProfesorSeccion, Seccion.id_seccion == ProfesorSeccion.id_seccion
+        ).outerjoin(
+            Usuario, ProfesorSeccion.id_profesor == Usuario.id_usuario
+        ).order_by(Asistencia.fecha.desc())
+        
+        # Aplicar filtros de fecha si se proporcionan
+        if fecha_inicio:
+            fecha_inicio_obj = datetime.strptime(fecha_inicio, '%Y-%m-%d').date()
+            query = query.filter(Asistencia.fecha >= fecha_inicio_obj)
+        
+        if fecha_fin:
+            fecha_fin_obj = datetime.strptime(fecha_fin, '%Y-%m-%d').date()
+            query = query.filter(Asistencia.fecha <= fecha_fin_obj)
+        
+        resultados = query.all()
+        
+        # Formatear los resultados
+        logs = []
+        for asistencia, seccion, etapa, usuario in resultados:
+            logs.append({
+                'id': asistencia.id_asistencia,
+                'fecha': asistencia.fecha.strftime('%Y-%m-%d'),
+                'fecha_formato': asistencia.fecha.strftime('%d/%m/%Y'),
+                'etapa': etapa.nombre_etapa,
+                'seccion': seccion.nombre_seccion,
+                'seccion_completa': f"{etapa.nombre_etapa} - {seccion.nombre_seccion}",
+                'profesor': f"{usuario.nombre} {usuario.apellido}" if usuario else "No asignado",
+                'asistentes_h': asistencia.asistentes_h,
+                'asistentes_m': asistencia.asistentes_m,
+                'total_asistentes': asistencia.asistentes_h + asistencia.asistentes_m
+            })
+        
+        return jsonify(logs)
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @main_bp.route('/gestion_matricula')
 @login_required
 @admin_required

@@ -1,0 +1,457 @@
+{% extends "base.html" %}
+
+{% block title %}Logs de Asistencia - UEIPAB{% endblock %}
+
+{% block extra_css %}
+<style>
+    .main-container {
+        background: rgba(30, 30, 45, 0.95);
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        margin: 20px auto;
+        max-width: 1400px;
+    }
+    
+    .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 20px 20px 0 0;
+        text-align: center;
+    }
+    
+    .content-section {
+        padding: 30px;
+    }
+    
+    .filters-section {
+        background: rgba(40, 40, 60, 0.8);
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .filters-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr auto;
+        gap: 15px;
+        align-items: end;
+    }
+    
+    .form-group {
+        margin-bottom: 0;
+    }
+    
+    .form-label {
+        font-weight: 600;
+        color: #e0e0e0;
+        margin-bottom: 8px;
+        display: block;
+        font-size: 0.9em;
+    }
+    
+    .form-control {
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        border-radius: 10px;
+        padding: 10px 15px;
+        background: rgba(50, 50, 70, 0.8);
+        color: #e0e0e0;
+        transition: all 0.3s;
+    }
+    
+    .form-control:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        background: rgba(60, 60, 80, 0.9);
+        color: #ffffff;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 10px;
+        padding: 10px 25px;
+        font-weight: 600;
+        color: white;
+        transition: transform 0.2s;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn-secondary {
+        background: rgba(108, 117, 125, 0.8);
+        border: none;
+        border-radius: 10px;
+        padding: 10px 25px;
+        font-weight: 600;
+        color: white;
+    }
+    
+    .btn-secondary:hover {
+        background: rgba(108, 117, 125, 1);
+    }
+    
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 30px;
+    }
+    
+    .stat-card {
+        background: rgba(40, 40, 60, 0.8);
+        border-radius: 15px;
+        padding: 20px;
+        text-align: center;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .stat-number {
+        font-size: 2em;
+        font-weight: 700;
+        color: #667eea;
+        margin-bottom: 5px;
+    }
+    
+    .stat-label {
+        color: #b0b0b0;
+        font-size: 0.9em;
+    }
+    
+    .table-container {
+        background: rgba(40, 40, 60, 0.8);
+        border-radius: 15px;
+        padding: 20px;
+        overflow-x: auto;
+    }
+    
+    .logs-table {
+        width: 100%;
+        color: #e0e0e0;
+        border-collapse: separate;
+        border-spacing: 0 8px;
+    }
+    
+    .logs-table thead th {
+        background: rgba(102, 126, 234, 0.2);
+        color: #a0b0ff;
+        padding: 15px;
+        text-align: left;
+        font-weight: 600;
+        border: none;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    .logs-table thead th:first-child {
+        border-radius: 10px 0 0 10px;
+    }
+    
+    .logs-table thead th:last-child {
+        border-radius: 0 10px 10px 0;
+    }
+    
+    .logs-table tbody tr {
+        background: rgba(50, 50, 70, 0.6);
+        transition: all 0.3s;
+    }
+    
+    .logs-table tbody tr:hover {
+        background: rgba(60, 60, 80, 0.8);
+        transform: scale(1.01);
+    }
+    
+    .logs-table tbody td {
+        padding: 15px;
+        border: none;
+    }
+    
+    .logs-table tbody tr td:first-child {
+        border-radius: 10px 0 0 10px;
+    }
+    
+    .logs-table tbody tr td:last-child {
+        border-radius: 0 10px 10px 0;
+    }
+    
+    .badge {
+        padding: 5px 12px;
+        border-radius: 8px;
+        font-size: 0.85em;
+        font-weight: 600;
+    }
+    
+    .badge-masculino {
+        background: rgba(79, 195, 247, 0.3);
+        color: #4fc3f7;
+        border: 1px solid #4fc3f7;
+    }
+    
+    .badge-femenino {
+        background: rgba(244, 143, 177, 0.3);
+        color: #f48fb1;
+        border: 1px solid #f48fb1;
+    }
+    
+    .badge-total {
+        background: rgba(102, 126, 234, 0.3);
+        color: #a0b0ff;
+        border: 1px solid #667eea;
+    }
+    
+    .no-data {
+        text-align: center;
+        padding: 40px;
+        color: #b0b0b0;
+        font-size: 1.1em;
+    }
+    
+    .loading {
+        text-align: center;
+        padding: 40px;
+        color: #667eea;
+        font-size: 1.2em;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <div class="header">
+        <h1><i class="fas fa-clipboard-list"></i> Logs de Asistencia</h1>
+        <p class="mb-0">Historial completo de registros de asistencia</p>
+    </div>
+    
+    <div class="content-section">
+        <!-- Filtros -->
+        <div class="filters-section">
+            <div class="filters-row">
+                <div class="form-group">
+                    <label class="form-label"><i class="fas fa-calendar-alt"></i> Fecha Inicio</label>
+                    <input type="date" class="form-control" id="fechaInicio">
+                </div>
+                <div class="form-group">
+                    <label class="form-label"><i class="fas fa-calendar-alt"></i> Fecha Fin</label>
+                    <input type="date" class="form-control" id="fechaFin">
+                </div>
+                <div class="form-group">
+                    <label class="form-label"><i class="fas fa-search"></i> Buscar</label>
+                    <input type="text" class="form-control" id="buscar" placeholder="Profesor, sección...">
+                </div>
+                <div class="form-group">
+                    <button class="btn btn-primary" onclick="cargarLogs()">
+                        <i class="fas fa-filter"></i> Filtrar
+                    </button>
+                    <button class="btn btn-secondary" onclick="limpiarFiltros()">
+                        <i class="fas fa-eraser"></i> Limpiar
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Estadísticas -->
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-number" id="totalRegistros">0</div>
+                <div class="stat-label"><i class="fas fa-list"></i> Total Registros</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalAsistentesH">0</div>
+                <div class="stat-label"><i class="fas fa-male"></i> Total Masculino</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalAsistentesM">0</div>
+                <div class="stat-label"><i class="fas fa-female"></i> Total Femenino</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalGeneral">0</div>
+                <div class="stat-label"><i class="fas fa-users"></i> Total General</div>
+            </div>
+        </div>
+        
+        <!-- Tabla de logs -->
+        <div class="table-container">
+            <div id="loading" class="loading" style="display: none;">
+                <i class="fas fa-spinner fa-spin"></i> Cargando logs...
+            </div>
+            <div id="tableContent">
+                <table class="logs-table">
+                    <thead>
+                        <tr>
+                            <th><i class="fas fa-calendar"></i> Fecha</th>
+                            <th><i class="fas fa-chalkboard-teacher"></i> Sección</th>
+                            <th><i class="fas fa-user-tie"></i> Profesor</th>
+                            <th class="text-center"><i class="fas fa-male"></i> Masculino</th>
+                            <th class="text-center"><i class="fas fa-female"></i> Femenino</th>
+                            <th class="text-center"><i class="fas fa-users"></i> Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logsTableBody">
+                        <tr>
+                            <td colspan="6" class="no-data">
+                                <i class="fas fa-inbox"></i><br>
+                                No hay registros para mostrar
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let logsData = [];
+    
+    $(document).ready(function() {
+        // Establecer fechas por defecto (último mes)
+        const hoy = new Date();
+        const haceUnMes = new Date();
+        haceUnMes.setMonth(haceUnMes.getMonth() - 1);
+        
+        $('#fechaFin').val(hoy.toISOString().split('T')[0]);
+        $('#fechaInicio').val(haceUnMes.toISOString().split('T')[0]);
+        
+        // Cargar logs iniciales
+        cargarLogs();
+        
+        // Búsqueda en tiempo real
+        $('#buscar').on('keyup', function() {
+            filtrarTabla();
+        });
+    });
+    
+    function cargarLogs() {
+        const fechaInicio = $('#fechaInicio').val();
+        const fechaFin = $('#fechaFin').val();
+        
+        $('#loading').show();
+        $('#tableContent').hide();
+        
+        let url = BASE_URL + '/api/logs_asistencia';
+        const params = [];
+        
+        if (fechaInicio) params.push(`fecha_inicio=${fechaInicio}`);
+        if (fechaFin) params.push(`fecha_fin=${fechaFin}`);
+        
+        if (params.length > 0) {
+            url += '?' + params.join('&');
+        }
+        
+        $.ajax({
+            url: url,
+            method: 'GET',
+            success: function(data) {
+                logsData = data;
+                mostrarLogs(data);
+                actualizarEstadisticas(data);
+                $('#loading').hide();
+                $('#tableContent').show();
+            },
+            error: function(error) {
+                console.error('Error al cargar logs:', error);
+                alert('Error al cargar los logs de asistencia');
+                $('#loading').hide();
+                $('#tableContent').show();
+            }
+        });
+    }
+    
+    function mostrarLogs(logs) {
+        const tbody = $('#logsTableBody');
+        tbody.empty();
+        
+        if (logs.length === 0) {
+            tbody.append(`
+                <tr>
+                    <td colspan="6" class="no-data">
+                        <i class="fas fa-inbox"></i><br>
+                        No hay registros para mostrar
+                    </td>
+                </tr>
+            `);
+            return;
+        }
+        
+        logs.forEach(function(log) {
+            tbody.append(`
+                <tr>
+                    <td>${log.fecha_formato}</td>
+                    <td>${log.seccion_completa}</td>
+                    <td>${log.profesor}</td>
+                    <td class="text-center">
+                        <span class="badge badge-masculino">
+                            <i class="fas fa-male"></i> ${log.asistentes_h}
+                        </span>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge badge-femenino">
+                            <i class="fas fa-female"></i> ${log.asistentes_m}
+                        </span>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge badge-total">
+                            <i class="fas fa-users"></i> ${log.total_asistentes}
+                        </span>
+                    </td>
+                </tr>
+            `);
+        });
+    }
+    
+    function actualizarEstadisticas(logs) {
+        const totalRegistros = logs.length;
+        let totalH = 0;
+        let totalM = 0;
+        
+        logs.forEach(function(log) {
+            totalH += log.asistentes_h;
+            totalM += log.asistentes_m;
+        });
+        
+        $('#totalRegistros').text(totalRegistros);
+        $('#totalAsistentesH').text(totalH.toLocaleString());
+        $('#totalAsistentesM').text(totalM.toLocaleString());
+        $('#totalGeneral').text((totalH + totalM).toLocaleString());
+    }
+    
+    function filtrarTabla() {
+        const busqueda = $('#buscar').val().toLowerCase();
+        
+        if (!busqueda) {
+            mostrarLogs(logsData);
+            actualizarEstadisticas(logsData);
+            return;
+        }
+        
+        const filtrados = logsData.filter(function(log) {
+            return log.profesor.toLowerCase().includes(busqueda) ||
+                   log.seccion_completa.toLowerCase().includes(busqueda) ||
+                   log.fecha_formato.includes(busqueda);
+        });
+        
+        mostrarLogs(filtrados);
+        actualizarEstadisticas(filtrados);
+    }
+    
+    function limpiarFiltros() {
+        const hoy = new Date();
+        const haceUnMes = new Date();
+        haceUnMes.setMonth(haceUnMes.getMonth() - 1);
+        
+        $('#fechaFin').val(hoy.toISOString().split('T')[0]);
+        $('#fechaInicio').val(haceUnMes.toISOString().split('T')[0]);
+        $('#buscar').val('');
+        
+        cargarLogs();
+    }
+</script>
+{% endblock %}

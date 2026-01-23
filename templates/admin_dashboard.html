@@ -44,6 +44,15 @@
         box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
     }
     
+    .stat-card.clickable {
+        cursor: pointer;
+    }
+    
+    .stat-card.clickable:hover {
+        background: rgba(50, 50, 70, 0.9);
+        border-color: #667eea;
+    }
+    
     .stat-number {
         font-size: 2.5em;
         font-weight: bold;
@@ -190,9 +199,9 @@
             <div class="stat-number" id="totalEstudiantes">1,250</div>
             <div class="stat-label"><i class="fas fa-users"></i> Total Estudiantes</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card clickable" id="cardSecciones" onclick="irALogs()" title="Click para ver logs de asistencia">
             <div class="stat-number" id="totalSecciones">15</div>
-            <div class="stat-label"><i class="fas fa-chalkboard-teacher"></i> Secciones</div>
+            <div class="stat-label"><i class="fas fa-chalkboard-teacher"></i> Secciones <i class="fas fa-external-link-alt" style="font-size: 0.7em; margin-left: 5px;"></i></div>
         </div>
         <div class="stat-card">
             <div class="stat-number" id="diasAnalizados">30</div>
@@ -420,6 +429,10 @@
         $('#totalEstudiantes').text((Math.floor(Math.random() * 500 + 1000)).toLocaleString());
         $('#totalSecciones').text(Math.floor(Math.random() * 10 + 15));
         $('#diasAnalizados').text(Math.floor(Math.random() * 20 + 20));
+    }
+    
+    function irALogs() {
+        window.location.href = BASE_URL + '/logs_asistencia';
     }
     
     function crearGraficos() {
