@@ -273,7 +273,10 @@ def eliminar_profesor(profesor_id):
         if profesor.rol != 'profesor':
             return jsonify({'error': 'El usuario no es un profesor'}), 400
         
-        # Las asignaciones se eliminarán automáticamente por el CASCADE en la BD
+        # Eliminar manualmente todas las asignaciones del profesor
+        ProfesorSeccion.query.filter_by(id_profesor=profesor_id).delete()
+        
+        # Ahora eliminar el profesor
         db.session.delete(profesor)
         db.session.commit()
         
