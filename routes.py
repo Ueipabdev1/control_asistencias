@@ -44,7 +44,7 @@ auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 @login_required
 def index():
     """Página principal - Control de asistencias"""
-    return render_template('index.html')
+    return render_template('index.html', es_admin=current_user.is_admin)
 
 @main_bp.route('/secciones')
 @login_required

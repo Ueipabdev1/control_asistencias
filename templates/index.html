@@ -200,9 +200,13 @@
                     Masculino: <span id="existenteH">0</span> | Femenino: <span id="existenteM">0</span><br>
                     <strong>Total: <span id="existenteTotal">0</span></strong>
                 </div>
+                {% if es_admin %}
                 <button type="button" class="btn btn-editar" onclick="habilitarEdicion()">
                     <i class="fas fa-edit"></i> Modificar Asistencia
                 </button>
+                {% else %}
+                <p class="text-warning mt-2"><i class="fas fa-lock"></i> Solo los administradores pueden modificar asistencias registradas</p>
+                {% endif %}
             </div>
             
             <div class="form-group">
@@ -269,6 +273,7 @@
 <script>
     let secciones = [];
     let asistenciaExistenteActual = null;
+    const esAdmin = {{ 'true' if es_admin else 'false' }};
     
     // Cargar secciones al iniciar
     $(document).ready(function() {
@@ -340,17 +345,23 @@
                     $('#existenteTotal').text(data.total);
                     $('#asistenciaExistente').show();
                     
-                    // Deshabilitar inputs y cambiar botón
+                    // Deshabilitar inputs
                     $('#masculinos').val(data.asistentes_h).prop('disabled', true);
                     $('#femeninos').val(data.asistentes_m).prop('disabled', true);
-                    $('#btnGuardar').html('<i class="fas fa-save"></i> Actualizar Asistencia');
+                    
+                    // Solo administradores pueden actualizar
+                    if (esAdmin) {
+                        $('#btnGuardar').html('<i class="fas fa-save"></i> Actualizar Asistencia').prop('disabled', false);
+                    } else {
+                        $('#btnGuardar').html('<i class="fas fa-lock"></i> Asistencia Registrada').prop('disabled', true);
+                    }
                 } else {
                     // No existe asistencia, limpiar formulario
                     asistenciaExistenteActual = null;
                     $('#asistenciaExistente').hide();
                     $('#masculinos').val(0).prop('disabled', false);
                     $('#femeninos').val(0).prop('disabled', false);
-                    $('#btnGuardar').html('<i class="fas fa-save"></i> Guardar Asistencia');
+                    $('#btnGuardar').html('<i class="fas fa-save"></i> Guardar Asistencia').prop('disabled', false);
                 }
             },
             error: function(error) {
@@ -373,7 +384,7 @@
         $('#matriculaM').addClass('hidden');
         $('#asistenciaExistente').hide();
         asistenciaExistenteActual = null;
-        $('#btnGuardar').html('<i class="fas fa-save"></i> Guardar Asistencia');
+        $('#btnGuardar').html('<i class="fas fa-save"></i> Guardar Asistencia').prop('disabled', false);
     }
     
     function cargarSecciones() {
