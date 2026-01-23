@@ -128,7 +128,7 @@
 <div class="main-container">
     <div class="header">
         <h1><i class="fas fa-users"></i> Gestión de Matrícula</h1>
-        <p class="mb-0">Administración de estudiantes por sección</p>
+        <p class="mb-0">Administración de estudiantes</p>
     </div>
     
     <!-- Formulario para agregar/editar matrícula -->
@@ -173,8 +173,11 @@
             </div>
             
             <div class="text-center">
-                <button type="submit" class="btn btn-primary">
+                <button type="submit" class="btn btn-primary" id="btnGuardar">
                     <i class="fas fa-save"></i> Guardar Matrícula
+                </button>
+                <button type="button" class="btn btn-secondary" id="btnCancelar" style="display: none;" onclick="cancelarEdicion()">
+                    <i class="fas fa-times"></i> Cancelar
                 </button>
             </div>
         </form>
@@ -210,6 +213,7 @@
 <script>
     let secciones = [];
     let matriculas = [];
+    let matriculaEditando = null; // ID de la matrícula que se está editando
     
     $(document).ready(function() {
         cargarSecciones();
@@ -269,15 +273,23 @@
             return;
         }
         
+        // Si estamos editando, usar PUT; si no, usar POST
+        const esEdicion = matriculaEditando !== null;
+        const url = esEdicion ? BASE_URL + '/api/matricula/' + matriculaEditando : BASE_URL + '/api/matricula';
+        const method = esEdicion ? 'PUT' : 'POST';
+        
         $.ajax({
-            url: BASE_URL + '/api/matricula',
-            method: 'POST',
+            url: url,
+            method: method,
             contentType: 'application/json',
             data: JSON.stringify(data),
             success: function(response) {
                 alert('✅ Matrícula guardada correctamente');
                 $('#matriculaForm')[0].reset();
                 $('#seccion').empty().append('<option value="">Primero seleccione una etapa...</option>');
+                matriculaEditando = null; // Resetear el modo de edición
+                $('#btnGuardar').html('<i class="fas fa-save"></i> Guardar Matrícula');
+                $('#btnCancelar').hide();
                 cargarMatriculas();
             },
             error: function(xhr) {
@@ -336,6 +348,13 @@
         const matricula = matriculas.find(m => m.id === id);
         if (!matricula) return;
         
+        // Guardar el ID de la matrícula que estamos editando
+        matriculaEditando = id;
+        
+        // Cambiar el texto del botón y mostrar botón cancelar
+        $('#btnGuardar').html('<i class="fas fa-edit"></i> Actualizar Matrícula');
+        $('#btnCancelar').show();
+        
         $('#etapa').val(matricula.etapa);
         cargarSeccionesPorEtapa(matricula.etapa);
         
@@ -346,6 +365,14 @@
         }, 100);
         
         window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    
+    function cancelarEdicion() {
+        matriculaEditando = null;
+        $('#matriculaForm')[0].reset();
+        $('#seccion').empty().append('<option value="">Primero seleccione una etapa...</option>');
+        $('#btnGuardar').html('<i class="fas fa-save"></i> Guardar Matrícula');
+        $('#btnCancelar').hide();
     }
     
     function eliminarMatricula(id) {
