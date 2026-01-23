@@ -82,6 +82,25 @@
         background: rgba(60, 60, 80, 0.8);
     }
     
+    .matricula-info {
+        background: rgba(102, 126, 234, 0.2);
+        border: 2px solid rgba(102, 126, 234, 0.5);
+        border-radius: 10px;
+        padding: 10px 15px;
+        margin-bottom: 10px;
+        text-align: center;
+        font-weight: 600;
+        color: #a0b0ff;
+    }
+    
+    .matricula-info i {
+        margin-right: 5px;
+    }
+    
+    .matricula-info.hidden {
+        display: none;
+    }
+    
     .gender-icon {
         font-size: 2.5em;
         margin-bottom: 15px;
@@ -159,6 +178,10 @@
                 </label>
                 <div class="gender-inputs">
                     <div class="gender-input-group">
+                        <div class="matricula-info hidden" id="matriculaH">
+                            <i class="fas fa-user-graduate"></i>
+                            <span id="totalMatriculaH">0</span> estudiantes matriculados
+                        </div>
                         <div class="gender-icon male-icon">
                             <i class="fas fa-male"></i>
                         </div>
@@ -167,6 +190,10 @@
                     </div>
                     
                     <div class="gender-input-group">
+                        <div class="matricula-info hidden" id="matriculaM">
+                            <i class="fas fa-user-graduate"></i>
+                            <span id="totalMatriculaM">0</span> estudiantes matriculadas
+                        </div>
                         <div class="gender-icon female-icon">
                             <i class="fas fa-female"></i>
                         </div>
@@ -201,7 +228,39 @@
         
         // Cargar secciones
         cargarSecciones();
+        
+        // Detectar cambio de sección para mostrar matrícula
+        $('#seccion').on('change', function() {
+            mostrarMatricula();
+        });
     });
+    
+    function mostrarMatricula() {
+        const seccionId = $('#seccion').val();
+        
+        if (!seccionId) {
+            // Ocultar información de matrícula
+            $('#matriculaH').addClass('hidden');
+            $('#matriculaM').addClass('hidden');
+            return;
+        }
+        
+        // Obtener datos de matrícula de la opción seleccionada
+        const selectedOption = $('#seccion option:selected');
+        const matriculaH = parseInt(selectedOption.data('matricula-h')) || 0;
+        const matriculaM = parseInt(selectedOption.data('matricula-m')) || 0;
+        
+        // Actualizar y mostrar información
+        $('#totalMatriculaH').text(matriculaH);
+        $('#totalMatriculaM').text(matriculaM);
+        
+        $('#matriculaH').removeClass('hidden');
+        $('#matriculaM').removeClass('hidden');
+        
+        // Establecer el máximo en los inputs
+        $('#masculinos').attr('max', matriculaH);
+        $('#femeninos').attr('max', matriculaM);
+    }
     
     function cargarSecciones() {
         $.ajax({
