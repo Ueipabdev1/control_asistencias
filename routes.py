@@ -137,6 +137,32 @@ def guardar_asistencia():
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Error al guardar: {str(e)}'})
 
+@main_bp.route('/verificar_asistencia/<fecha>/<int:id_seccion>')
+@login_required
+def verificar_asistencia(fecha, id_seccion):
+    """API para verificar si existe asistencia para una fecha y sección específica"""
+    try:
+        fecha_obj = datetime.strptime(fecha, '%Y-%m-%d').date()
+        
+        # Buscar asistencia existente
+        asistencia = Asistencia.query.filter_by(
+            id_seccion=id_seccion,
+            fecha=fecha_obj
+        ).first()
+        
+        if asistencia:
+            return jsonify({
+                'existe': True,
+                'asistentes_h': asistencia.asistentes_h,
+                'asistentes_m': asistencia.asistentes_m,
+                'total': asistencia.asistentes_h + asistencia.asistentes_m
+            })
+        else:
+            return jsonify({'existe': False})
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @main_bp.route('/obtener_asistencia/<fecha>')
 @login_required
 def obtener_asistencia(fecha):

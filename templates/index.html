@@ -101,6 +101,42 @@
         display: none;
     }
     
+    .asistencia-existente {
+        background: rgba(255, 193, 7, 0.2);
+        border: 2px solid rgba(255, 193, 7, 0.6);
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+    
+    .asistencia-existente h5 {
+        color: #ffc107;
+        margin-bottom: 15px;
+    }
+    
+    .asistencia-existente .info-text {
+        color: #e0e0e0;
+        font-size: 1.1em;
+        margin-bottom: 10px;
+    }
+    
+    .btn-editar {
+        background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+        border: none;
+        border-radius: 10px;
+        padding: 10px 20px;
+        font-weight: 600;
+        color: #000;
+        margin-top: 10px;
+    }
+    
+    .btn-editar:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(255, 193, 7, 0.4);
+        color: #000;
+    }
+    
     .gender-icon {
         font-size: 2.5em;
         margin-bottom: 15px;
@@ -156,6 +192,19 @@
     
     <div class="form-section">
         <form id="asistenciaForm">
+            <!-- Mensaje de asistencia existente -->
+            <div id="asistenciaExistente" class="asistencia-existente" style="display: none;">
+                <h5><i class="fas fa-info-circle"></i> Asistencia Ya Registrada</h5>
+                <div class="info-text">
+                    <strong>Estudiantes presentes:</strong><br>
+                    Masculino: <span id="existenteH">0</span> | Femenino: <span id="existenteM">0</span><br>
+                    <strong>Total: <span id="existenteTotal">0</span></strong>
+                </div>
+                <button type="button" class="btn btn-editar" onclick="habilitarEdicion()">
+                    <i class="fas fa-edit"></i> Modificar Asistencia
+                </button>
+            </div>
+            
             <div class="form-group">
                 <label for="fecha" class="form-label">
                     <i class="fas fa-calendar-alt"></i> Fecha de la Clase
@@ -204,11 +253,11 @@
             </div>
             
             <div class="text-center mt-4">
-                <button type="submit" class="btn btn-primary me-2">
+                <button type="submit" class="btn btn-primary me-2" id="btnGuardar">
                     <i class="fas fa-save"></i> Guardar Asistencia
                 </button>
-                <button type="button" class="btn btn-secondary" onclick="cargarAsistencia()">
-                    <i class="fas fa-download"></i> Cargar Existente
+                <button type="button" class="btn btn-secondary" onclick="limpiarFormulario()">
+                    <i class="fas fa-eraser"></i> Limpiar
                 </button>
             </div>
         </form>
@@ -219,6 +268,7 @@
 {% block extra_js %}
 <script>
     let secciones = [];
+    let asistenciaExistenteActual = null;
     
     // Cargar secciones al iniciar
     $(document).ready(function() {
@@ -229,9 +279,15 @@
         // Cargar secciones
         cargarSecciones();
         
-        // Detectar cambio de sección para mostrar matrícula
+        // Detectar cambio de sección para mostrar matrícula y verificar asistencia
         $('#seccion').on('change', function() {
             mostrarMatricula();
+            verificarAsistenciaExistente();
+        });
+        
+        // Detectar cambio de fecha para verificar asistencia
+        $('#fecha').on('change', function() {
+            verificarAsistenciaExistente();
         });
     });
     
@@ -260,6 +316,64 @@
         // Establecer el máximo en los inputs
         $('#masculinos').attr('max', matriculaH);
         $('#femeninos').attr('max', matriculaM);
+    }
+    
+    function verificarAsistenciaExistente() {
+        const fecha = $('#fecha').val();
+        const seccionId = $('#seccion').val();
+        
+        if (!fecha || !seccionId) {
+            $('#asistenciaExistente').hide();
+            asistenciaExistenteActual = null;
+            return;
+        }
+        
+        $.ajax({
+            url: BASE_URL + `/verificar_asistencia/${fecha}/${seccionId}`,
+            method: 'GET',
+            success: function(data) {
+                if (data.existe) {
+                    // Mostrar asistencia existente
+                    asistenciaExistenteActual = data;
+                    $('#existenteH').text(data.asistentes_h);
+                    $('#existenteM').text(data.asistentes_m);
+                    $('#existenteTotal').text(data.total);
+                    $('#asistenciaExistente').show();
+                    
+                    // Deshabilitar inputs y cambiar botón
+                    $('#masculinos').val(data.asistentes_h).prop('disabled', true);
+                    $('#femeninos').val(data.asistentes_m).prop('disabled', true);
+                    $('#btnGuardar').html('<i class="fas fa-save"></i> Actualizar Asistencia');
+                } else {
+                    // No existe asistencia, limpiar formulario
+                    asistenciaExistenteActual = null;
+                    $('#asistenciaExistente').hide();
+                    $('#masculinos').val(0).prop('disabled', false);
+                    $('#femeninos').val(0).prop('disabled', false);
+                    $('#btnGuardar').html('<i class="fas fa-save"></i> Guardar Asistencia');
+                }
+            },
+            error: function(error) {
+                console.error('Error al verificar asistencia:', error);
+            }
+        });
+    }
+    
+    function habilitarEdicion() {
+        $('#masculinos').prop('disabled', false);
+        $('#femeninos').prop('disabled', false);
+        $('#masculinos').focus();
+    }
+    
+    function limpiarFormulario() {
+        $('#masculinos').val(0).prop('disabled', false);
+        $('#femeninos').val(0).prop('disabled', false);
+        $('#seccion').val('');
+        $('#matriculaH').addClass('hidden');
+        $('#matriculaM').addClass('hidden');
+        $('#asistenciaExistente').hide();
+        asistenciaExistenteActual = null;
+        $('#btnGuardar').html('<i class="fas fa-save"></i> Guardar Asistencia');
     }
     
     function cargarSecciones() {
@@ -306,6 +420,12 @@
             return;
         }
         
+        const mensaje = asistenciaExistenteActual 
+            ? '¿Está seguro de actualizar la asistencia registrada?' 
+            : '¿Está seguro de guardar esta asistencia?';
+        
+        if (!confirm(mensaje)) return;
+        
         $.ajax({
             url: BASE_URL + '/guardar_asistencia',
             method: 'POST',
@@ -314,8 +434,8 @@
             success: function(response) {
                 if (response.success) {
                     alert('✅ ' + response.message);
-                    $('#masculinos').val(0);
-                    $('#femeninos').val(0);
+                    // Recargar la verificación para mostrar datos actualizados
+                    verificarAsistenciaExistente();
                 } else {
                     alert('❌ ' + response.message);
                 }
@@ -327,38 +447,5 @@
         });
     });
     
-    function cargarAsistencia() {
-        const fecha = $('#fecha').val();
-        
-        if (!fecha) {
-            alert('Por favor seleccione una fecha');
-            return;
-        }
-        
-        $.ajax({
-            url: `/obtener_asistencia/${fecha}`,
-            method: 'GET',
-            success: function(data) {
-                if (data.length === 0) {
-                    alert('No hay asistencias registradas para esta fecha');
-                    return;
-                }
-                
-                // Mostrar las asistencias encontradas
-                let mensaje = 'Asistencias encontradas:\n\n';
-                data.forEach(function(asistencia) {
-                    mensaje += `${asistencia.etapa} - ${asistencia.nombre_seccion}\n`;
-                    mensaje += `Masculino: ${asistencia.asistentes_h}, Femenino: ${asistencia.asistentes_m}\n`;
-                    mensaje += `Total: ${asistencia.total_asistentes}\n\n`;
-                });
-                
-                alert(mensaje);
-            },
-            error: function(error) {
-                console.error('Error:', error);
-                alert('Error al cargar las asistencias');
-            }
-        });
-    }
 </script>
 {% endblock %}
