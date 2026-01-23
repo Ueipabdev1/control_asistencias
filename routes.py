@@ -248,6 +248,57 @@ def crear_usuario():
         db.session.rollback()
         return jsonify({'error': f'Error al crear usuario: {str(e)}'}), 500
 
+@main_bp.route('/api/usuarios', methods=['GET'])
+def obtener_usuarios():
+    """API para obtener todos los usuarios con sus roles"""
+    try:
+        usuarios = Usuario.query.order_by(Usuario.rol, Usuario.apellido, Usuario.nombre).all()
+        
+        return jsonify([{
+            'id': u.id_usuario,
+            'nombre': u.nombre,
+            'apellido': u.apellido,
+            'email': u.email,
+            'rol': u.rol
+        } for u in usuarios])
+        
+    except Exception as e:
+        return jsonify({'error': f'Error al obtener usuarios: {str(e)}'}), 500
+
+@main_bp.route('/api/usuario/<int:usuario_id>/rol', methods=['PUT'])
+def actualizar_rol_usuario(usuario_id):
+    """API para actualizar el rol de un usuario"""
+    try:
+        usuario = Usuario.query.get(usuario_id)
+        if not usuario:
+            return jsonify({'error': 'Usuario no encontrado'}), 404
+        
+        data = request.get_json()
+        nuevo_rol = data.get('rol')
+        
+        # Validar rol
+        if nuevo_rol not in ['profesor', 'administrador']:
+            return jsonify({'error': 'Rol inválido'}), 400
+        
+        rol_anterior = usuario.rol
+        usuario.rol = nuevo_rol
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Rol actualizado de {rol_anterior} a {nuevo_rol}',
+            'usuario': {
+                'id': usuario.id_usuario,
+                'nombre': usuario.nombre,
+                'apellido': usuario.apellido,
+                'rol': usuario.rol
+            }
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Error al actualizar rol: {str(e)}'}), 500
+
 # ==================== API ENDPOINTS PARA PROFESORES ====================
 
 @main_bp.route('/api/profesores', methods=['GET'])

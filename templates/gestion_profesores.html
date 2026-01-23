@@ -182,8 +182,8 @@
 {% block content %}
 <div class="main-container">
     <div class="header">
-        <h1><i class="fas fa-chalkboard-teacher"></i> Gestión de Profesores</h1>
-        <p class="mb-0">Administración de profesores y asignación de secciones</p>
+        <h1><i class="fas fa-users-cog"></i> Gestión de Usuarios</h1>
+        <p class="mb-0">Administración de usuarios, roles y asignación de secciones</p>
     </div>
     
     <!-- Formulario para crear usuario -->
@@ -230,9 +230,9 @@
         </form>
     </div>
     
-    <!-- Lista de profesores -->
+    <!-- Lista de usuarios -->
     <div class="form-section">
-        <h4 class="mb-4"><i class="fas fa-list"></i> Profesores Registrados</h4>
+        <h4 class="mb-4"><i class="fas fa-list"></i> Usuarios Registrados</h4>
         <div id="profesoresList">
             <div class="text-center">
                 <div class="spinner-border text-primary" role="status">
@@ -284,11 +284,12 @@
 {% block extra_js %}
 <script>
     let profesores = [];
+    let usuarios = [];
     let secciones = [];
     let profesorSeleccionado = null;
     
     $(document).ready(function() {
-        cargarProfesores();
+        cargarUsuarios();
         cargarSecciones();
         
         $('#profesorForm').submit(function(e) {
@@ -329,7 +330,7 @@
                 const rolCreado = data.rol === 'profesor' ? 'Profesor' : 'Administrador';
                 alert(`✅ ${rolCreado} creado correctamente`);
                 $('#profesorForm')[0].reset();
-                cargarProfesores();
+                cargarUsuarios();
             },
             error: function(xhr) {
                 const error = xhr.responseJSON?.error || 'Error al crear el usuario';
@@ -338,62 +339,89 @@
         });
     }
     
-    function cargarProfesores() {
+    function cargarUsuarios() {
+        // Cargar todos los usuarios
         $.ajax({
-            url: BASE_URL + '/api/profesores/asignaciones',
+            url: BASE_URL + '/api/usuarios',
             method: 'GET',
             success: function(data) {
-                profesores = data;
-                mostrarProfesores(data);
+                usuarios = data;
+                // Cargar asignaciones de profesores
+                $.ajax({
+                    url: BASE_URL + '/api/profesores/asignaciones',
+                    method: 'GET',
+                    success: function(asignaciones) {
+                        profesores = asignaciones;
+                        mostrarUsuarios();
+                    }
+                });
             },
             error: function() {
-                $('#profesoresList').html('<p class="text-center text-danger">Error al cargar los profesores</p>');
+                $('#profesoresList').html('<div class="alert alert-danger">Error al cargar usuarios</div>');
             }
         });
     }
     
-    function mostrarProfesores(data) {
+    function mostrarUsuarios() {
         const container = $('#profesoresList');
         container.empty();
         
-        if (data.length === 0) {
-            container.append('<p class="text-center">No hay profesores registrados</p>');
+        if (usuarios.length === 0) {
+            container.html('<div class="alert alert-info">No hay usuarios registrados</div>');
             return;
         }
         
-        data.forEach(function(profesor) {
-            const seccionesHTML = profesor.secciones.length > 0 
+        usuarios.forEach(function(usuario) {
+            // Buscar asignaciones si es profesor
+            const profesor = profesores.find(p => p.id === usuario.id);
+            const seccionesHTML = profesor && profesor.secciones && profesor.secciones.length > 0
                 ? profesor.secciones.map(s => `
                     <span class="seccion-badge">
                         <i class="fas fa-chalkboard"></i>
                         ${s.etapa} - ${s.seccion}
-                        <button onclick="desasignarSeccion(${profesor.id}, ${s.id})" title="Quitar">
+                        <button onclick="desasignarSeccion(${usuario.id}, ${s.id})" title="Quitar">
                             <i class="fas fa-times"></i>
                         </button>
                     </span>
                 `).join('')
-                : '<span class="text-muted"><i>Sin secciones asignadas</i></span>';
+                : usuario.rol === 'profesor' ? '<span class="text-muted"><i>Sin secciones asignadas</i></span>' : '<span class="text-muted"><i>Los administradores no tienen secciones</i></span>';
+            
+            const rolBadgeClass = usuario.rol === 'administrador' ? 'bg-danger' : 'bg-info';
+            const rolTexto = usuario.rol === 'administrador' ? 'Administrador' : 'Profesor';
+            const nuevoRol = usuario.rol === 'administrador' ? 'profesor' : 'administrador';
+            const nuevoRolTexto = usuario.rol === 'administrador' ? 'Profesor' : 'Administrador';
+            const seccionesCount = profesor && profesor.secciones ? profesor.secciones.length : 0;
             
             container.append(`
                 <div class="profesor-card">
                     <div class="profesor-header">
                         <div class="profesor-info">
-                            <h5><i class="fas fa-user"></i> ${profesor.nombre} ${profesor.apellido}</h5>
-                            <p><i class="fas fa-envelope"></i> ${profesor.email}</p>
-                            <p><span class="badge bg-info">${profesor.secciones.length} sección(es) asignada(s)</span></p>
+                            <h5><i class="fas fa-user"></i> ${usuario.nombre} ${usuario.apellido}</h5>
+                            <p><i class="fas fa-envelope"></i> ${usuario.email}</p>
+                            <p>
+                                <span class="badge ${rolBadgeClass}">${rolTexto}</span>
+                                ${usuario.rol === 'profesor' ? `<span class="badge bg-secondary ms-2">${seccionesCount} sección(es)</span>` : ''}
+                            </p>
                         </div>
                         <div>
-                            <button class="btn btn-sm btn-success me-2" onclick="abrirModalAsignar(${profesor.id})">
+                            <button class="btn btn-sm btn-warning me-2" onclick="cambiarRol(${usuario.id}, '${nuevoRol}', '${usuario.nombre}', '${usuario.apellido}', '${nuevoRolTexto}')" title="Cambiar a ${nuevoRolTexto}">
+                                <i class="fas fa-exchange-alt"></i> Cambiar a ${nuevoRolTexto}
+                            </button>
+                            ${usuario.rol === 'profesor' ? `
+                            <button class="btn btn-sm btn-success me-2" onclick="abrirModalAsignar(${usuario.id})">
                                 <i class="fas fa-plus"></i> Asignar Secciones
                             </button>
-                            <button class="btn btn-sm btn-danger" onclick="eliminarProfesor(${profesor.id})">
+                            ` : ''}
+                            <button class="btn btn-sm btn-danger" onclick="eliminarProfesor(${usuario.id})">
                                 <i class="fas fa-trash"></i> Eliminar
                             </button>
                         </div>
                     </div>
+                    ${usuario.rol === 'profesor' ? `
                     <div class="secciones-list">
                         ${seccionesHTML}
                     </div>
+                    ` : ''}
                 </div>
             `);
         });
@@ -466,7 +494,7 @@
             success: function(response) {
                 alert('✅ ' + response.message);
                 bootstrap.Modal.getInstance(document.getElementById('asignarSeccionesModal')).hide();
-                cargarProfesores();
+                cargarUsuarios();
             },
             error: function(xhr) {
                 const error = xhr.responseJSON?.error || 'Error al asignar secciones';
@@ -483,7 +511,7 @@
             method: 'DELETE',
             success: function(response) {
                 alert('✅ ' + response.message);
-                cargarProfesores();
+                cargarUsuarios();
             },
             error: function(xhr) {
                 const error = xhr.responseJSON?.error || 'Error al desasignar la sección';
@@ -506,10 +534,29 @@
             method: 'DELETE',
             success: function(response) {
                 alert('✅ ' + response.message);
-                cargarProfesores();
+                cargarUsuarios();
             },
             error: function(xhr) {
-                const error = xhr.responseJSON?.error || 'Error al eliminar el profesor';
+                const error = xhr.responseJSON?.error || 'Error al eliminar el usuario';
+                alert('❌ ' + error);
+            }
+        });
+    }
+    
+    function cambiarRol(usuarioId, nuevoRol, nombre, apellido, nuevoRolTexto) {
+        if (!confirm(`¿Está seguro de cambiar el rol de ${nombre} ${apellido} a ${nuevoRolTexto}?`)) return;
+        
+        $.ajax({
+            url: BASE_URL + `/api/usuario/${usuarioId}/rol`,
+            method: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify({ rol: nuevoRol }),
+            success: function(response) {
+                alert('✅ ' + response.message);
+                cargarUsuarios();
+            },
+            error: function(xhr) {
+                const error = xhr.responseJSON?.error || 'Error al cambiar el rol';
                 alert('❌ ' + error);
             }
         });
