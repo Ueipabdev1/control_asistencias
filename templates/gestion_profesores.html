@@ -377,7 +377,7 @@
                             <button class="btn btn-sm btn-success me-2" onclick="abrirModalAsignar(${profesor.id})">
                                 <i class="fas fa-plus"></i> Asignar Secciones
                             </button>
-                            <button class="btn btn-sm btn-danger" onclick="eliminarProfesor(${profesor.id}, '${profesor.nombre}', '${profesor.apellido}')">
+                            <button class="btn btn-sm btn-danger" onclick="eliminarProfesor(${profesor.id})">
                                 <i class="fas fa-trash"></i> Eliminar
                             </button>
                         </div>
@@ -483,8 +483,14 @@
         });
     }
     
-    function eliminarProfesor(profesorId, nombre, apellido) {
-        if (!confirm(`¿Está seguro de eliminar al profesor ${nombre} ${apellido}?\n\nEsta acción eliminará también todas sus asignaciones de secciones.`)) return;
+    function eliminarProfesor(profesorId) {
+        const profesor = profesores.find(p => p.id === profesorId);
+        if (!profesor) {
+            alert('❌ Profesor no encontrado');
+            return;
+        }
+        
+        if (!confirm(`¿Está seguro de eliminar al profesor ${profesor.nombre} ${profesor.apellido}?\n\nEsta acción eliminará también todas sus asignaciones de secciones.`)) return;
         
         $.ajax({
             url: BASE_URL + `/api/profesor/${profesorId}`,
