@@ -396,13 +396,17 @@
             const matriculaMujeres = parseInt(data.por_genero.femenino?.matricula || 0);
             const matriculaTotal = matriculaHombres + matriculaMujeres;
             
-            // Calcular porcentajes
-            const porcentajeHombres = matriculaHombres > 0 ? ((hombres / (matriculaHombres * stats.dias_analizados)) * 100).toFixed(1) : 0;
-            const porcentajeMujeres = matriculaMujeres > 0 ? ((mujeres / (matriculaMujeres * stats.dias_analizados)) * 100).toFixed(1) : 0;
+            // Calcular porcentajes basados en el total de asistentes
+            // Porcentaje de hombres y mujeres respecto al total de asistentes
+            const porcentajeHombres = total > 0 ? ((hombres / total) * 100).toFixed(1) : 0;
+            const porcentajeMujeres = total > 0 ? ((mujeres / total) * 100).toFixed(1) : 0;
+            
+            // Porcentaje total respecto a la matrícula (asistencia general)
             const porcentajeTotal = matriculaTotal > 0 ? ((total / (matriculaTotal * stats.dias_analizados)) * 100).toFixed(1) : 0;
             
             console.log('Hombres:', hombres, 'Mujeres:', mujeres, 'Total:', total);
-            console.log('Porcentajes - H:', porcentajeHombres, 'M:', porcentajeMujeres, 'T:', porcentajeTotal);
+            console.log('Porcentajes del total - H:', porcentajeHombres, 'M:', porcentajeMujeres);
+            console.log('Porcentaje asistencia general:', porcentajeTotal);
             
             $('#asistentesHombres').text(hombres.toLocaleString());
             $('#asistentesMujeres').text(mujeres.toLocaleString());
