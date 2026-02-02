@@ -811,22 +811,35 @@ def obtener_estadisticas():
         porcentaje_total = round((total_asistentes / (total_estudiantes * dias_analizados) * 100) if total_estudiantes > 0 and dias_analizados > 0 else 0, 1)
         
         # Estadísticas por género
-        stats_genero = db.session.query(
+        # Primero obtener la suma de asistentes
+        stats_asistentes = db.session.query(
             func.sum(Asistencia.asistentes_h).label('total_h'),
-            func.sum(Asistencia.asistentes_m).label('total_m'),
-            func.sum(Matricula.num_estudiantes_h).label('matricula_h'),
-            func.sum(Matricula.num_estudiantes_m).label('matricula_m')
+            func.sum(Asistencia.asistentes_m).label('total_m')
         ).join(Seccion, Asistencia.id_seccion == Seccion.id_seccion
         ).join(Etapa, Seccion.id_etapa == Etapa.id_etapa
-        ).join(Matricula, Seccion.id_seccion == Matricula.id_seccion
         ).filter(and_(Asistencia.fecha >= fecha_inicio, Asistencia.fecha <= fecha_fin))
         
         if etapa:
-            stats_genero = stats_genero.filter(Etapa.nombre_etapa == etapa)
+            stats_asistentes = stats_asistentes.filter(Etapa.nombre_etapa == etapa)
         if seccion:
-            stats_genero = stats_genero.filter(Seccion.id_seccion == int(seccion))
+            stats_asistentes = stats_asistentes.filter(Seccion.id_seccion == int(seccion))
         
-        genero_result = stats_genero.first()
+        asistentes_result = stats_asistentes.first()
+        
+        # Obtener la matrícula total (sin duplicar por cada asistencia)
+        stats_matricula = db.session.query(
+            func.sum(Matricula.num_estudiantes_h).label('matricula_h'),
+            func.sum(Matricula.num_estudiantes_m).label('matricula_m')
+        ).join(Seccion, Matricula.id_seccion == Seccion.id_seccion
+        ).join(Etapa, Seccion.id_etapa == Etapa.id_etapa)
+        
+        if etapa:
+            stats_matricula = stats_matricula.filter(Etapa.nombre_etapa == etapa)
+        if seccion:
+            stats_matricula = stats_matricula.filter(Seccion.id_seccion == int(seccion))
+        
+        matricula_result = stats_matricula.first()
+        
         genero_data = {
             'masculino': {
                 'total': 0,
@@ -840,16 +853,21 @@ def obtener_estadisticas():
             }
         }
         
-        if genero_result and genero_result.total_h is not None:
+        if asistentes_result and matricula_result:
+            total_h = int(asistentes_result.total_h or 0)
+            total_m = int(asistentes_result.total_m or 0)
+            matricula_h = int(matricula_result.matricula_h or 0)
+            matricula_m = int(matricula_result.matricula_m or 0)
+            
             genero_data['masculino'] = {
-                'total': int(genero_result.total_h or 0),
-                'matricula': int(genero_result.matricula_h or 0),
-                'porcentaje': round((genero_result.total_h / (genero_result.matricula_h * dias_analizados) * 100) if genero_result.matricula_h and dias_analizados else 0, 1)
+                'total': total_h,
+                'matricula': matricula_h,
+                'porcentaje': round((total_h / (matricula_h * dias_analizados) * 100) if matricula_h and dias_analizados else 0, 1)
             }
             genero_data['femenino'] = {
-                'total': int(genero_result.total_m or 0),
-                'matricula': int(genero_result.matricula_m or 0),
-                'porcentaje': round((genero_result.total_m / (genero_result.matricula_m * dias_analizados) * 100) if genero_result.matricula_m and dias_analizados else 0, 1)
+                'total': total_m,
+                'matricula': matricula_m,
+                'porcentaje': round((total_m / (matricula_m * dias_analizados) * 100) if matricula_m and dias_analizados else 0, 1)
             }
         
         # Estadísticas por sección
