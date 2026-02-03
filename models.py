@@ -101,6 +101,7 @@ class Asistencia(db.Model):
     
     id_asistencia = db.Column(db.Integer, primary_key=True)
     id_seccion = db.Column(db.Integer, db.ForeignKey('secciones.id_seccion', ondelete='CASCADE'), nullable=False)
+    id_usuario = db.Column(db.Integer, db.ForeignKey('usuario.id_usuario', ondelete='SET NULL'), nullable=True, comment='Usuario que registró la asistencia')
     fecha = db.Column(db.Date, nullable=False)
     asistentes_h = db.Column(db.Integer, default=0, comment='Estudiantes hombres presentes')
     asistentes_m = db.Column(db.Integer, default=0, comment='Estudiantes mujeres presentes')
