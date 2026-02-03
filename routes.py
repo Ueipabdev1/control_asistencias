@@ -120,10 +120,12 @@ def guardar_asistencia():
             # Actualizar asistencia existente
             asistencia_existente.asistentes_h = asistentes_h
             asistencia_existente.asistentes_m = asistentes_m
+            asistencia_existente.id_usuario = current_user.id_usuario
         else:
             # Crear nueva asistencia
             nueva_asistencia = Asistencia(
                 id_seccion=id_seccion,
+                id_usuario=current_user.id_usuario,
                 fecha=fecha,
                 asistentes_h=asistentes_h,
                 asistentes_m=asistentes_m
@@ -250,16 +252,12 @@ def api_logs_asistencia():
         # Formatear los resultados
         logs = []
         for asistencia, seccion, etapa in resultados:
-            # Obtener el primer profesor asignado a la sección (si existe)
-            profesor_asignacion = ProfesorSeccion.query.filter_by(
-                id_seccion=seccion.id_seccion
-            ).first()
-            
-            if profesor_asignacion:
-                usuario = Usuario.query.get(profesor_asignacion.id_profesor)
-                nombre_profesor = f"{usuario.nombre} {usuario.apellido}" if usuario else "No asignado"
+            # Obtener el usuario que registró la asistencia
+            if asistencia.id_usuario:
+                usuario = Usuario.query.get(asistencia.id_usuario)
+                nombre_profesor = f"{usuario.nombre} {usuario.apellido}" if usuario else "Usuario eliminado"
             else:
-                nombre_profesor = "No asignado"
+                nombre_profesor = "No registrado"
             
             logs.append({
                 'id': asistencia.id_asistencia,
