@@ -4,7 +4,7 @@ from sqlalchemy import func, and_, extract
 from flask_login import login_user, logout_user, login_required, current_user
 from functools import wraps
 from models import db, Etapa, Usuario, Seccion, ProfesorSeccion, Matricula, Asistencia
-from app import bcrypt
+from extensions import bcrypt
 
 # Decorador para verificar roles
 def admin_required(f):
