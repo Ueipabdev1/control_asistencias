@@ -225,20 +225,15 @@ def api_logs_asistencia():
         fecha_inicio = request.args.get('fecha_inicio')
         fecha_fin = request.args.get('fecha_fin')
         
-        # Query base con joins para obtener toda la información
+        # Query base - solo asistencias con sección y etapa
         query = db.session.query(
             Asistencia,
             Seccion,
-            Etapa,
-            Usuario
+            Etapa
         ).join(
             Seccion, Asistencia.id_seccion == Seccion.id_seccion
         ).join(
             Etapa, Seccion.id_etapa == Etapa.id_etapa
-        ).outerjoin(
-            ProfesorSeccion, Seccion.id_seccion == ProfesorSeccion.id_seccion
-        ).outerjoin(
-            Usuario, ProfesorSeccion.id_profesor == Usuario.id_usuario
         ).order_by(Asistencia.fecha.desc())
         
         # Aplicar filtros de fecha si se proporcionan
@@ -254,7 +249,18 @@ def api_logs_asistencia():
         
         # Formatear los resultados
         logs = []
-        for asistencia, seccion, etapa, usuario in resultados:
+        for asistencia, seccion, etapa in resultados:
+            # Obtener el primer profesor asignado a la sección (si existe)
+            profesor_asignacion = ProfesorSeccion.query.filter_by(
+                id_seccion=seccion.id_seccion
+            ).first()
+            
+            if profesor_asignacion:
+                usuario = Usuario.query.get(profesor_asignacion.id_profesor)
+                nombre_profesor = f"{usuario.nombre} {usuario.apellido}" if usuario else "No asignado"
+            else:
+                nombre_profesor = "No asignado"
+            
             logs.append({
                 'id': asistencia.id_asistencia,
                 'fecha': asistencia.fecha.strftime('%Y-%m-%d'),
@@ -262,7 +268,7 @@ def api_logs_asistencia():
                 'etapa': etapa.nombre_etapa,
                 'seccion': seccion.nombre_seccion,
                 'seccion_completa': f"{etapa.nombre_etapa} - {seccion.nombre_seccion}",
-                'profesor': f"{usuario.nombre} {usuario.apellido}" if usuario else "No asignado",
+                'profesor': nombre_profesor,
                 'asistentes_h': asistencia.asistentes_h,
                 'asistentes_m': asistencia.asistentes_m,
                 'total_asistentes': asistencia.asistentes_h + asistencia.asistentes_m
