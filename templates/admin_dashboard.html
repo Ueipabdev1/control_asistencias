@@ -169,7 +169,7 @@
                 <label class="form-label">Etapa:</label>
                 <select id="filtroEtapa" class="form-control">
                     <option value="">Todas</option>
-                    <option value="Maternal">Maternal</option>
+                    <option value="Inicial">Inicial</option>
                     <option value="Primaria">Primaria</option>
                     <option value="Secundaria">Secundaria</option>
                 </select>
@@ -290,10 +290,9 @@
     
     $(document).ready(function() {
         const hoy = new Date();
-        const hace30dias = new Date(hoy.getTime() - (30 * 24 * 60 * 60 * 1000));
         
         $('#fechaFin').val(hoy.toISOString().split('T')[0]);
-        $('#fechaInicio').val(hace30dias.toISOString().split('T')[0]);
+        $('#fechaInicio').val(hoy.toISOString().split('T')[0]);
         
         cargarSecciones();
         cargarDatos();
@@ -329,19 +328,28 @@
             url: BASE_URL + '/secciones',
             method: 'GET',
             success: function(secciones) {
+                console.log('Secciones recibidas:', secciones);
+                console.log('Filtro de etapa:', etapa);
+                
                 const $select = $('#filtroSeccion');
                 $select.html('<option value="">Todas</option>');
                 
+                let seccionesFiltradas = 0;
                 secciones.forEach(function(seccion) {
                     if (!etapa || seccion.etapa === etapa) {
                         $select.append(
                             `<option value="${seccion.id_seccion}">${seccion.nombre_seccion}</option>`
                         );
+                        seccionesFiltradas++;
                     }
                 });
+                
+                console.log(`Secciones agregadas al select: ${seccionesFiltradas}`);
             },
-            error: function() {
-                console.error('Error al cargar secciones');
+            error: function(xhr, status, error) {
+                console.error('Error al cargar secciones:', error);
+                console.error('Status:', status);
+                console.error('Response:', xhr.responseText);
             }
         });
     }
@@ -381,7 +389,7 @@
         const stats = data.estadisticas_generales;
         $('#totalAsistencia').text(stats.porcentaje_total + '%');
         $('#totalEstudiantes').text(stats.total_estudiantes.toLocaleString());
-        $('#totalSecciones').text(Object.keys(data.por_seccion || {}).length);
+        $('#totalSecciones').text(stats.total_secciones || 0);
         $('#diasAnalizados').text(stats.dias_analizados);
         
         // Actualizar indicadores de asistentes por género

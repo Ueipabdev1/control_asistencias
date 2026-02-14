@@ -121,6 +121,138 @@
     
     .male-icon { color: #4fc3f7; }
     .female-icon { color: #f48fb1; }
+    
+    .alert {
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .alert-info {
+        background: rgba(23, 162, 184, 0.2);
+        color: #17a2b8;
+        border-color: rgba(23, 162, 184, 0.3);
+    }
+    
+    .alert-warning {
+        background: rgba(255, 193, 7, 0.2);
+        color: #ffc107;
+        border-color: rgba(255, 193, 7, 0.3);
+    }
+    
+    .alert-success {
+        background: rgba(40, 167, 69, 0.2);
+        color: #28a745;
+        border-color: rgba(40, 167, 69, 0.3);
+    }
+    
+    .alert-danger {
+        background: rgba(220, 53, 69, 0.2);
+        color: #dc3545;
+        border-color: rgba(220, 53, 69, 0.3);
+    }
+    
+    code {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 2px 6px;
+        border-radius: 4px;
+        color: #ffc107;
+    }
+    
+    .form-check-input {
+        background-color: rgba(50, 50, 70, 0.8);
+        border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .form-check-input:checked {
+        background-color: #667eea;
+        border-color: #667eea;
+    }
+    
+    .form-check-label {
+        color: #e0e0e0;
+    }
+    
+    /* Estilos para tabs */
+    .nav-tabs {
+        border-bottom: 2px solid rgba(102, 126, 234, 0.3);
+    }
+    
+    .nav-tabs .nav-link {
+        color: #e0e0e0;
+        background: rgba(40, 40, 60, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px 10px 0 0;
+        margin-right: 5px;
+        padding: 12px 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .nav-tabs .nav-link:hover {
+        background: rgba(60, 60, 80, 0.8);
+        border-color: rgba(102, 126, 234, 0.5);
+    }
+    
+    .nav-tabs .nav-link.active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-color: #667eea;
+        color: white;
+        font-weight: 600;
+    }
+    
+    .tab-content {
+        padding: 20px 0;
+    }
+    
+    /* Tarjetas de estadísticas */
+    .stat-card {
+        background: rgba(40, 40, 60, 0.8);
+        border-radius: 15px;
+        padding: 20px;
+        text-align: center;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+    }
+    
+    .stat-icon {
+        font-size: 2.5em;
+        margin-bottom: 10px;
+        color: #667eea;
+    }
+    
+    .stat-value {
+        font-size: 2em;
+        font-weight: 700;
+        color: #ffffff;
+        margin-bottom: 5px;
+    }
+    
+    .stat-label {
+        font-size: 0.9em;
+        color: #b0b0b0;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    /* Mejoras para filtros */
+    #buscarEstudiante {
+        background: rgba(50, 50, 70, 0.8);
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        color: #e0e0e0;
+    }
+    
+    #buscarEstudiante::placeholder {
+        color: #888;
+    }
+    
+    #buscarEstudiante:focus {
+        background: rgba(60, 60, 80, 0.9);
+        border-color: #667eea;
+    }
 </style>
 {% endblock %}
 
@@ -131,79 +263,167 @@
         <p class="mb-0">Administración de estudiantes</p>
     </div>
     
-    <!-- Formulario para agregar/editar matrícula -->
+    <!-- Formulario para cargar estudiantes desde Excel -->
     <div class="form-section">
-        <h4 class="mb-4"><i class="fas fa-plus-circle"></i> Registrar/Actualizar Matrícula</h4>
-        <form id="matriculaForm">
-            <div class="row">
+        <h4 class="mb-4"><i class="fas fa-file-excel"></i> Cargar Estudiantes desde Excel</h4>
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> 
+            <strong>Formato del archivo Excel:</strong> El archivo debe contener las columnas: 
+            <code>Grado</code>, <code>Sección</code>, <code>Nombre</code>, <code>Apellido</code>, 
+            <code>Cédula de identidad</code>, <code>Género</code> (M o F)
+        </div>
+        
+        <form id="excelUploadForm" enctype="multipart/form-data">
+            <div class="row align-items-end">
                 <div class="col-md-6 mb-3">
-                    <label for="etapa" class="form-label">Etapa Educativa</label>
-                    <select class="form-select" id="etapa" required>
-                        <option value="">Seleccione una etapa...</option>
-                        <option value="Maternal">Maternal</option>
-                        <option value="Primaria">Primaria</option>
-                        <option value="Secundaria">Secundaria</option>
-                    </select>
+                    <label for="archivoExcel" class="form-label">Seleccionar Archivo Excel</label>
+                    <input type="file" class="form-control" id="archivoExcel" accept=".xlsx,.xls" required>
+                    <small class="text-muted">Formatos permitidos: .xlsx, .xls</small>
                 </div>
                 
-                <div class="col-md-6 mb-3">
-                    <label for="seccion" class="form-label">Sección</label>
-                    <select class="form-select" id="seccion" required>
-                        <option value="">Primero seleccione una etapa...</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div class="gender-inputs mb-4">
-                <div class="gender-input-group">
-                    <div class="gender-icon male-icon">
-                        <i class="fas fa-male"></i>
+                <div class="col-md-3 mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="sobrescribir">
+                        <label class="form-check-label" for="sobrescribir">
+                            Actualizar estudiantes existentes
+                        </label>
                     </div>
-                    <label class="form-label">Estudiantes Masculinos</label>
-                    <input type="number" class="form-control" id="num_estudiantes_h" min="0" value="0" required>
                 </div>
                 
-                <div class="gender-input-group">
-                    <div class="gender-icon female-icon">
-                        <i class="fas fa-female"></i>
-                    </div>
-                    <label class="form-label">Estudiantes Femeninos</label>
-                    <input type="number" class="form-control" id="num_estudiantes_m" min="0" value="0" required>
+                <div class="col-md-3 mb-3">
+                    <button type="submit" class="btn btn-success w-100" id="btnSubirExcel">
+                        <i class="fas fa-upload"></i> Cargar Archivo
+                    </button>
                 </div>
-            </div>
-            
-            <div class="text-center">
-                <button type="submit" class="btn btn-primary" id="btnGuardar">
-                    <i class="fas fa-save"></i> Guardar Matrícula
-                </button>
-                <button type="button" class="btn btn-secondary" id="btnCancelar" style="display: none;" onclick="cancelarEdicion()">
-                    <i class="fas fa-times"></i> Cancelar
-                </button>
             </div>
         </form>
+        
+        <!-- Resultados de la carga -->
+        <div id="resultadoCarga" style="display: none;" class="mt-3">
+            <div class="alert" id="alertResultado">
+                <h5 id="tituloResultado"></h5>
+                <div id="detalleResultado"></div>
+            </div>
+        </div>
     </div>
     
-    <!-- Tabla de matrículas -->
+    <!-- Matrículas Registradas con Tabs -->
     <div class="form-section">
         <h4 class="mb-4"><i class="fas fa-list"></i> Matrículas Registradas</h4>
-        <div class="table-responsive">
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th>Etapa</th>
-                        <th>Sección</th>
-                        <th>Masculinos</th>
-                        <th>Femeninos</th>
-                        <th>Total</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="matriculasTable">
-                    <tr>
-                        <td colspan="6" class="text-center">Cargando...</td>
-                    </tr>
-                </tbody>
-            </table>
+        
+        <!-- Tabs de navegación -->
+        <ul class="nav nav-tabs mb-4" id="matriculaTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="conteo-tab" data-bs-toggle="tab" data-bs-target="#conteo" type="button" role="tab">
+                    <i class="fas fa-chart-pie"></i> Vista por Género
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="estudiantes-tab" data-bs-toggle="tab" data-bs-target="#estudiantes" type="button" role="tab">
+                    <i class="fas fa-users"></i> Lista de Estudiantes
+                </button>
+            </li>
+        </ul>
+        
+        <!-- Contenido de los tabs -->
+        <div class="tab-content" id="matriculaTabContent">
+            <!-- Tab 1: Vista por Género (Legacy) -->
+            <div class="tab-pane fade show active" id="conteo" role="tabpanel">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Etapa</th>
+                                <th>Sección</th>
+                                <th>Masculinos</th>
+                                <th>Femeninos</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="matriculasTable">
+                            <tr>
+                                <td colspan="5" class="text-center">Cargando...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Tab 2: Lista de Estudiantes -->
+            <div class="tab-pane fade" id="estudiantes" role="tabpanel">
+                <!-- Filtros -->
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <select class="form-select" id="filtroEtapa">
+                            <option value="">Todas las etapas</option>
+                            <option value="Inicial">Inicial</option>
+                            <option value="Primaria">Primaria</option>
+                            <option value="Secundaria">Secundaria</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <select class="form-select" id="filtroSeccion">
+                            <option value="">Todas las secciones</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <input type="text" class="form-control" id="buscarEstudiante" placeholder="Buscar por nombre o cédula...">
+                    </div>
+                </div>
+                
+                <!-- Estadísticas rápidas -->
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-users"></i></div>
+                            <div class="stat-value" id="totalEstudiantes">0</div>
+                            <div class="stat-label">Total Estudiantes</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <div class="stat-icon male-icon"><i class="fas fa-male"></i></div>
+                            <div class="stat-value" id="totalMasculinos">0</div>
+                            <div class="stat-label">Masculinos</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <div class="stat-icon female-icon"><i class="fas fa-female"></i></div>
+                            <div class="stat-value" id="totalFemeninos">0</div>
+                            <div class="stat-label">Femeninos</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="fas fa-school"></i></div>
+                            <div class="stat-value" id="totalSecciones">0</div>
+                            <div class="stat-label">Secciones</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tabla de estudiantes -->
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Cédula</th>
+                                <th>Nombre Completo</th>
+                                <th>Género</th>
+                                <th>Sección</th>
+                                <th>Etapa</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="estudiantesTable">
+                            <tr>
+                                <td colspan="6" class="text-center">Cargando...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -211,92 +431,189 @@
 
 {% block extra_js %}
 <script>
-    let secciones = [];
     let matriculas = [];
-    let matriculaEditando = null; // ID de la matrícula que se está editando
+    let todosLosEstudiantes = [];
+    let estudiantesFiltrados = [];
     
     $(document).ready(function() {
-        cargarSecciones();
         cargarMatriculas();
+        cargarEstudiantes();
         
-        $('#etapa').change(function() {
-            const etapa = $(this).val();
-            cargarSeccionesPorEtapa(etapa);
+        // Manejar carga de Excel
+        $('#excelUploadForm').submit(function(e) {
+            e.preventDefault();
+            cargarEstudiantesExcel();
         });
         
-        $('#matriculaForm').submit(function(e) {
-            e.preventDefault();
-            guardarMatricula();
+        // Filtros de estudiantes
+        $('#filtroEtapa').change(function() {
+            filtrarEstudiantes();
+        });
+        
+        $('#filtroSeccion').change(function() {
+            filtrarEstudiantes();
+        });
+        
+        $('#buscarEstudiante').on('input', function() {
+            filtrarEstudiantes();
+        });
+        
+        // Cargar estudiantes cuando se cambia al tab
+        $('#estudiantes-tab').on('shown.bs.tab', function() {
+            if (todosLosEstudiantes.length === 0) {
+                cargarEstudiantes();
+            }
         });
     });
     
-    function cargarSecciones() {
-        $.ajax({
-            url: BASE_URL + '/secciones',
-            method: 'GET',
-            success: function(data) {
-                secciones = data;
-            },
-            error: function() {
-                alert('Error al cargar las secciones');
-            }
-        });
-    }
-    
-    function cargarSeccionesPorEtapa(etapa) {
-        const select = $('#seccion');
-        select.empty();
+    function cargarEstudiantesExcel() {
+        const fileInput = document.getElementById('archivoExcel');
+        const file = fileInput.files[0];
         
-        if (!etapa) {
-            select.append('<option value="">Primero seleccione una etapa...</option>');
+        if (!file) {
+            alert('Por favor seleccione un archivo');
             return;
         }
         
-        select.append('<option value="">Seleccione una sección...</option>');
-        
-        const seccionesFiltradas = secciones.filter(s => s.etapa === etapa);
-        seccionesFiltradas.forEach(function(seccion) {
-            select.append(`<option value="${seccion.id_seccion}">${seccion.nombre_seccion}</option>`);
-        });
-    }
-    
-    function guardarMatricula() {
-        const data = {
-            etapa: $('#etapa').val(),
-            seccion: $('#seccion option:selected').text(),
-            num_estudiantes_h: parseInt($('#num_estudiantes_h').val()),
-            num_estudiantes_m: parseInt($('#num_estudiantes_m').val())
-        };
-        
-        if (!data.etapa || !$('#seccion').val()) {
-            alert('Por favor complete todos los campos');
+        // Validar extensión
+        const extension = file.name.split('.').pop().toLowerCase();
+        if (!['xlsx', 'xls'].includes(extension)) {
+            alert('Por favor seleccione un archivo Excel válido (.xlsx o .xls)');
             return;
         }
         
-        // Si estamos editando, usar PUT; si no, usar POST
-        const esEdicion = matriculaEditando !== null;
-        const url = esEdicion ? BASE_URL + '/api/matricula/' + matriculaEditando : BASE_URL + '/api/matricula';
-        const method = esEdicion ? 'PUT' : 'POST';
+        const formData = new FormData();
+        formData.append('archivo', file);
+        formData.append('sobrescribir', $('#sobrescribir').is(':checked'));
+        
+        // Mostrar indicador de carga
+        const btnSubir = $('#btnSubirExcel');
+        const textoOriginal = btnSubir.html();
+        btnSubir.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Procesando...');
+        
+        $('#resultadoCarga').hide();
         
         $.ajax({
-            url: url,
-            method: method,
-            contentType: 'application/json',
-            data: JSON.stringify(data),
+            url: BASE_URL + '/api/estudiantes/cargar-excel',
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
             success: function(response) {
-                alert('✅ Matrícula guardada correctamente');
-                $('#matriculaForm')[0].reset();
-                $('#seccion').empty().append('<option value="">Primero seleccione una etapa...</option>');
-                matriculaEditando = null; // Resetear el modo de edición
-                $('#btnGuardar').html('<i class="fas fa-save"></i> Guardar Matrícula');
-                $('#btnCancelar').hide();
+                btnSubir.prop('disabled', false).html(textoOriginal);
+                mostrarResultadoCarga(response, true);
+                
+                // Limpiar formulario
+                $('#excelUploadForm')[0].reset();
+                
+                // Recargar matrículas y estudiantes
                 cargarMatriculas();
+                cargarTodosLosEstudiantes();
             },
             error: function(xhr) {
-                const error = xhr.responseJSON?.error || 'Error al guardar la matrícula';
-                alert('❌ ' + error);
+                btnSubir.prop('disabled', false).html(textoOriginal);
+                const error = xhr.responseJSON || { error: 'Error al procesar el archivo' };
+                mostrarResultadoCarga(error, false);
             }
         });
+    }
+    
+    function mostrarResultadoCarga(response, exito) {
+        const resultadoDiv = $('#resultadoCarga');
+        const alertDiv = $('#alertResultado');
+        const tituloDiv = $('#tituloResultado');
+        const detalleDiv = $('#detalleResultado');
+        
+        // Configurar alerta
+        alertDiv.removeClass('alert-success alert-danger alert-warning');
+        
+        if (exito && response.success) {
+            alertDiv.addClass('alert-success');
+            tituloDiv.html('<i class="fas fa-check-circle"></i> Archivo procesado exitosamente');
+            
+            let detalle = `
+                <div class="row mt-3">
+                    <div class="col-md-3">
+                        <div class="text-center p-3" style="background: rgba(40, 167, 69, 0.2); border-radius: 10px;">
+                            <h3 class="mb-0">${response.procesados}</h3>
+                            <small>Procesados</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center p-3" style="background: rgba(23, 162, 184, 0.2); border-radius: 10px;">
+                            <h3 class="mb-0">${response.actualizados}</h3>
+                            <small>Actualizados</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center p-3" style="background: rgba(255, 193, 7, 0.2); border-radius: 10px;">
+                            <h3 class="mb-0">${response.duplicados}</h3>
+                            <small>Duplicados</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center p-3" style="background: rgba(220, 53, 69, 0.2); border-radius: 10px;">
+                            <h3 class="mb-0">${response.errores}</h3>
+                            <small>Errores</small>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Mostrar detalles de errores si existen
+            if (response.detalle && response.detalle.errores && response.detalle.errores.length > 0) {
+                detalle += `
+                    <div class="mt-3">
+                        <h6><i class="fas fa-exclamation-triangle"></i> Errores encontrados:</h6>
+                        <ul class="small">
+                            ${response.detalle.errores.slice(0, 10).map(e => `<li>${e}</li>`).join('')}
+                            ${response.detalle.errores.length > 10 ? `<li><em>... y ${response.detalle.errores.length - 10} más</em></li>` : ''}
+                        </ul>
+                    </div>
+                `;
+            }
+            
+            // Mostrar duplicados si existen
+            if (response.detalle && response.detalle.duplicados && response.detalle.duplicados.length > 0) {
+                detalle += `
+                    <div class="mt-3">
+                        <h6><i class="fas fa-info-circle"></i> Estudiantes duplicados (no procesados):</h6>
+                        <ul class="small">
+                            ${response.detalle.duplicados.slice(0, 5).map(d => `<li>${d.nombre} (${d.cedula})</li>`).join('')}
+                            ${response.detalle.duplicados.length > 5 ? `<li><em>... y ${response.detalle.duplicados.length - 5} más</em></li>` : ''}
+                        </ul>
+                        <small class="text-muted">Marca "Actualizar estudiantes existentes" para sobrescribir</small>
+                    </div>
+                `;
+            }
+            
+            detalleDiv.html(detalle);
+        } else {
+            alertDiv.addClass('alert-danger');
+            tituloDiv.html('<i class="fas fa-times-circle"></i> Error al procesar archivo');
+            
+            let detalle = `<p>${response.error || 'Error desconocido'}</p>`;
+            
+            if (response.columnas_encontradas) {
+                detalle += `
+                    <div class="mt-2">
+                        <strong>Columnas encontradas en el archivo:</strong>
+                        <ul class="small">
+                            ${response.columnas_encontradas.map(c => `<li>${c}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+            
+            detalleDiv.html(detalle);
+        }
+        
+        resultadoDiv.slideDown();
+        
+        // Scroll al resultado
+        $('html, body').animate({
+            scrollTop: resultadoDiv.offset().top - 100
+        }, 500);
     }
     
     function cargarMatriculas() {
@@ -318,7 +635,7 @@
         tbody.empty();
         
         if (data.length === 0) {
-            tbody.append('<tr><td colspan="6" class="text-center">No hay matrículas registradas</td></tr>');
+            tbody.append('<tr><td colspan="5" class="text-center">No hay matrículas registradas</td></tr>');
             return;
         }
         
@@ -331,64 +648,168 @@
                     <td><span class="badge bg-info">${m.num_estudiantes_h}</span></td>
                     <td><span class="badge bg-danger">${m.num_estudiantes_m}</span></td>
                     <td><strong>${total}</strong></td>
-                    <td>
-                        <button class="btn btn-sm btn-success" onclick="editarMatricula(${m.id})">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn btn-sm btn-danger" onclick="eliminarMatricula(${m.id})">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </td>
                 </tr>
             `);
         });
     }
     
-    function editarMatricula(id) {
-        const matricula = matriculas.find(m => m.id === id);
-        if (!matricula) return;
-        
-        // Guardar el ID de la matrícula que estamos editando
-        matriculaEditando = id;
-        
-        // Cambiar el texto del botón y mostrar botón cancelar
-        $('#btnGuardar').html('<i class="fas fa-edit"></i> Actualizar Matrícula');
-        $('#btnCancelar').show();
-        
-        $('#etapa').val(matricula.etapa);
-        cargarSeccionesPorEtapa(matricula.etapa);
-        
-        setTimeout(() => {
-            $('#seccion').val(matricula.id_seccion);
-            $('#num_estudiantes_h').val(matricula.num_estudiantes_h);
-            $('#num_estudiantes_m').val(matricula.num_estudiantes_m);
-        }, 100);
-        
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    // ==================== FUNCIONES PARA ESTUDIANTES ====================
     
-    function cancelarEdicion() {
-        matriculaEditando = null;
-        $('#matriculaForm')[0].reset();
-        $('#seccion').empty().append('<option value="">Primero seleccione una etapa...</option>');
-        $('#btnGuardar').html('<i class="fas fa-save"></i> Guardar Matrícula');
-        $('#btnCancelar').hide();
-    }
-    
-    function eliminarMatricula(id) {
-        if (!confirm('¿Está seguro de eliminar esta matrícula?')) return;
-        
+    function cargarEstudiantes() {
         $.ajax({
-            url: `/api/matricula/${id}`,
-            method: 'DELETE',
-            success: function() {
-                alert('✅ Matrícula eliminada correctamente');
-                cargarMatriculas();
+            url: BASE_URL + '/api/estudiantes/estadisticas',
+            method: 'GET',
+            success: function(data) {
+                if (data.error) {
+                    console.error('Error:', data.error);
+                    return;
+                }
+                
+                // Cargar todos los estudiantes de todas las secciones
+                cargarTodosLosEstudiantes();
             },
-            error: function() {
-                alert('❌ Error al eliminar la matrícula');
+            error: function(xhr) {
+                console.error('Error al cargar estadísticas');
             }
         });
+    }
+    
+    function cargarTodosLosEstudiantes() {
+        // Obtener todas las secciones y cargar sus estudiantes
+        $.ajax({
+            url: BASE_URL + '/secciones',
+            method: 'GET',
+            success: function(seccionesData) {
+                let promesas = [];
+                
+                seccionesData.forEach(function(seccion) {
+                    const promesa = $.ajax({
+                        url: BASE_URL + '/api/estudiantes/seccion/' + seccion.id_seccion,
+                        method: 'GET'
+                    });
+                    promesas.push(promesa);
+                });
+                
+                Promise.all(promesas).then(function(resultados) {
+                    todosLosEstudiantes = [];
+                    
+                    resultados.forEach(function(resultado) {
+                        if (resultado.estudiantes) {
+                            resultado.estudiantes.forEach(function(est) {
+                                todosLosEstudiantes.push({
+                                    ...est,
+                                    seccion_nombre: resultado.seccion.nombre,
+                                    seccion_id: resultado.seccion.id
+                                });
+                            });
+                        }
+                    });
+                    
+                    estudiantesFiltrados = [...todosLosEstudiantes];
+                    actualizarEstadisticas();
+                    mostrarEstudiantes();
+                    cargarSeccionesFiltro();
+                }).catch(function(error) {
+                    console.error('Error al cargar estudiantes:', error);
+                    $('#estudiantesTable').html('<tr><td colspan="6" class="text-center text-danger">Error al cargar estudiantes</td></tr>');
+                });
+            },
+            error: function() {
+                console.error('Error al cargar secciones');
+            }
+        });
+    }
+    
+    function cargarSeccionesFiltro() {
+        const select = $('#filtroSeccion');
+        select.empty();
+        select.append('<option value="">Todas las secciones</option>');
+        
+        // Obtener secciones únicas
+        const seccionesUnicas = [...new Set(todosLosEstudiantes.map(e => e.seccion_nombre))];
+        seccionesUnicas.sort().forEach(function(seccion) {
+            select.append(`<option value="${seccion}">${seccion}</option>`);
+        });
+    }
+    
+    function filtrarEstudiantes() {
+        const etapaFiltro = $('#filtroEtapa').val().toLowerCase();
+        const seccionFiltro = $('#filtroSeccion').val();
+        const busqueda = $('#buscarEstudiante').val().toLowerCase();
+        
+        estudiantesFiltrados = todosLosEstudiantes.filter(function(est) {
+            // Filtro por etapa
+            if (etapaFiltro && !est.seccion_nombre.toLowerCase().includes(etapaFiltro)) {
+                return false;
+            }
+            
+            // Filtro por sección
+            if (seccionFiltro && est.seccion_nombre !== seccionFiltro) {
+                return false;
+            }
+            
+            // Filtro por búsqueda (nombre o cédula)
+            if (busqueda) {
+                const nombreCompleto = est.nombre_completo.toLowerCase();
+                const cedula = est.cedula.toLowerCase();
+                if (!nombreCompleto.includes(busqueda) && !cedula.includes(busqueda)) {
+                    return false;
+                }
+            }
+            
+            return true;
+        });
+        
+        actualizarEstadisticas();
+        mostrarEstudiantes();
+    }
+    
+    function actualizarEstadisticas() {
+        const total = estudiantesFiltrados.length;
+        const masculinos = estudiantesFiltrados.filter(e => e.genero === 'M').length;
+        const femeninos = estudiantesFiltrados.filter(e => e.genero === 'F').length;
+        const secciones = [...new Set(estudiantesFiltrados.map(e => e.seccion_nombre))].length;
+        
+        $('#totalEstudiantes').text(total);
+        $('#totalMasculinos').text(masculinos);
+        $('#totalFemeninos').text(femeninos);
+        $('#totalSecciones').text(secciones);
+    }
+    
+    function mostrarEstudiantes() {
+        const tbody = $('#estudiantesTable');
+        tbody.empty();
+        
+        if (estudiantesFiltrados.length === 0) {
+            tbody.append('<tr><td colspan="6" class="text-center">No se encontraron estudiantes</td></tr>');
+            return;
+        }
+        
+        estudiantesFiltrados.forEach(function(est) {
+            const generoIcono = est.genero === 'M' 
+                ? '<i class="fas fa-male male-icon"></i>' 
+                : '<i class="fas fa-female female-icon"></i>';
+            
+            const estadoBadge = '<span class="badge bg-success">Activo</span>';
+            
+            tbody.append(`
+                <tr>
+                    <td><code>${est.cedula}</code></td>
+                    <td><strong>${est.nombre_completo}</strong></td>
+                    <td>${generoIcono} ${est.genero_texto}</td>
+                    <td><span class="badge bg-primary">${est.seccion_nombre}</span></td>
+                    <td>${extraerEtapa(est.seccion_nombre)}</td>
+                    <td>${estadoBadge}</td>
+                </tr>
+            `);
+        });
+    }
+    
+    function extraerEtapa(nombreSeccion) {
+        if (nombreSeccion.includes('Inicial')) return 'Inicial';
+        if (nombreSeccion.includes('Primaria')) return 'Primaria';
+        if (nombreSeccion.includes('Secundaria')) return 'Secundaria';
+        return 'N/A';
     }
 </script>
 {% endblock %}

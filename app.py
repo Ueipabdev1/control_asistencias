@@ -68,9 +68,17 @@ def load_user(user_id):
 
 # Registrar blueprints
 from routes import main_bp, admin_bp, auth_bp
+from routes_estudiantes import estudiantes_bp, asistencia_individual_bp
+from routes_observaciones import observaciones_bp
+from routes_estadisticas import estadisticas_bp
+
 app.register_blueprint(main_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(auth_bp)
+app.register_blueprint(estudiantes_bp)
+app.register_blueprint(asistencia_individual_bp)
+app.register_blueprint(observaciones_bp)
+app.register_blueprint(estadisticas_bp)
 
 if __name__ == '__main__':
     try:

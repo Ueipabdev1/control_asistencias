@@ -62,79 +62,210 @@
         color: #e0e0e0;
     }
     
-    .gender-inputs {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 20px;
-    }
-    
-    .gender-input-group {
-        background: rgba(50, 50, 70, 0.6);
-        border-radius: 15px;
-        padding: 20px;
-        text-align: center;
-        transition: transform 0.3s ease;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    
-    .gender-input-group:hover {
-        transform: translateY(-2px);
-        background: rgba(60, 60, 80, 0.8);
-    }
-    
-    .matricula-info {
-        background: rgba(102, 126, 234, 0.2);
-        border: 2px solid rgba(102, 126, 234, 0.5);
-        border-radius: 10px;
-        padding: 10px 15px;
-        margin-bottom: 10px;
-        text-align: center;
-        font-weight: 600;
-        color: #a0b0ff;
-    }
-    
-    .matricula-info i {
-        margin-right: 5px;
-    }
-    
-    .matricula-info.hidden {
+    /* Lista de estudiantes */
+    .estudiantes-container {
         display: none;
+        margin-top: 30px;
     }
     
-    .asistencia-existente {
-        background: rgba(255, 193, 7, 0.2);
-        border: 2px solid rgba(255, 193, 7, 0.6);
-        border-radius: 15px;
-        padding: 20px;
-        margin-bottom: 20px;
-        text-align: center;
+    .estudiantes-container.show {
+        display: block;
     }
     
-    .asistencia-existente h5 {
-        color: #ffc107;
-        margin-bottom: 15px;
+    .estudiante-item {
+        background: rgba(50, 50, 70, 0.6);
+        border-radius: 10px;
+        padding: 15px 20px;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
     }
     
-    .asistencia-existente .info-text {
+    .estudiante-item:hover {
+        background: rgba(60, 60, 80, 0.8);
+        transform: translateX(5px);
+    }
+    
+    .estudiante-item.presente {
+        border-color: #28a745;
+        background: rgba(40, 167, 69, 0.2);
+    }
+    
+    .estudiante-info {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        flex: 1;
+    }
+    
+    .estudiante-genero {
+        font-size: 1.5em;
+        width: 30px;
+    }
+    
+    .estudiante-nombre {
+        font-weight: 600;
         color: #e0e0e0;
         font-size: 1.1em;
+    }
+    
+    .estudiante-cedula {
+        color: #a0a0a0;
+        font-size: 0.9em;
+        margin-left: 10px;
+    }
+    
+    .estudiante-checkbox {
+        width: 30px;
+        height: 30px;
+        cursor: pointer;
+        accent-color: #667eea;
+    }
+    
+    /* Contadores de asistencia */
+    .contadores-asistencia {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .contador-card {
+        background: rgba(50, 50, 70, 0.8);
+        border-radius: 15px;
+        padding: 20px;
+        text-align: center;
+        border: 2px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .contador-card.masculino {
+        border-color: rgba(79, 195, 247, 0.5);
+    }
+    
+    .contador-card.femenino {
+        border-color: rgba(244, 143, 177, 0.5);
+    }
+    
+    .contador-card.total {
+        border-color: rgba(102, 126, 234, 0.5);
+    }
+    
+    .contador-icon {
+        font-size: 2em;
         margin-bottom: 10px;
     }
     
-    .btn-editar {
-        background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
-        border: none;
+    .contador-valor {
+        font-size: 2.5em;
+        font-weight: 700;
+        color: #ffffff;
+        margin-bottom: 5px;
+    }
+    
+    .contador-label {
+        color: #b0b0b0;
+        font-size: 0.9em;
+        text-transform: uppercase;
+    }
+    
+    /* Filtros y búsqueda */
+    .filtros-estudiantes {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    
+    .btn-filtro {
+        background: rgba(50, 50, 70, 0.8);
+        border: 2px solid rgba(255, 255, 255, 0.2);
         border-radius: 10px;
         padding: 10px 20px;
-        font-weight: 600;
-        color: #000;
+        color: #e0e0e0;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-filtro:hover, .btn-filtro.active {
+        background: rgba(102, 126, 234, 0.3);
+        border-color: #667eea;
+    }
+    
+    .search-box {
+        flex: 1;
+        min-width: 250px;
+    }
+    
+    /* Observaciones */
+    .observaciones-container {
+        margin-top: 30px;
+        padding: 25px;
+        background: rgba(50, 50, 70, 0.6);
+        border-radius: 15px;
+        border: 2px solid rgba(102, 126, 234, 0.3);
+    }
+    
+    .observaciones-container textarea {
+        background: rgba(40, 40, 60, 0.8);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        color: #e0e0e0;
+        resize: vertical;
+        min-height: 100px;
+    }
+    
+    .observaciones-container textarea:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        background: rgba(60, 60, 80, 0.9);
+    }
+    
+    .observaciones-container .form-text {
+        color: #a0a0a0;
         margin-top: 10px;
     }
     
-    .btn-editar:hover {
+    .btn-success {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        border: none;
+        border-radius: 15px;
+        padding: 12px 30px;
+        font-size: 16px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-success:hover {
         transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(255, 193, 7, 0.4);
-        color: #000;
+        box-shadow: 0 8px 20px rgba(40, 167, 69, 0.5);
+    }
+    
+    .alert {
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 20px;
+        border: 2px solid;
+    }
+    
+    .alert-info {
+        background: rgba(23, 162, 184, 0.2);
+        color: #17a2b8;
+        border-color: rgba(23, 162, 184, 0.3);
+    }
+    
+    .alert-warning {
+        background: rgba(255, 193, 7, 0.2);
+        color: #ffc107;
+        border-color: rgba(255, 193, 7, 0.3);
+    }
+    
+    .alert-success {
+        background: rgba(40, 167, 69, 0.2);
+        color: #28a745;
+        border-color: rgba(40, 167, 69, 0.3);
     }
     
     .gender-icon {
@@ -187,76 +318,131 @@
 <div class="main-container">
     <div class="header">
         <h1><i class="fas fa-clipboard-check"></i> Control de Asistencias</h1>
-        <p class="mb-0">Sistema de Registro Diario - UEIPAB</p>
+        <p class="mb-0">Sistema de Registro Individual - UEIPAB</p>
     </div>
     
     <div class="form-section">
         <form id="asistenciaForm">
-            <!-- Mensaje de asistencia existente -->
-            <div id="asistenciaExistente" class="asistencia-existente" style="display: none;">
-                <h5><i class="fas fa-info-circle"></i> Asistencia Ya Registrada</h5>
-                <div class="info-text">
-                    <strong>Estudiantes presentes:</strong><br>
-                    Masculino: <span id="existenteH">0</span> | Femenino: <span id="existenteM">0</span><br>
-                    <strong>Total: <span id="existenteTotal">0</span></strong>
+            <!-- Selección de fecha y sección -->
+            <div class="row">
+                <div class="col-md-6 form-group">
+                    <label for="fecha" class="form-label">
+                        <i class="fas fa-calendar-alt"></i> Fecha de la Clase
+                    </label>
+                    <input type="date" class="form-control" id="fecha" required>
                 </div>
+                
+                <div class="col-md-6 form-group">
+                    <label for="seccion" class="form-label">
+                        <i class="fas fa-school"></i> Sección
+                    </label>
+                    <select class="form-control" id="seccion" required>
+                        <option value="">Seleccione una sección...</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Mensaje de asistencia existente -->
+            <div id="alertaAsistenciaExistente" class="alert alert-warning" style="display: none;">
+                <i class="fas fa-info-circle"></i> 
+                <strong>Asistencia ya registrada para esta fecha y sección.</strong>
+                <span id="textoAsistenciaExistente"></span>
                 {% if es_admin %}
-                <button type="button" class="btn btn-editar" onclick="habilitarEdicion()">
-                    <i class="fas fa-edit"></i> Modificar Asistencia
-                </button>
+                <br><small>Puede modificar la asistencia seleccionando/deseleccionando estudiantes.</small>
                 {% else %}
-                <p class="text-warning mt-2"><i class="fas fa-lock"></i> Solo los administradores pueden modificar asistencias registradas</p>
+                <br><small class="text-danger">Solo los administradores pueden modificar asistencias registradas.</small>
                 {% endif %}
             </div>
             
-            <div class="form-group">
-                <label for="fecha" class="form-label">
-                    <i class="fas fa-calendar-alt"></i> Fecha de la Clase
-                </label>
-                <input type="date" class="form-control" id="fecha" required>
+            <!-- Contadores de asistencia -->
+            <div class="contadores-asistencia" id="contadoresAsistencia" style="display: none;">
+                <div class="contador-card masculino">
+                    <div class="contador-icon male-icon">
+                        <i class="fas fa-male"></i>
+                    </div>
+                    <div class="contador-valor" id="contadorMasculinos">0</div>
+                    <div class="contador-label">Masculinos</div>
+                </div>
+                
+                <div class="contador-card femenino">
+                    <div class="contador-icon female-icon">
+                        <i class="fas fa-female"></i>
+                    </div>
+                    <div class="contador-valor" id="contadorFemeninos">0</div>
+                    <div class="contador-label">Femeninos</div>
+                </div>
+                
+                <div class="contador-card total">
+                    <div class="contador-icon" style="color: #667eea;">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="contador-valor" id="contadorTotal">0</div>
+                    <div class="contador-label">Total Presentes</div>
+                </div>
             </div>
             
-            <div class="form-group">
-                <label for="seccion" class="form-label">
-                    <i class="fas fa-school"></i> Sección
-                </label>
-                <select class="form-control" id="seccion" required>
-                    <option value="">Seleccione una sección...</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">
-                    <i class="fas fa-users"></i> Número de Estudiantes Presentes
-                </label>
-                <div class="gender-inputs">
-                    <div class="gender-input-group">
-                        <div class="matricula-info hidden" id="matriculaH">
-                            <i class="fas fa-user-graduate"></i>
-                            <span id="totalMatriculaH">0</span> estudiantes matriculados
-                        </div>
-                        <div class="gender-icon male-icon">
-                            <i class="fas fa-male"></i>
-                        </div>
-                        <label class="form-label">Masculino</label>
-                        <input type="number" class="form-control" id="masculinos" min="0" value="0" required>
+            <!-- Lista de estudiantes -->
+            <div class="estudiantes-container" id="estudiantesContainer">
+                <h5 class="mb-3" style="color: #e0e0e0;">
+                    <i class="fas fa-list"></i> Lista de Estudiantes
+                    <span id="totalEstudiantes" class="badge bg-primary ms-2">0</span>
+                </h5>
+                
+                <!-- Filtros y búsqueda -->
+                <div class="filtros-estudiantes">
+                    <button type="button" class="btn-filtro active" data-filtro="todos">
+                        <i class="fas fa-users"></i> Todos
+                    </button>
+                    <button type="button" class="btn-filtro" data-filtro="masculino">
+                        <i class="fas fa-male"></i> Masculinos
+                    </button>
+                    <button type="button" class="btn-filtro" data-filtro="femenino">
+                        <i class="fas fa-female"></i> Femeninos
+                    </button>
+                    <button type="button" class="btn-filtro" data-filtro="presentes">
+                        <i class="fas fa-check-circle"></i> Presentes
+                    </button>
+                    <button type="button" class="btn-filtro" data-filtro="ausentes">
+                        <i class="fas fa-times-circle"></i> Ausentes
+                    </button>
+                    
+                    <div class="search-box">
+                        <input type="text" class="form-control" id="buscarEstudiante" placeholder="Buscar por nombre o cédula...">
                     </div>
                     
-                    <div class="gender-input-group">
-                        <div class="matricula-info hidden" id="matriculaM">
-                            <i class="fas fa-user-graduate"></i>
-                            <span id="totalMatriculaM">0</span> estudiantes matriculadas
-                        </div>
-                        <div class="gender-icon female-icon">
-                            <i class="fas fa-female"></i>
-                        </div>
-                        <label class="form-label">Femenino</label>
-                        <input type="number" class="form-control" id="femeninos" min="0" value="0" required>
+                    <button type="button" class="btn btn-success" onclick="marcarTodos()">
+                        <i class="fas fa-check-double"></i> Marcar Todos
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="desmarcarTodos()">
+                        <i class="fas fa-times"></i> Desmarcar Todos
+                    </button>
+                </div>
+                
+                <!-- Lista de estudiantes -->
+                <div id="listaEstudiantes">
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-user-graduate fa-3x mb-3"></i>
+                        <p>Seleccione una fecha y sección para cargar los estudiantes</p>
                     </div>
                 </div>
             </div>
             
-            <div class="text-center mt-4">
+            <!-- Observaciones Generales -->
+            <div class="observaciones-container" id="observacionesContainer" style="display: none;">
+                <h5 class="mb-3" style="color: #e0e0e0;">
+                    <i class="fas fa-clipboard"></i> Observaciones de la Clase
+                </h5>
+                <div class="form-group">
+                    <textarea class="form-control" id="observacionesTexto" rows="4" 
+                              placeholder="Escriba aquí cualquier observación o novedad que haya ocurrido durante la clase..."></textarea>
+                    <small class="form-text text-muted">
+                        <i class="fas fa-info-circle"></i> Las observaciones son opcionales y se guardan junto con la asistencia.
+                    </small>
+                </div>
+            </div>
+            
+            <!-- Botones de acción -->
+            <div class="text-center mt-4" id="botonesAccion" style="display: none;">
                 <button type="submit" class="btn btn-primary me-2" id="btnGuardar">
                     <i class="fas fa-save"></i> Guardar Asistencia
                 </button>
@@ -271,141 +457,40 @@
 
 {% block extra_js %}
 <script>
-    let secciones = [];
-    let asistenciaExistenteActual = null;
+    let estudiantesData = [];
+    let asistenciaExistente = null;
     const esAdmin = {{ 'true' if es_admin else 'false' }};
     
-    // Cargar secciones al iniciar
     $(document).ready(function() {
-        // Establecer fecha actual
         const today = new Date().toISOString().split('T')[0];
         $('#fecha').val(today);
         
-        // Cargar secciones
         cargarSecciones();
         
-        // Detectar cambio de sección para mostrar matrícula y verificar asistencia
-        $('#seccion').on('change', function() {
-            mostrarMatricula();
-            verificarAsistenciaExistente();
+        $('#seccion').on('change', cargarEstudiantes);
+        $('#fecha').on('change', cargarEstudiantes);
+        $('#buscarEstudiante').on('input', filtrarEstudiantes);
+        
+        $('.btn-filtro').on('click', function() {
+            $('.btn-filtro').removeClass('active');
+            $(this).addClass('active');
+            filtrarEstudiantes();
         });
         
-        // Detectar cambio de fecha para verificar asistencia
-        $('#fecha').on('change', function() {
-            verificarAsistenciaExistente();
-        });
+        $('#asistenciaForm').on('submit', guardarAsistencia);
     });
-    
-    function mostrarMatricula() {
-        const seccionId = $('#seccion').val();
-        
-        if (!seccionId) {
-            // Ocultar información de matrícula
-            $('#matriculaH').addClass('hidden');
-            $('#matriculaM').addClass('hidden');
-            return;
-        }
-        
-        // Obtener datos de matrícula de la opción seleccionada
-        const selectedOption = $('#seccion option:selected');
-        const matriculaH = parseInt(selectedOption.data('matricula-h')) || 0;
-        const matriculaM = parseInt(selectedOption.data('matricula-m')) || 0;
-        
-        // Actualizar y mostrar información
-        $('#totalMatriculaH').text(matriculaH);
-        $('#totalMatriculaM').text(matriculaM);
-        
-        $('#matriculaH').removeClass('hidden');
-        $('#matriculaM').removeClass('hidden');
-        
-        // Establecer el máximo en los inputs
-        $('#masculinos').attr('max', matriculaH);
-        $('#femeninos').attr('max', matriculaM);
-    }
-    
-    function verificarAsistenciaExistente() {
-        const fecha = $('#fecha').val();
-        const seccionId = $('#seccion').val();
-        
-        if (!fecha || !seccionId) {
-            $('#asistenciaExistente').hide();
-            asistenciaExistenteActual = null;
-            return;
-        }
-        
-        $.ajax({
-            url: BASE_URL + `/verificar_asistencia/${fecha}/${seccionId}`,
-            method: 'GET',
-            success: function(data) {
-                if (data.existe) {
-                    // Mostrar asistencia existente
-                    asistenciaExistenteActual = data;
-                    $('#existenteH').text(data.asistentes_h);
-                    $('#existenteM').text(data.asistentes_m);
-                    $('#existenteTotal').text(data.total);
-                    $('#asistenciaExistente').show();
-                    
-                    // Deshabilitar inputs
-                    $('#masculinos').val(data.asistentes_h).prop('disabled', true);
-                    $('#femeninos').val(data.asistentes_m).prop('disabled', true);
-                    
-                    // Solo administradores pueden actualizar
-                    if (esAdmin) {
-                        $('#btnGuardar').html('<i class="fas fa-save"></i> Actualizar Asistencia').prop('disabled', false);
-                    } else {
-                        $('#btnGuardar').html('<i class="fas fa-lock"></i> Asistencia Registrada').prop('disabled', true);
-                    }
-                } else {
-                    // No existe asistencia, limpiar formulario
-                    asistenciaExistenteActual = null;
-                    $('#asistenciaExistente').hide();
-                    $('#masculinos').val(0).prop('disabled', false);
-                    $('#femeninos').val(0).prop('disabled', false);
-                    $('#btnGuardar').html('<i class="fas fa-save"></i> Guardar Asistencia').prop('disabled', false);
-                }
-            },
-            error: function(error) {
-                console.error('Error al verificar asistencia:', error);
-            }
-        });
-    }
-    
-    function habilitarEdicion() {
-        $('#masculinos').prop('disabled', false);
-        $('#femeninos').prop('disabled', false);
-        $('#masculinos').focus();
-    }
-    
-    function limpiarFormulario() {
-        $('#masculinos').val(0).prop('disabled', false);
-        $('#femeninos').val(0).prop('disabled', false);
-        $('#seccion').val('');
-        $('#matriculaH').addClass('hidden');
-        $('#matriculaM').addClass('hidden');
-        $('#asistenciaExistente').hide();
-        asistenciaExistenteActual = null;
-        $('#btnGuardar').html('<i class="fas fa-save"></i> Guardar Asistencia').prop('disabled', false);
-    }
     
     function cargarSecciones() {
         $.ajax({
             url: BASE_URL + '/secciones',
             method: 'GET',
             success: function(data) {
-                secciones = data;
                 const select = $('#seccion');
                 select.empty();
                 select.append('<option value="">Seleccione una sección...</option>');
                 
                 data.forEach(function(seccion) {
-                    select.append(
-                        `<option value="${seccion.id_seccion}" 
-                         data-matricula-h="${seccion.matricula_h}" 
-                         data-matricula-m="${seccion.matricula_m}">
-                            ${seccion.etapa} - ${seccion.nombre_seccion} 
-                            (H: ${seccion.matricula_h}, M: ${seccion.matricula_m})
-                        </option>`
-                    );
+                    select.append(`<option value="${seccion.id_seccion}">${seccion.nombre_seccion}</option>`);
                 });
             },
             error: function(error) {
@@ -415,48 +500,289 @@
         });
     }
     
-    // Manejar envío del formulario
-    $('#asistenciaForm').on('submit', function(e) {
-        e.preventDefault();
+    function cargarEstudiantes() {
+        const fecha = $('#fecha').val();
+        const seccionId = $('#seccion').val();
         
-        const data = {
-            fecha: $('#fecha').val(),
-            id_seccion: parseInt($('#seccion').val()),
-            masculinos: parseInt($('#masculinos').val()),
-            femeninos: parseInt($('#femeninos').val())
-        };
-        
-        if (!data.id_seccion) {
-            alert('Por favor seleccione una sección');
+        if (!fecha || !seccionId) {
+            $('#estudiantesContainer').removeClass('show');
+            $('#contadoresAsistencia').hide();
+            $('#botonesAccion').hide();
             return;
         }
         
-        const mensaje = asistenciaExistenteActual 
+        $.ajax({
+            url: BASE_URL + '/api/estudiantes/seccion/' + seccionId,
+            method: 'GET',
+            success: function(response) {
+                estudiantesData = response.estudiantes || [];
+                verificarAsistenciaExistente(fecha, seccionId);
+            },
+            error: function(error) {
+                console.error('Error al cargar estudiantes:', error);
+                alert('Error al cargar los estudiantes');
+            }
+        });
+    }
+    
+    function verificarAsistenciaExistente(fecha, seccionId) {
+        $.ajax({
+            url: BASE_URL + '/api/asistencia-individual/verificar',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ fecha: fecha, id_seccion: parseInt(seccionId) }),
+            success: function(response) {
+                asistenciaExistente = response.existe ? response.asistencias : null;
+                
+                if (response.existe) {
+                    $('#alertaAsistenciaExistente').show();
+                    $('#textoAsistenciaExistente').text(`${response.total_presentes} de ${estudiantesData.length} estudiantes presentes.`);
+                    
+                    if (!esAdmin) {
+                        $('#btnGuardar').prop('disabled', true);
+                        $('.estudiante-checkbox').prop('disabled', true);
+                    }
+                } else {
+                    $('#alertaAsistenciaExistente').hide();
+                    $('#btnGuardar').prop('disabled', false);
+                    $('.estudiante-checkbox').prop('disabled', false);
+                }
+                
+                mostrarEstudiantes();
+                cargarObservaciones(fecha, seccionId);
+            },
+            error: function(error) {
+                console.error('Error al verificar asistencia:', error);
+                asistenciaExistente = null;
+                mostrarEstudiantes();
+                cargarObservaciones(fecha, seccionId);
+            }
+        });
+    }
+    
+    function cargarObservaciones(fecha, seccionId) {
+        $.ajax({
+            url: BASE_URL + '/api/observaciones/verificar',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ fecha: fecha, id_seccion: parseInt(seccionId) }),
+            success: function(response) {
+                if (response.existe) {
+                    $('#observacionesTexto').val(response.observaciones || '');
+                } else {
+                    $('#observacionesTexto').val('');
+                }
+                $('#observacionesContainer').show();
+            },
+            error: function(error) {
+                console.error('Error al cargar observaciones:', error);
+                $('#observacionesTexto').val('');
+                $('#observacionesContainer').show();
+            }
+        });
+    }
+    
+    function mostrarEstudiantes() {
+        const lista = $('#listaEstudiantes');
+        lista.empty();
+        
+        if (estudiantesData.length === 0) {
+            lista.html('<div class="alert alert-info text-center"><i class="fas fa-info-circle"></i> No hay estudiantes registrados en esta sección.</div>');
+            $('#estudiantesContainer').addClass('show');
+            return;
+        }
+        
+        estudiantesData.forEach(function(estudiante) {
+            const generoIcono = estudiante.genero === 'M' 
+                ? '<i class="fas fa-male male-icon"></i>' 
+                : '<i class="fas fa-female female-icon"></i>';
+            
+            let presente = false;
+            if (asistenciaExistente) {
+                presente = asistenciaExistente.some(a => a.id_estudiante === estudiante.id_estudiante && a.presente);
+            }
+            
+            const checkedAttr = presente ? 'checked' : '';
+            const presenteClass = presente ? 'presente' : '';
+            const disabledAttr = (!esAdmin && asistenciaExistente) ? 'disabled' : '';
+            
+            lista.append(`
+                <div class="estudiante-item ${presenteClass}" data-id="${estudiante.id_estudiante}" data-genero="${estudiante.genero}">
+                    <div class="estudiante-info">
+                        <div class="estudiante-genero">${generoIcono}</div>
+                        <div>
+                            <div class="estudiante-nombre">${estudiante.nombre_completo}</div>
+                            <div class="estudiante-cedula">${estudiante.cedula}</div>
+                        </div>
+                    </div>
+                    <input type="checkbox" class="estudiante-checkbox" 
+                           data-id="${estudiante.id_estudiante}" 
+                           data-genero="${estudiante.genero}"
+                           ${checkedAttr} ${disabledAttr}
+                           onchange="actualizarContadores()">
+                </div>
+            `);
+        });
+        
+        $('#totalEstudiantes').text(estudiantesData.length);
+        $('#estudiantesContainer').addClass('show');
+        $('#contadoresAsistencia').show();
+        $('#botonesAccion').show();
+        
+        actualizarContadores();
+        filtrarEstudiantes();
+    }
+    
+    function actualizarContadores() {
+        let masculinos = 0;
+        let femeninos = 0;
+        
+        $('.estudiante-checkbox:checked').each(function() {
+            const genero = $(this).data('genero');
+            if (genero === 'M') masculinos++;
+            else femeninos++;
+            $(this).closest('.estudiante-item').addClass('presente');
+        });
+        
+        $('.estudiante-checkbox:not(:checked)').each(function() {
+            $(this).closest('.estudiante-item').removeClass('presente');
+        });
+        
+        $('#contadorMasculinos').text(masculinos);
+        $('#contadorFemeninos').text(femeninos);
+        $('#contadorTotal').text(masculinos + femeninos);
+    }
+    
+    function filtrarEstudiantes() {
+        const filtro = $('.btn-filtro.active').data('filtro');
+        const busqueda = $('#buscarEstudiante').val().toLowerCase();
+        
+        $('.estudiante-item').each(function() {
+            const item = $(this);
+            const genero = item.data('genero');
+            const nombre = item.find('.estudiante-nombre').text().toLowerCase();
+            const cedula = item.find('.estudiante-cedula').text().toLowerCase();
+            const presente = item.find('.estudiante-checkbox').is(':checked');
+            
+            let mostrar = true;
+            
+            if (filtro === 'masculino' && genero !== 'M') mostrar = false;
+            if (filtro === 'femenino' && genero !== 'F') mostrar = false;
+            if (filtro === 'presentes' && !presente) mostrar = false;
+            if (filtro === 'ausentes' && presente) mostrar = false;
+            
+            if (busqueda && !nombre.includes(busqueda) && !cedula.includes(busqueda)) {
+                mostrar = false;
+            }
+            
+            item.toggle(mostrar);
+        });
+    }
+    
+    function marcarTodos() {
+        $('.estudiante-item:visible .estudiante-checkbox').prop('checked', true);
+        actualizarContadores();
+    }
+    
+    function desmarcarTodos() {
+        $('.estudiante-item:visible .estudiante-checkbox').prop('checked', false);
+        actualizarContadores();
+    }
+    
+    function limpiarFormulario() {
+        $('#seccion').val('');
+        $('#buscarEstudiante').val('');
+        $('#observacionesTexto').val('');
+        $('.btn-filtro').removeClass('active').first().addClass('active');
+        $('#estudiantesContainer').removeClass('show');
+        $('#observacionesContainer').hide();
+        $('#contadoresAsistencia').hide();
+        $('#botonesAccion').hide();
+        $('#alertaAsistenciaExistente').hide();
+        estudiantesData = [];
+        asistenciaExistente = null;
+    }
+    
+    function guardarAsistencia(e) {
+        e.preventDefault();
+        
+        const fecha = $('#fecha').val();
+        const seccionId = parseInt($('#seccion').val());
+        
+        if (!fecha || !seccionId) {
+            alert('Por favor seleccione fecha y sección');
+            return;
+        }
+        
+        const asistencias = [];
+        $('.estudiante-checkbox').each(function() {
+            asistencias.push({
+                id_estudiante: parseInt($(this).data('id')),
+                presente: $(this).is(':checked')
+            });
+        });
+        
+        const observaciones = $('#observacionesTexto').val().trim();
+        
+        const mensaje = asistenciaExistente 
             ? '¿Está seguro de actualizar la asistencia registrada?' 
             : '¿Está seguro de guardar esta asistencia?';
         
         if (!confirm(mensaje)) return;
         
+        const btnGuardar = $('#btnGuardar');
+        const textoOriginal = btnGuardar.html();
+        btnGuardar.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Guardando...');
+        
+        // Guardar asistencia
         $.ajax({
-            url: BASE_URL + '/guardar_asistencia',
+            url: BASE_URL + '/api/asistencia-individual/guardar',
             method: 'POST',
             contentType: 'application/json',
-            data: JSON.stringify(data),
+            data: JSON.stringify({
+                fecha: fecha,
+                id_seccion: seccionId,
+                asistencias: asistencias
+            }),
             success: function(response) {
                 if (response.success) {
-                    alert('✅ ' + response.message);
-                    // Recargar la verificación para mostrar datos actualizados
-                    verificarAsistenciaExistente();
+                    // Guardar observaciones
+                    guardarObservaciones(fecha, seccionId, observaciones, function() {
+                        btnGuardar.prop('disabled', false).html(textoOriginal);
+                        alert('✅ Asistencia y observaciones guardadas correctamente');
+                        cargarEstudiantes();
+                    });
                 } else {
+                    btnGuardar.prop('disabled', false).html(textoOriginal);
                     alert('❌ ' + response.message);
                 }
             },
             error: function(error) {
+                btnGuardar.prop('disabled', false).html(textoOriginal);
                 console.error('Error:', error);
                 alert('Error al guardar la asistencia');
             }
         });
-    });
+    }
     
+    function guardarObservaciones(fecha, seccionId, observaciones, callback) {
+        $.ajax({
+            url: BASE_URL + '/api/observaciones/guardar',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                fecha: fecha,
+                id_seccion: seccionId,
+                observaciones: observaciones
+            }),
+            success: function(response) {
+                if (callback) callback();
+            },
+            error: function(error) {
+                console.error('Error al guardar observaciones:', error);
+                if (callback) callback();
+            }
+        });
+    }
 </script>
 {% endblock %}

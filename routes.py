@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import func, and_, extract
 from flask_login import login_user, logout_user, login_required, current_user
 from functools import wraps
-from models import db, Etapa, Usuario, Seccion, ProfesorSeccion, Matricula, Asistencia
+from models import db, Etapa, Usuario, Seccion, ProfesorSeccion, Matricula, Asistencia, AsistenciaEstudiante, Estudiante, Grado
 from extensions import bcrypt
 
 # Decorador para verificar roles
@@ -50,17 +50,23 @@ def index():
 @login_required
 def obtener_secciones():
     """API para obtener lista de secciones con su matrícula"""
+    from models import Grado
+    
     # Si es administrador, mostrar todas las secciones
     if current_user.is_admin:
-        secciones = db.session.query(Seccion, Etapa, Matricula).join(
-            Etapa, Seccion.id_etapa == Etapa.id_etapa
+        secciones = db.session.query(Seccion, Grado, Etapa, Matricula).join(
+            Grado, Seccion.id_grado == Grado.id_grado
+        ).join(
+            Etapa, Grado.id_etapa == Etapa.id_etapa
         ).outerjoin(
             Matricula, Seccion.id_seccion == Matricula.id_seccion
         ).all()
     else:
         # Si es profesor, solo mostrar sus secciones asignadas
-        secciones = db.session.query(Seccion, Etapa, Matricula).join(
-            Etapa, Seccion.id_etapa == Etapa.id_etapa
+        secciones = db.session.query(Seccion, Grado, Etapa, Matricula).join(
+            Grado, Seccion.id_grado == Grado.id_grado
+        ).join(
+            Etapa, Grado.id_etapa == Etapa.id_etapa
         ).outerjoin(
             Matricula, Seccion.id_seccion == Matricula.id_seccion
         ).join(
@@ -71,8 +77,10 @@ def obtener_secciones():
     
     return jsonify([{
         'id_seccion': s.Seccion.id_seccion,
-        'nombre_seccion': s.Seccion.nombre_seccion,
+        'nombre_seccion': f"{s.Etapa.nombre_etapa} - {s.Grado.nombre_grado} - Sección {s.Seccion.nombre_seccion}",
         'etapa': s.Etapa.nombre_etapa,
+        'grado': s.Grado.nombre_grado,
+        'seccion': s.Seccion.nombre_seccion,
         'matricula_h': s.Matricula.num_estudiantes_h if s.Matricula else 0,
         'matricula_m': s.Matricula.num_estudiantes_m if s.Matricula else 0,
         'total_matricula': (s.Matricula.num_estudiantes_h + s.Matricula.num_estudiantes_m) if s.Matricula else 0
@@ -227,49 +235,65 @@ def api_logs_asistencia():
         fecha_inicio = request.args.get('fecha_inicio')
         fecha_fin = request.args.get('fecha_fin')
         
-        # Query base - solo asistencias con sección y etapa
+        # Query para obtener asistencias agrupadas por fecha y sección
         query = db.session.query(
-            Asistencia,
-            Seccion,
-            Etapa
+            AsistenciaEstudiante.fecha,
+            Seccion.id_seccion,
+            Seccion.nombre_seccion,
+            Grado.nombre_grado,
+            Etapa.nombre_etapa,
+            AsistenciaEstudiante.id_usuario,
+            func.sum(func.case((and_(AsistenciaEstudiante.presente == True, Estudiante.genero == 'M'), 1), else_=0)).label('asistentes_h'),
+            func.sum(func.case((and_(AsistenciaEstudiante.presente == True, Estudiante.genero == 'F'), 1), else_=0)).label('asistentes_m')
         ).join(
-            Seccion, Asistencia.id_seccion == Seccion.id_seccion
+            Estudiante, AsistenciaEstudiante.id_estudiante == Estudiante.id_estudiante
         ).join(
-            Etapa, Seccion.id_etapa == Etapa.id_etapa
-        ).order_by(Asistencia.fecha.desc())
+            Seccion, Estudiante.id_seccion == Seccion.id_seccion
+        ).join(
+            Grado, Seccion.id_grado == Grado.id_grado
+        ).join(
+            Etapa, Grado.id_etapa == Etapa.id_etapa
+        ).group_by(
+            AsistenciaEstudiante.fecha,
+            Seccion.id_seccion,
+            Seccion.nombre_seccion,
+            Grado.nombre_grado,
+            Etapa.nombre_etapa,
+            AsistenciaEstudiante.id_usuario
+        ).order_by(AsistenciaEstudiante.fecha.desc())
         
         # Aplicar filtros de fecha si se proporcionan
         if fecha_inicio:
             fecha_inicio_obj = datetime.strptime(fecha_inicio, '%Y-%m-%d').date()
-            query = query.filter(Asistencia.fecha >= fecha_inicio_obj)
+            query = query.filter(AsistenciaEstudiante.fecha >= fecha_inicio_obj)
         
         if fecha_fin:
             fecha_fin_obj = datetime.strptime(fecha_fin, '%Y-%m-%d').date()
-            query = query.filter(Asistencia.fecha <= fecha_fin_obj)
+            query = query.filter(AsistenciaEstudiante.fecha <= fecha_fin_obj)
         
         resultados = query.all()
         
         # Formatear los resultados
         logs = []
-        for asistencia, seccion, etapa in resultados:
+        for resultado in resultados:
             # Obtener el usuario que registró la asistencia
-            if asistencia.id_usuario:
-                usuario = Usuario.query.get(asistencia.id_usuario)
+            if resultado.id_usuario:
+                usuario = Usuario.query.get(resultado.id_usuario)
                 nombre_profesor = f"{usuario.nombre} {usuario.apellido}" if usuario else "Usuario eliminado"
             else:
                 nombre_profesor = "No registrado"
             
             logs.append({
-                'id': asistencia.id_asistencia,
-                'fecha': asistencia.fecha.strftime('%Y-%m-%d'),
-                'fecha_formato': asistencia.fecha.strftime('%d/%m/%Y'),
-                'etapa': etapa.nombre_etapa,
-                'seccion': seccion.nombre_seccion,
-                'seccion_completa': f"{etapa.nombre_etapa} - {seccion.nombre_seccion}",
+                'id': f"{resultado.id_seccion}_{resultado.fecha.strftime('%Y%m%d')}",
+                'fecha': resultado.fecha.strftime('%Y-%m-%d'),
+                'fecha_formato': resultado.fecha.strftime('%d/%m/%Y'),
+                'etapa': resultado.nombre_etapa,
+                'seccion': f"{resultado.nombre_grado} {resultado.nombre_seccion}",
+                'seccion_completa': f"{resultado.nombre_etapa} - {resultado.nombre_grado} {resultado.nombre_seccion}",
                 'profesor': nombre_profesor,
-                'asistentes_h': asistencia.asistentes_h,
-                'asistentes_m': asistencia.asistentes_m,
-                'total_asistentes': asistencia.asistentes_h + asistencia.asistentes_m
+                'asistentes_h': int(resultado.asistentes_h or 0),
+                'asistentes_m': int(resultado.asistentes_m or 0),
+                'total_asistentes': int(resultado.asistentes_h or 0) + int(resultado.asistentes_m or 0)
             })
         
         return jsonify(logs)
@@ -622,16 +646,21 @@ def eliminar_asignaciones_profesor(profesor_id):
 def obtener_matriculas():
     """API para obtener todas las matrículas"""
     try:
-        matriculas = db.session.query(Matricula, Seccion, Etapa).join(
+        from models import Grado
+        
+        matriculas = db.session.query(Matricula, Seccion, Grado, Etapa).join(
             Seccion, Matricula.id_seccion == Seccion.id_seccion
         ).join(
-            Etapa, Seccion.id_etapa == Etapa.id_etapa
+            Grado, Seccion.id_grado == Grado.id_grado
+        ).join(
+            Etapa, Grado.id_etapa == Etapa.id_etapa
         ).all()
         
         return jsonify([{
             'id': m.Matricula.id_matricula,
+            'id_seccion': m.Seccion.id_seccion,
             'etapa_nombre': m.Etapa.nombre_etapa,
-            'seccion_nombre': m.Seccion.nombre_seccion,
+            'seccion_nombre': f"{m.Etapa.nombre_etapa} - {m.Grado.nombre_grado} - Sección {m.Seccion.nombre_seccion}",
             'etapa': m.Etapa.nombre_etapa,
             'seccion': m.Seccion.nombre_seccion,
             'num_estudiantes_h': m.Matricula.num_estudiantes_h,
@@ -644,14 +673,16 @@ def obtener_matriculas():
 @main_bp.route('/api/matricula', methods=['POST'])
 def crear_matricula():
     try:
+        from models import Grado
+        
         data = request.get_json()
         
         # Validar datos requeridos
         if not all(k in data for k in ['etapa', 'seccion']):
             return jsonify({'error': 'Faltan campos requeridos'}), 400
         
-        # Buscar la sección
-        seccion = Seccion.query.join(Etapa).filter(
+        # Buscar la sección con la nueva estructura
+        seccion = Seccion.query.join(Grado).join(Etapa).filter(
             Etapa.nombre_etapa == data['etapa'],
             Seccion.nombre_seccion == data['seccion']
         ).first()
