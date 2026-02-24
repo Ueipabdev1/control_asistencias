@@ -314,9 +314,10 @@
     $(document).ready(function() {
         // Establecer fechas por defecto (fecha de hoy)
         const hoy = new Date();
+        const hoyStr = hoy.toISOString().split('T')[0];
         
-        $('#fechaFin').val(hoy.toISOString().split('T')[0]);
-        $('#fechaInicio').val(hoy.toISOString().split('T')[0]);
+        $('#fechaFin').val(hoyStr).attr('max', hoyStr);
+        $('#fechaInicio').val(hoyStr).attr('max', hoyStr);
         
         // Cargar logs iniciales
         cargarLogs();

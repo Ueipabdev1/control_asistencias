@@ -225,3 +225,17 @@ class Asistencia(db.Model):
     
     def __repr__(self):
         return f'<AsistenciaLegacy {self.fecha} Sección:{self.id_seccion_legacy}>'
+
+# Modelo para calendario escolar (días sin clases)
+class CalendarioEscolar(db.Model):
+    __tablename__ = 'calendario_escolar'
+    
+    id_calendario = db.Column(db.Integer, primary_key=True)
+    fecha = db.Column(db.Date, nullable=False, unique=True)
+    tipo = db.Column(db.Enum('feriado', 'vacaciones', 'suspension', 'otro'), nullable=False)
+    descripcion = db.Column(db.String(255), nullable=False)
+    activo = db.Column(db.Boolean, default=True)
+    fecha_creacion = db.Column(db.TIMESTAMP, default=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<CalendarioEscolar {self.fecha} - {self.tipo}>'

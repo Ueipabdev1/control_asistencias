@@ -1,0 +1,612 @@
+{% extends "base.html" %}
+
+{% block title %}Calendario Escolar - UEIPAB{% endblock %}
+
+{% block extra_css %}
+<style>
+    .main-container {
+        background: rgba(30, 30, 45, 0.95);
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 30px;
+    }
+    
+    .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 20px;
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    
+    .calendar-section {
+        background: rgba(40, 40, 60, 0.8);
+        border-radius: 15px;
+        padding: 25px;
+        margin-bottom: 30px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .calendar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding: 15px;
+        background: rgba(50, 50, 70, 0.6);
+        border-radius: 10px;
+    }
+    
+    .calendar-nav {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+    
+    .calendar-title {
+        font-size: 1.5em;
+        font-weight: 600;
+        color: #e0e0e0;
+    }
+    
+    .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 10px;
+        margin-top: 20px;
+    }
+    
+    .calendar-day-header {
+        text-align: center;
+        padding: 10px;
+        font-weight: 600;
+        color: #667eea;
+        background: rgba(102, 126, 234, 0.2);
+        border-radius: 8px;
+    }
+    
+    .calendar-day {
+        aspect-ratio: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 10px;
+        background: rgba(50, 50, 70, 0.6);
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+        position: relative;
+    }
+    
+    .calendar-day:hover {
+        background: rgba(102, 126, 234, 0.3);
+        transform: translateY(-2px);
+    }
+    
+    .calendar-day.other-month {
+        opacity: 0.3;
+        cursor: default;
+    }
+    
+    .calendar-day.today {
+        border-color: #667eea;
+        background: rgba(102, 126, 234, 0.2);
+    }
+    
+    .calendar-day.fin-semana {
+        background: rgba(108, 117, 125, 0.3);
+        border-color: #6c757d;
+        cursor: default;
+    }
+    
+    .calendar-day.fin-semana:hover {
+        background: rgba(108, 117, 125, 0.4);
+        transform: none;
+    }
+    
+    .calendar-day.no-laborable {
+        background: rgba(220, 53, 69, 0.3);
+        border-color: #dc3545;
+    }
+    
+    .calendar-day.no-laborable:hover {
+        background: rgba(220, 53, 69, 0.4);
+    }
+    
+    .day-number {
+        font-size: 1.2em;
+        font-weight: 600;
+        color: #e0e0e0;
+        margin-bottom: 5px;
+    }
+    
+    .day-badge {
+        font-size: 0.7em;
+        padding: 2px 6px;
+        border-radius: 4px;
+        background: #dc3545;
+        color: white;
+        margin-top: 5px;
+    }
+    
+    .badge-feriado { background: #dc3545; }
+    .badge-vacaciones { background: #ffc107; }
+    .badge-suspension { background: #17a2b8; }
+    .badge-otro { background: #6c757d; }
+    
+    .lista-dias {
+        background: rgba(40, 40, 60, 0.8);
+        border-radius: 15px;
+        padding: 25px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .table {
+        color: #e0e0e0;
+        background: rgba(30, 30, 45, 0.6);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    
+    .table thead {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .table tbody tr {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .table tbody tr:hover {
+        background: rgba(102, 126, 234, 0.1);
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 10px;
+        padding: 10px 20px;
+    }
+    
+    .btn-danger {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        border: none;
+        border-radius: 10px;
+        padding: 8px 15px;
+    }
+    
+    .btn-sm {
+        padding: 5px 10px;
+        font-size: 0.875em;
+    }
+    
+    .form-control, .form-select {
+        background: rgba(50, 50, 70, 0.8);
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        color: #e0e0e0;
+        border-radius: 10px;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        background: rgba(60, 60, 80, 0.9);
+        border-color: #667eea;
+        color: #ffffff;
+    }
+    
+    .form-label {
+        color: #e0e0e0;
+        font-weight: 600;
+    }
+    
+    .modal-content {
+        background: rgba(30, 30, 45, 0.98);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 15px;
+    }
+    
+    .modal-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 15px 15px 0 0;
+        border-bottom: none;
+    }
+    
+    .modal-title {
+        color: white;
+    }
+    
+    .btn-close {
+        filter: invert(1);
+    }
+    
+    .legend {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+        padding: 15px;
+        background: rgba(50, 50, 70, 0.6);
+        border-radius: 10px;
+        margin-top: 20px;
+    }
+    
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #e0e0e0;
+    }
+    
+    .legend-color {
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <div class="header">
+        <h1><i class="fas fa-calendar-alt"></i> Calendario Escolar</h1>
+        <p class="mb-0">Gestión de días no laborables</p>
+    </div>
+    
+    <!-- Calendario Visual -->
+    <div class="calendar-section">
+        <div class="calendar-header">
+            <div class="calendar-nav">
+                <button class="btn btn-primary btn-sm" id="btnMesAnterior">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <h3 class="calendar-title mb-0" id="mesActual"></h3>
+                <button class="btn btn-primary btn-sm" id="btnMesSiguiente">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAgregarDia">
+                <i class="fas fa-plus"></i> Agregar Día No Laborable
+            </button>
+        </div>
+        
+        <div class="calendar-grid" id="calendarioGrid">
+            <!-- Encabezados de días -->
+            <div class="calendar-day-header">Dom</div>
+            <div class="calendar-day-header">Lun</div>
+            <div class="calendar-day-header">Mar</div>
+            <div class="calendar-day-header">Mié</div>
+            <div class="calendar-day-header">Jue</div>
+            <div class="calendar-day-header">Vie</div>
+            <div class="calendar-day-header">Sáb</div>
+            <!-- Los días se generarán con JavaScript -->
+        </div>
+        
+        <!-- Leyenda -->
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: rgba(102, 126, 234, 0.3); border: 2px solid #667eea;"></div>
+                <span>Día actual</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: rgba(108, 117, 125, 0.3); border: 2px solid #6c757d;"></div>
+                <span>Fin de semana</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color badge-feriado"></div>
+                <span>Feriado</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color badge-vacaciones"></div>
+                <span>Vacaciones</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color badge-suspension"></div>
+                <span>Suspensión</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color badge-otro"></div>
+                <span>Otro</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Lista de Días No Laborables -->
+    <div class="lista-dias">
+        <h4 class="mb-4"><i class="fas fa-list"></i> Días No Laborables Registrados</h4>
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Tipo</th>
+                        <th>Descripción</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaDias">
+                    <tr>
+                        <td colspan="4" class="text-center">Cargando...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para agregar día no laborable -->
+<div class="modal fade" id="modalAgregarDia" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-calendar-plus"></i> Agregar Día No Laborable</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formAgregarDia">
+                    <div class="mb-3">
+                        <label for="fecha" class="form-label">Fecha</label>
+                        <input type="date" class="form-control" id="fecha" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="tipo" class="form-label">Tipo</label>
+                        <select class="form-select" id="tipo" required>
+                            <option value="">Seleccione...</option>
+                            <option value="feriado">Feriado</option>
+                            <option value="vacaciones">Vacaciones</option>
+                            <option value="suspension">Suspensión de clases</option>
+                            <option value="otro">Otro</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="descripcion" class="form-label">Descripción</label>
+                        <input type="text" class="form-control" id="descripcion" placeholder="Ej: Día de la Independencia" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnGuardarDia">
+                    <i class="fas fa-save"></i> Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let diasNoLaborables = [];
+    let mesActual = new Date();
+    
+    $(document).ready(function() {
+        cargarDiasNoLaborables();
+        renderizarCalendario();
+        
+        $('#btnMesAnterior').click(function() {
+            mesActual.setMonth(mesActual.getMonth() - 1);
+            renderizarCalendario();
+        });
+        
+        $('#btnMesSiguiente').click(function() {
+            mesActual.setMonth(mesActual.getMonth() + 1);
+            renderizarCalendario();
+        });
+        
+        $('#btnGuardarDia').click(guardarDiaNoLaborable);
+    });
+    
+    function cargarDiasNoLaborables() {
+        $.ajax({
+            url: BASE_URL + '/calendario/api/dias-no-laborables',
+            method: 'GET',
+            success: function(response) {
+                if (response.success) {
+                    diasNoLaborables = response.dias;
+                    renderizarCalendario();
+                    renderizarTabla();
+                }
+            },
+            error: function(error) {
+                console.error('Error al cargar días no laborables:', error);
+            }
+        });
+    }
+    
+    function renderizarCalendario() {
+        const año = mesActual.getFullYear();
+        const mes = mesActual.getMonth();
+        
+        // Actualizar título
+        const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+                       'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        $('#mesActual').text(`${meses[mes]} ${año}`);
+        
+        // Obtener primer y último día del mes
+        const primerDia = new Date(año, mes, 1);
+        const ultimoDia = new Date(año, mes + 1, 0);
+        
+        // Calcular días a mostrar
+        const diasMostrar = [];
+        
+        // Días del mes anterior
+        const diaSemanaInicio = primerDia.getDay();
+        for (let i = diaSemanaInicio - 1; i >= 0; i--) {
+            const fecha = new Date(año, mes, -i);
+            diasMostrar.push({ fecha, otroMes: true });
+        }
+        
+        // Días del mes actual
+        for (let dia = 1; dia <= ultimoDia.getDate(); dia++) {
+            const fecha = new Date(año, mes, dia);
+            diasMostrar.push({ fecha, otroMes: false });
+        }
+        
+        // Días del mes siguiente
+        const diasRestantes = 42 - diasMostrar.length; // 6 semanas
+        for (let i = 1; i <= diasRestantes; i++) {
+            const fecha = new Date(año, mes + 1, i);
+            diasMostrar.push({ fecha, otroMes: true });
+        }
+        
+        // Renderizar días
+        const grid = $('#calendarioGrid');
+        // Mantener encabezados
+        const encabezados = grid.children('.calendar-day-header').clone();
+        grid.empty();
+        grid.append(encabezados);
+        
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+        
+        diasMostrar.forEach(({ fecha, otroMes }) => {
+            const fechaStr = fecha.toISOString().split('T')[0];
+            const diaNoLaborable = diasNoLaborables.find(d => d.fecha === fechaStr);
+            
+            const esHoy = fecha.getTime() === hoy.getTime();
+            const esFinSemana = fecha.getDay() === 0 || fecha.getDay() === 6; // 0=domingo, 6=sábado
+            
+            let clases = 'calendar-day';
+            if (otroMes) clases += ' other-month';
+            if (esHoy) clases += ' today';
+            if (esFinSemana) clases += ' fin-semana';
+            if (diaNoLaborable) clases += ' no-laborable';
+            
+            const diaDiv = $(`
+                <div class="${clases}" data-fecha="${fechaStr}">
+                    <div class="day-number">${fecha.getDate()}</div>
+                    ${diaNoLaborable ? `<div class="day-badge badge-${diaNoLaborable.tipo}">${diaNoLaborable.tipo}</div>` : ''}
+                    ${esFinSemana && !diaNoLaborable ? '<div class="day-badge" style="background: #6c757d;">Fin de semana</div>' : ''}
+                </div>
+            `);
+            
+            if (!otroMes && !esFinSemana) {
+                diaDiv.click(function() {
+                    const fecha = $(this).data('fecha');
+                    if (diaNoLaborable) {
+                        mostrarDetalleDia(diaNoLaborable);
+                    } else {
+                        $('#fecha').val(fecha);
+                        $('#modalAgregarDia').modal('show');
+                    }
+                });
+            }
+            
+            grid.append(diaDiv);
+        });
+    }
+    
+    function renderizarTabla() {
+        const tbody = $('#tablaDias');
+        tbody.empty();
+        
+        if (diasNoLaborables.length === 0) {
+            tbody.append('<tr><td colspan="4" class="text-center">No hay días no laborables registrados</td></tr>');
+            return;
+        }
+        
+        // Ordenar por fecha
+        diasNoLaborables.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+        
+        diasNoLaborables.forEach(dia => {
+            const fecha = new Date(dia.fecha);
+            const fechaFormateada = fecha.toLocaleDateString('es-ES', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+            
+            const tipoBadge = `<span class="badge badge-${dia.tipo}">${dia.tipo}</span>`;
+            
+            tbody.append(`
+                <tr>
+                    <td>${fechaFormateada}</td>
+                    <td>${tipoBadge}</td>
+                    <td>${dia.descripcion}</td>
+                    <td>
+                        <button class="btn btn-danger btn-sm" onclick="eliminarDia(${dia.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `);
+        });
+    }
+    
+    function guardarDiaNoLaborable() {
+        const fecha = $('#fecha').val();
+        const tipo = $('#tipo').val();
+        const descripcion = $('#descripcion').val();
+        
+        if (!fecha || !tipo || !descripcion) {
+            alert('Por favor complete todos los campos');
+            return;
+        }
+        
+        const btn = $('#btnGuardarDia');
+        const textoOriginal = btn.html();
+        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Guardando...');
+        
+        $.ajax({
+            url: BASE_URL + '/calendario/api/dia-no-laborable',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ fecha, tipo, descripcion }),
+            success: function(response) {
+                btn.prop('disabled', false).html(textoOriginal);
+                if (response.success) {
+                    $('#modalAgregarDia').modal('hide');
+                    $('#formAgregarDia')[0].reset();
+                    cargarDiasNoLaborables();
+                    alert('✅ Día no laborable agregado correctamente');
+                } else {
+                    alert('❌ ' + response.error);
+                }
+            },
+            error: function(xhr) {
+                btn.prop('disabled', false).html(textoOriginal);
+                const error = xhr.responseJSON || { error: 'Error al guardar' };
+                alert('❌ ' + error.error);
+            }
+        });
+    }
+    
+    function eliminarDia(id) {
+        if (!confirm('¿Está seguro de eliminar este día no laborable?')) {
+            return;
+        }
+        
+        $.ajax({
+            url: BASE_URL + '/calendario/api/dia-no-laborable/' + id,
+            method: 'DELETE',
+            success: function(response) {
+                if (response.success) {
+                    cargarDiasNoLaborables();
+                    alert('✅ Día eliminado correctamente');
+                } else {
+                    alert('❌ ' + response.error);
+                }
+            },
+            error: function(xhr) {
+                const error = xhr.responseJSON || { error: 'Error al eliminar' };
+                alert('❌ ' + error.error);
+            }
+        });
+    }
+    
+    function mostrarDetalleDia(dia) {
+        const fecha = new Date(dia.fecha);
+        const fechaFormateada = fecha.toLocaleDateString('es-ES', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        });
+        
+        alert(`📅 ${fechaFormateada}\n\n🏷️ Tipo: ${dia.tipo}\n📝 ${dia.descripcion}\n\nPara eliminar, use la tabla de abajo.`);
+    }
+</script>
+{% endblock %}

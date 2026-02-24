@@ -463,7 +463,7 @@
     
     $(document).ready(function() {
         const today = new Date().toISOString().split('T')[0];
-        $('#fecha').val(today);
+        $('#fecha').val(today).attr('max', today);
         
         cargarSecciones();
         

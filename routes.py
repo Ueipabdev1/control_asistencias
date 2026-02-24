@@ -777,6 +777,67 @@ def eliminar_matricula(id):
         db.session.rollback()
         return jsonify({'error': f'Error al eliminar matrícula: {str(e)}'}), 500
 
+@main_bp.route('/api/matriculas/sincronizar', methods=['POST'])
+@login_required
+@admin_required
+def sincronizar_matriculas():
+    """API para sincronizar matrículas con estudiantes registrados"""
+    try:
+        from models import Estudiante, Grado
+        
+        # Obtener todas las secciones
+        secciones = Seccion.query.all()
+        
+        creadas = 0
+        actualizadas = 0
+        
+        for seccion in secciones:
+            # Contar estudiantes por género
+            masculinos = Estudiante.query.filter_by(
+                id_seccion=seccion.id_seccion,
+                activo=True,
+                genero='M'
+            ).count()
+            
+            femeninos = Estudiante.query.filter_by(
+                id_seccion=seccion.id_seccion,
+                activo=True,
+                genero='F'
+            ).count()
+            
+            # Buscar matrícula existente
+            matricula = Matricula.query.filter_by(id_seccion=seccion.id_seccion).first()
+            
+            if matricula:
+                # Actualizar
+                matricula.num_estudiantes_h = masculinos
+                matricula.num_estudiantes_m = femeninos
+                actualizadas += 1
+            else:
+                # Crear nueva
+                nueva_matricula = Matricula(
+                    id_seccion=seccion.id_seccion,
+                    num_estudiantes_h=masculinos,
+                    num_estudiantes_m=femeninos
+                )
+                db.session.add(nueva_matricula)
+                creadas += 1
+        
+        # Guardar cambios
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Matrículas sincronizadas correctamente',
+            'creadas': creadas,
+            'actualizadas': actualizadas,
+            'total': creadas + actualizadas
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Error al sincronizar matrículas: {str(e)}'}), 500
+
 @admin_bp.route('/estadisticas')
 def obtener_estadisticas():
     """API para obtener estadísticas detalladas"""

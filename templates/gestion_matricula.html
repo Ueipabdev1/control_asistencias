@@ -309,7 +309,12 @@
     
     <!-- Matrículas Registradas con Tabs -->
     <div class="form-section">
-        <h4 class="mb-4"><i class="fas fa-list"></i> Matrículas Registradas</h4>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4 class="mb-0"><i class="fas fa-list"></i> Matrículas Registradas</h4>
+            <button id="btnSincronizar" class="btn btn-primary">
+                <i class="fas fa-sync-alt"></i> Sincronizar Matrículas
+            </button>
+        </div>
         
         <!-- Tabs de navegación -->
         <ul class="nav nav-tabs mb-4" id="matriculaTabs" role="tablist">
@@ -438,6 +443,11 @@
     $(document).ready(function() {
         cargarMatriculas();
         cargarEstudiantes();
+        
+        // Manejar sincronización de matrículas
+        $('#btnSincronizar').click(function() {
+            sincronizarMatriculas();
+        });
         
         // Manejar carga de Excel
         $('#excelUploadForm').submit(function(e) {
@@ -614,6 +624,58 @@
         $('html, body').animate({
             scrollTop: resultadoDiv.offset().top - 100
         }, 500);
+    }
+    
+    function sincronizarMatriculas() {
+        const btn = $('#btnSincronizar');
+        const textoOriginal = btn.html();
+        
+        // Mostrar indicador de carga
+        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Sincronizando...');
+        
+        $.ajax({
+            url: BASE_URL + '/api/matriculas/sincronizar',
+            method: 'POST',
+            success: function(response) {
+                btn.prop('disabled', false).html(textoOriginal);
+                
+                if (response.success) {
+                    // Mostrar mensaje de éxito
+                    const mensaje = `
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="fas fa-check-circle"></i> <strong>Sincronización exitosa</strong><br>
+                            <small>
+                                • Matrículas creadas: ${response.creadas}<br>
+                                • Matrículas actualizadas: ${response.actualizadas}<br>
+                                • Total procesado: ${response.total}
+                            </small>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    `;
+                    
+                    // Insertar mensaje antes de la tabla
+                    $('.form-section').eq(1).prepend(mensaje);
+                    
+                    // Recargar matrículas
+                    cargarMatriculas();
+                    cargarTodosLosEstudiantes();
+                    
+                    // Auto-cerrar después de 5 segundos
+                    setTimeout(function() {
+                        $('.alert-success').fadeOut(function() {
+                            $(this).remove();
+                        });
+                    }, 5000);
+                } else {
+                    alert('Error: ' + (response.error || 'Error desconocido'));
+                }
+            },
+            error: function(xhr) {
+                btn.prop('disabled', false).html(textoOriginal);
+                const error = xhr.responseJSON || { error: 'Error al sincronizar matrículas' };
+                alert('Error: ' + error.error);
+            }
+        });
     }
     
     function cargarMatriculas() {

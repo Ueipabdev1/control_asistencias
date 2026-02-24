@@ -357,6 +357,10 @@
                     <i class="fas fa-chalkboard-teacher"></i>
                     <span>Gestión de Profesores</span>
                 </a>
+                <a href="{{ url_for('calendario.index') }}" class="menu-item {% if request.endpoint == 'calendario.index' %}active{% endif %}">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Calendario Escolar</span>
+                </a>
             </div>
             {% endif %}
         </div>

@@ -169,7 +169,7 @@
                 <label class="form-label">Etapa:</label>
                 <select id="filtroEtapa" class="form-control">
                     <option value="">Todas</option>
-                    <option value="Inicial">Inicial</option>
+                    <option value="Maternal">Maternal</option>
                     <option value="Primaria">Primaria</option>
                     <option value="Secundaria">Secundaria</option>
                 </select>
@@ -192,19 +192,19 @@
     <!-- Estadísticas generales -->
     <div class="stats-overview">
         <div class="stat-card">
-            <div class="stat-number" id="totalAsistencia">85%</div>
+            <div class="stat-number" id="totalAsistencia">0%</div>
             <div class="stat-label"><i class="fas fa-percentage"></i> Asistencia Total</div>
         </div>
         <div class="stat-card">
-            <div class="stat-number" id="totalEstudiantes">1,250</div>
+            <div class="stat-number" id="totalEstudiantes">0</div>
             <div class="stat-label"><i class="fas fa-users"></i> Total Estudiantes</div>
         </div>
         <div class="stat-card clickable" id="cardSecciones" onclick="irALogs()" title="Click para ver logs de asistencia">
-            <div class="stat-number" id="totalSecciones">15</div>
+            <div class="stat-number" id="totalSecciones">0</div>
             <div class="stat-label"><i class="fas fa-chalkboard-teacher"></i> Secciones <i class="fas fa-external-link-alt" style="font-size: 0.7em; margin-left: 5px;"></i></div>
         </div>
         <div class="stat-card">
-            <div class="stat-number" id="diasAnalizados">30</div>
+            <div class="stat-number" id="diasAnalizados">0</div>
             <div class="stat-label"><i class="fas fa-calendar-check"></i> Días Analizados</div>
         </div>
     </div>
@@ -290,9 +290,10 @@
     
     $(document).ready(function() {
         const hoy = new Date();
+        const hoyStr = hoy.toISOString().split('T')[0];
         
-        $('#fechaFin').val(hoy.toISOString().split('T')[0]);
-        $('#fechaInicio').val(hoy.toISOString().split('T')[0]);
+        $('#fechaFin').val(hoyStr).attr('max', hoyStr);
+        $('#fechaInicio').val(hoyStr).attr('max', hoyStr);
         
         cargarSecciones();
         cargarDatos();
@@ -374,13 +375,13 @@
                     actualizarEstadisticas(data);
                 } else {
                     console.error('Error en respuesta:', data.message);
-                    generarDatosMock();
+                    mostrarDatosVacios();
                 }
             },
             error: function(xhr, status, error) {
                 console.error('Error al cargar estadísticas:', error);
-                console.log('Usando datos de ejemplo mientras se configuran las asistencias...');
-                generarDatosMock();
+                console.log('No hay datos de asistencia registrados');
+                mostrarDatosVacios();
             }
         });
     }
@@ -439,11 +440,23 @@
         actualizarGraficos(data);
     }
     
-    function generarDatosMock() {
-        $('#totalAsistencia').text(Math.floor(Math.random() * 15 + 80) + '%');
-        $('#totalEstudiantes').text((Math.floor(Math.random() * 500 + 1000)).toLocaleString());
-        $('#totalSecciones').text(Math.floor(Math.random() * 10 + 15));
-        $('#diasAnalizados').text(Math.floor(Math.random() * 20 + 20));
+    function mostrarDatosVacios() {
+        // Mostrar valores en 0 cuando no hay datos
+        $('#totalAsistencia').text('0%');
+        $('#totalEstudiantes').text('0');
+        $('#totalSecciones').text('0');
+        $('#diasAnalizados').text('0');
+        
+        // Limpiar indicadores de género
+        $('#asistentesHombres').text('0');
+        $('#asistentesMujeres').text('0');
+        $('#asistentesTotal').text('0');
+        $('#porcentajeHombres').text('0%');
+        $('#porcentajeMujeres').text('0%');
+        $('#porcentajeTotal').text('0%');
+        
+        // Actualizar gráficos con datos vacíos
+        actualizarGraficosVacios();
     }
     
     function irALogs() {
@@ -466,7 +479,7 @@
             data: {
                 labels: ['Masculino', 'Femenino'],
                 datasets: [{
-                    data: [52, 48],
+                    data: [0, 0],
                     backgroundColor: ['#4facfe', '#ff6b9d'],
                     borderWidth: 2,
                     borderColor: '#1a1a2e'
@@ -481,7 +494,7 @@
                 labels: ['Maternal', 'Primaria', 'Secundaria'],
                 datasets: [{
                     label: 'Asistencia %',
-                    data: [85, 88, 82],
+                    data: [0, 0, 0],
                     backgroundColor: ['#667eea', '#764ba2', '#4facfe']
                 }]
             },
@@ -503,10 +516,10 @@
         charts.time = new Chart(document.getElementById('timeChart'), {
             type: 'line',
             data: {
-                labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie'],
+                labels: ['Sin datos'],
                 datasets: [{
                     label: 'Asistencia',
-                    data: [85, 87, 83, 89, 86],
+                    data: [0],
                     borderColor: '#667eea',
                     backgroundColor: 'rgba(102, 126, 234, 0.1)',
                     tension: 0.4
@@ -530,10 +543,10 @@
         charts.section = new Chart(document.getElementById('sectionChart'), {
             type: 'bar',
             data: {
-                labels: ['1° Prim', '2° Prim', '3° Prim', '1° Sec', '2° Sec'],
+                labels: ['Sin datos'],
                 datasets: [{
                     label: 'Asistencia %',
-                    data: [92, 88, 85, 87, 90],
+                    data: [0],
                     backgroundColor: '#764ba2'
                 }]
             },
@@ -610,6 +623,31 @@
             // Actualizar gráfico
             charts.section.data.labels = top5.map(s => s.nombre);
             charts.section.data.datasets[0].data = top5.map(s => s.porcentaje);
+            charts.section.update();
+        }
+    }
+    
+    function actualizarGraficosVacios() {
+        // Actualizar todos los gráficos con datos vacíos
+        if (charts.gender) {
+            charts.gender.data.datasets[0].data = [0, 0];
+            charts.gender.update();
+        }
+        
+        if (charts.stage) {
+            charts.stage.data.datasets[0].data = [0, 0, 0];
+            charts.stage.update();
+        }
+        
+        if (charts.time) {
+            charts.time.data.labels = ['Sin datos'];
+            charts.time.data.datasets[0].data = [0];
+            charts.time.update();
+        }
+        
+        if (charts.section) {
+            charts.section.data.labels = ['Sin datos'];
+            charts.section.data.datasets[0].data = [0];
             charts.section.update();
         }
     }
