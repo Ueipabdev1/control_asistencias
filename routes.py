@@ -54,7 +54,7 @@ def obtener_secciones():
     
     # Si es administrador, mostrar todas las secciones
     if current_user.is_admin:
-        secciones = db.session.query(Seccion, Grado, Etapa, Matricula).join(
+        secciones = db.session.query(Seccion, Grado, Etapa, Matricula).select_from(Seccion).join(
             Grado, Seccion.id_grado == Grado.id_grado
         ).join(
             Etapa, Grado.id_etapa == Etapa.id_etapa
@@ -63,7 +63,7 @@ def obtener_secciones():
         ).all()
     else:
         # Si es profesor, solo mostrar sus secciones asignadas
-        secciones = db.session.query(Seccion, Grado, Etapa, Matricula).join(
+        secciones = db.session.query(Seccion, Grado, Etapa, Matricula).select_from(Seccion).join(
             Grado, Seccion.id_grado == Grado.id_grado
         ).join(
             Etapa, Grado.id_etapa == Etapa.id_etapa
