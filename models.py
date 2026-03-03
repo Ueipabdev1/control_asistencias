@@ -49,56 +49,40 @@ class Usuario(UserMixin, db.Model):
     def __repr__(self):
         return f'<Usuario {self.nombre} {self.apellido} - {self.rol}>'
 
-# Modelo para grados (nuevo en V2)
-class Grado(db.Model):
-    __tablename__ = 'grado'
-    
-    id_grado = db.Column(db.Integer, primary_key=True)
-    id_etapa = db.Column(db.Integer, db.ForeignKey('etapa.id_etapa', ondelete='CASCADE'), nullable=False)
-    nombre_grado = db.Column(db.String(100), nullable=False)
-    orden = db.Column(db.Integer, nullable=False, comment='Orden del grado dentro de la etapa')
-    descripcion = db.Column(db.String(255))
-    activo = db.Column(db.Boolean, default=True)
-    
-    # Relaciones
-    secciones = db.relationship('Seccion', backref='grado', lazy=True, cascade='all, delete-orphan')
-    
-    # Constraint único
-    __table_args__ = (db.UniqueConstraint('id_etapa', 'nombre_grado', name='unique_grado_etapa'),)
-    
-    def __repr__(self):
-        return f'<Grado {self.nombre_grado}>'
+# # Modelo para grados (nuevo en V2) - COMENTADO: tabla no existe
+# class Grado(db.Model):
+#     __tablename__ = 'grado'
+#     
+#     id_grado = db.Column(db.Integer, primary_key=True)
+#     id_etapa = db.Column(db.Integer, db.ForeignKey('etapa.id_etapa', ondelete='CASCADE'), nullable=False)
+#     nombre_grado = db.Column(db.String(100), nullable=False)
+#     orden = db.Column(db.Integer, nullable=False, comment='Orden del grado dentro de la etapa')
+#     descripcion = db.Column(db.String(255))
+#     activo = db.Column(db.Boolean, default=True)
+#     
+#     # Relaciones
+#     secciones = db.relationship('Seccion', backref='grado', lazy=True, cascade='all, delete-orphan')
+#     
+#     # Constraint único
+#     __table_args__ = (db.UniqueConstraint('id_etapa', 'nombre_grado', name='unique_grado_etapa'),)
+#     
+#     def __repr__(self):
+#         return f'<Grado {self.nombre_grado}>'
 
-# Modelo para secciones (refactorizado en V2)
+# Modelo para secciones
 class Seccion(db.Model):
     __tablename__ = 'secciones'
     
     id_seccion = db.Column(db.Integer, primary_key=True)
-    id_grado = db.Column(db.Integer, db.ForeignKey('grado.id_grado', ondelete='CASCADE'), nullable=False)
-    nombre_seccion = db.Column(db.String(50), nullable=False, comment='A, B, C, Única, etc.')
-    capacidad_maxima = db.Column(db.Integer, nullable=True, comment='Capacidad máxima de estudiantes')
-    activa = db.Column(db.Boolean, default=True)
-    fecha_creacion = db.Column(db.TIMESTAMP, default=datetime.utcnow)
+    nombre_seccion = db.Column(db.String(50), nullable=False)
+    id_etapa = db.Column(db.Integer, db.ForeignKey('etapa.id_etapa', ondelete='CASCADE'), nullable=False)
     
     # Relaciones
+    etapa = db.relationship('Etapa', backref='secciones', lazy=True)
     profesores = db.relationship('ProfesorSeccion', backref='seccion', lazy=True)
-    # estudiantes = db.relationship('Estudiante', backref='seccion', lazy=True)  # Comentado: tabla estudiante no existe
-    
-    # Constraint único
-    __table_args__ = (db.UniqueConstraint('id_grado', 'nombre_seccion', name='unique_seccion_grado'),)
-    
-    @property
-    def nombre_completo(self):
-        """Retorna nombre completo: Etapa - Grado - Sección"""
-        return f"{self.grado.etapa.nombre_etapa} - {self.grado.nombre_grado} - Sección {self.nombre_seccion}"
-    
-    # @property
-    # def total_estudiantes(self):
-    #     """Cuenta estudiantes activos en la sección"""
-    #     return Estudiante.query.filter_by(id_seccion=self.id_seccion, activo=True).count()
     
     def __repr__(self):
-        return f'<Seccion {self.nombre_seccion} - Grado:{self.id_grado}>'
+        return f'<Seccion {self.nombre_seccion} - Etapa:{self.id_etapa}>'
 
 # Modelo para relación profesor-secciones (muchos a muchos)
 class ProfesorSeccion(db.Model):

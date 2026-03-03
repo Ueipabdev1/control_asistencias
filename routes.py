@@ -50,23 +50,17 @@ def index():
 @login_required
 def obtener_secciones():
     """API para obtener lista de secciones con su matrícula"""
-    from models import Grado
-    
     # Si es administrador, mostrar todas las secciones
     if current_user.is_admin:
-        secciones = db.session.query(Seccion, Grado, Etapa, Matricula).select_from(Seccion).join(
-            Grado, Seccion.id_grado == Grado.id_grado
-        ).join(
-            Etapa, Grado.id_etapa == Etapa.id_etapa
+        secciones = db.session.query(Seccion, Etapa, Matricula).select_from(Seccion).join(
+            Etapa, Seccion.id_etapa == Etapa.id_etapa
         ).outerjoin(
             Matricula, Seccion.id_seccion == Matricula.id_seccion
         ).all()
     else:
         # Si es profesor, solo mostrar sus secciones asignadas
-        secciones = db.session.query(Seccion, Grado, Etapa, Matricula).select_from(Seccion).join(
-            Grado, Seccion.id_grado == Grado.id_grado
-        ).join(
-            Etapa, Grado.id_etapa == Etapa.id_etapa
+        secciones = db.session.query(Seccion, Etapa, Matricula).select_from(Seccion).join(
+            Etapa, Seccion.id_etapa == Etapa.id_etapa
         ).outerjoin(
             Matricula, Seccion.id_seccion == Matricula.id_seccion
         ).join(
@@ -77,9 +71,8 @@ def obtener_secciones():
     
     return jsonify([{
         'id_seccion': s.Seccion.id_seccion,
-        'nombre_seccion': f"{s.Etapa.nombre_etapa} - {s.Grado.nombre_grado} - Sección {s.Seccion.nombre_seccion}",
+        'nombre_seccion': f"{s.Etapa.nombre_etapa} - Sección {s.Seccion.nombre_seccion}",
         'etapa': s.Etapa.nombre_etapa,
-        'grado': s.Grado.nombre_grado,
         'seccion': s.Seccion.nombre_seccion,
         'matricula_h': s.Matricula.num_estudiantes_h if s.Matricula else 0,
         'matricula_m': s.Matricula.num_estudiantes_m if s.Matricula else 0,
@@ -646,25 +639,22 @@ def eliminar_asignaciones_profesor(profesor_id):
 def obtener_matriculas():
     """API para obtener todas las matrículas"""
     try:
-        from models import Grado
-        
-        matriculas = db.session.query(Matricula, Seccion, Grado, Etapa).select_from(Matricula).join(
+        matriculas = db.session.query(Matricula, Seccion, Etapa).select_from(Matricula).join(
             Seccion, Matricula.id_seccion == Seccion.id_seccion
         ).join(
-            Grado, Seccion.id_grado == Grado.id_grado
-        ).join(
-            Etapa, Grado.id_etapa == Etapa.id_etapa
+            Etapa, Seccion.id_etapa == Etapa.id_etapa
         ).all()
         
         return jsonify([{
             'id': m.Matricula.id_matricula,
             'id_seccion': m.Seccion.id_seccion,
             'etapa_nombre': m.Etapa.nombre_etapa,
-            'seccion_nombre': f"{m.Etapa.nombre_etapa} - {m.Grado.nombre_grado} - Sección {m.Seccion.nombre_seccion}",
+            'seccion_nombre': f"{m.Etapa.nombre_etapa} - Sección {m.Seccion.nombre_seccion}",
             'etapa': m.Etapa.nombre_etapa,
             'seccion': m.Seccion.nombre_seccion,
             'num_estudiantes_h': m.Matricula.num_estudiantes_h,
-            'num_estudiantes_m': m.Matricula.num_estudiantes_m
+            'num_estudiantes_m': m.Matricula.num_estudiantes_m,
+            'total': m.Matricula.total_estudiantes
         } for m in matriculas])
         
     except Exception as e:
@@ -673,7 +663,6 @@ def obtener_matriculas():
 @main_bp.route('/api/matricula', methods=['POST'])
 def crear_matricula():
     try:
-        from models import Grado
         
         data = request.get_json()
         
