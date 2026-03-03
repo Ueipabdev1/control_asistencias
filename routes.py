@@ -181,7 +181,7 @@ def obtener_asistencia(fecha):
         fecha_obj = datetime.strptime(fecha, '%Y-%m-%d').date()
         
         # Query base
-        query = db.session.query(Asistencia, Seccion, Etapa).join(
+        query = db.session.query(Asistencia, Seccion, Etapa).select_from(Asistencia).join(
             Seccion, Asistencia.id_seccion == Seccion.id_seccion
         ).join(
             Etapa, Seccion.id_etapa == Etapa.id_etapa
@@ -467,7 +467,7 @@ def eliminar_profesor(profesor_id):
 def obtener_secciones_por_etapa(etapa):
     """API para obtener secciones por etapa educativa"""
     try:
-        secciones = db.session.query(Seccion).join(Etapa).filter(
+        secciones = db.session.query(Seccion).select_from(Seccion).join(Etapa, Seccion.id_etapa == Etapa.id_etapa).filter(
             Etapa.nombre_etapa == etapa
         ).all()
         
@@ -488,7 +488,7 @@ def obtener_secciones_profesor(profesor_id):
             return jsonify({'error': 'Profesor no encontrado'}), 404
         
         # Obtener secciones asignadas al profesor
-        asignaciones = db.session.query(ProfesorSeccion, Seccion, Etapa).join(
+        asignaciones = db.session.query(ProfesorSeccion, Seccion, Etapa).select_from(ProfesorSeccion).join(
             Seccion, ProfesorSeccion.id_seccion == Seccion.id_seccion
         ).join(
             Etapa, Seccion.id_etapa == Etapa.id_etapa
@@ -601,7 +601,7 @@ def obtener_todas_asignaciones():
         resultado = []
         for profesor in profesores:
             # Obtener secciones asignadas
-            asignaciones = db.session.query(ProfesorSeccion, Seccion, Etapa).join(
+            asignaciones = db.session.query(ProfesorSeccion, Seccion, Etapa).select_from(ProfesorSeccion).join(
                 Seccion, ProfesorSeccion.id_seccion == Seccion.id_seccion
             ).join(
                 Etapa, Seccion.id_etapa == Etapa.id_etapa
@@ -648,7 +648,7 @@ def obtener_matriculas():
     try:
         from models import Grado
         
-        matriculas = db.session.query(Matricula, Seccion, Grado, Etapa).join(
+        matriculas = db.session.query(Matricula, Seccion, Grado, Etapa).select_from(Matricula).join(
             Seccion, Matricula.id_seccion == Seccion.id_seccion
         ).join(
             Grado, Seccion.id_grado == Grado.id_grado
@@ -718,7 +718,7 @@ def crear_matricula():
 def obtener_matricula(id):
     """API para obtener una matrícula específica"""
     try:
-        matricula = db.session.query(Matricula, Seccion, Etapa).join(
+        matricula = db.session.query(Matricula, Seccion, Etapa).select_from(Matricula).join(
             Seccion, Matricula.id_seccion == Seccion.id_seccion
         ).join(
             Etapa, Seccion.id_etapa == Etapa.id_etapa
@@ -859,14 +859,14 @@ def obtener_estadisticas():
             fecha_fin = datetime.now().date()
         
         # Filtro base de secciones
-        secciones_query = db.session.query(Seccion).join(Etapa)
+        secciones_query = db.session.query(Seccion).select_from(Seccion).join(Etapa, Seccion.id_etapa == Etapa.id_etapa)
         if etapa:
             secciones_query = secciones_query.filter(Etapa.nombre_etapa == etapa)
         if seccion:
             secciones_query = secciones_query.filter(Seccion.id_seccion == int(seccion))
         
         # Filtro base de asistencias
-        asistencias_query = db.session.query(Asistencia).join(Seccion).join(Etapa).filter(
+        asistencias_query = db.session.query(Asistencia).select_from(Asistencia).join(Seccion, Asistencia.id_seccion == Seccion.id_seccion).join(Etapa, Seccion.id_etapa == Etapa.id_etapa).filter(
             and_(Asistencia.fecha >= fecha_inicio, Asistencia.fecha <= fecha_fin)
         )
         if etapa:
@@ -1109,7 +1109,7 @@ def gestionar_matricula():
             return jsonify({'success': False, 'message': f'Error al actualizar matrícula: {str(e)}'})
     
     # GET - Listar matrícula por secciones
-    matriculas = db.session.query(Matricula, Seccion, Etapa).join(
+    matriculas = db.session.query(Matricula, Seccion, Etapa).select_from(Matricula).join(
         Seccion, Matricula.id_seccion == Seccion.id_seccion
     ).join(
         Etapa, Seccion.id_etapa == Etapa.id_etapa
