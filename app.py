@@ -8,7 +8,7 @@ from sqlalchemy import func, and_, extract
 from flask_login import LoginManager
 from flask_bcrypt import Bcrypt
 from werkzeug.middleware.proxy_fix import ProxyFix
-from models import db, Etapa, Usuario, Seccion, ProfesorSeccion, Matricula, Asistencia
+from models import db, Etapa, Usuario, Seccion, ProfesorSeccion, Matricula, Asistencia, Calendario
 
 app = Flask(__name__)
 

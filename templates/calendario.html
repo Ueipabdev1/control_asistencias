@@ -1,0 +1,597 @@
+{% extends "base.html" %}
+
+{% block title %}Calendario Escolar - Control de Asistencias{% endblock %}
+
+{% block extra_css %}
+<style>
+    .calendar-container {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 30px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .stats-card {
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+        border-radius: 15px;
+        padding: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: transform 0.3s;
+    }
+    
+    .stats-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .stats-card .icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        margin-bottom: 10px;
+    }
+    
+    .calendar-table {
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 15px;
+        overflow: hidden;
+    }
+    
+    .calendar-table thead {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    }
+    
+    .calendar-table th {
+        color: white;
+        font-weight: 600;
+        padding: 15px;
+        border: none;
+    }
+    
+    .calendar-table td {
+        padding: 12px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        color: rgba(255, 255, 255, 0.9);
+    }
+    
+    .calendar-table tbody tr:hover {
+        background: rgba(102, 126, 234, 0.1);
+    }
+    
+    .badge-tipo {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    
+    .badge-habil {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    }
+    
+    .badge-feriado {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    }
+    
+    .badge-suspension {
+        background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+        color: #000;
+    }
+    
+    .badge-fin_semana {
+        background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+    }
+    
+    .btn-gradient {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+        border: none;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 10px;
+        font-weight: 600;
+        transition: all 0.3s;
+    }
+    
+    .btn-gradient:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        color: white;
+    }
+    
+    .modal-content {
+        background: var(--darker-bg);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 15px;
+    }
+    
+    .modal-header {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .modal-footer {
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .form-control, .form-select {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: white;
+        border-radius: 10px;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: var(--primary-color);
+        color: white;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    }
+    
+    .form-control::placeholder {
+        color: rgba(255, 255, 255, 0.5);
+    }
+    
+    .form-label {
+        color: rgba(255, 255, 255, 0.9);
+        font-weight: 500;
+    }
+    
+    .form-check-input {
+        background-color: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.3);
+    }
+    
+    .form-check-input:checked {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+    
+    .action-btn {
+        padding: 5px 10px;
+        border-radius: 5px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s;
+        margin: 0 2px;
+    }
+    
+    .action-btn:hover {
+        transform: scale(1.1);
+    }
+    
+    .btn-edit {
+        background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+        color: white;
+    }
+    
+    .btn-delete {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="mb-3">
+                <i class="fas fa-calendar-alt"></i> Calendario Escolar
+            </h1>
+            <p class="text-muted">Gestión detallada de días hábiles, feriados y suspensiones</p>
+        </div>
+    </div>
+    
+    <div class="row mb-4" id="statsContainer">
+        <div class="col-md-3 mb-3">
+            <div class="stats-card">
+                <div class="icon" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
+                <h3 id="statDiasHabiles">0</h3>
+                <p class="mb-0 text-muted">Días Hábiles</p>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="stats-card">
+                <div class="icon" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);">
+                    <i class="fas fa-calendar-times"></i>
+                </div>
+                <h3 id="statFeriados">0</h3>
+                <p class="mb-0 text-muted">Feriados</p>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="stats-card">
+                <div class="icon" style="background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);">
+                    <i class="fas fa-pause-circle"></i>
+                </div>
+                <h3 id="statSuspensiones">0</h3>
+                <p class="mb-0 text-muted">Suspensiones</p>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="stats-card">
+                <div class="icon" style="background: linear-gradient(135deg, #6c757d 0%, #495057 100%);">
+                    <i class="fas fa-calendar-week"></i>
+                </div>
+                <h3 id="statFinesSemana">0</h3>
+                <p class="mb-0 text-muted">Fines de Semana</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="calendar-container">
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <label for="filtroMes" class="form-label">Mes</label>
+                <select id="filtroMes" class="form-select">
+                    <option value="">Todos</option>
+                    <option value="1">Enero</option>
+                    <option value="2">Febrero</option>
+                    <option value="3">Marzo</option>
+                    <option value="4">Abril</option>
+                    <option value="5">Mayo</option>
+                    <option value="6">Junio</option>
+                    <option value="7">Julio</option>
+                    <option value="8">Agosto</option>
+                    <option value="9">Septiembre</option>
+                    <option value="10">Octubre</option>
+                    <option value="11">Noviembre</option>
+                    <option value="12">Diciembre</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="filtroAnio" class="form-label">Año</label>
+                <select id="filtroAnio" class="form-select">
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="filtroTipo" class="form-label">Tipo de Día</label>
+                <select id="filtroTipo" class="form-select">
+                    <option value="">Todos</option>
+                    <option value="habil">Hábil</option>
+                    <option value="feriado">Feriado</option>
+                    <option value="suspension">Suspensión</option>
+                    <option value="fin_semana">Fin de Semana</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button class="btn btn-gradient w-100" onclick="abrirModalAgregar()">
+                    <i class="fas fa-plus"></i> Agregar Día
+                </button>
+            </div>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="table calendar-table">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Tipo de Día</th>
+                        <th>Descripción</th>
+                        <th>Laborable</th>
+                        <th>Observaciones</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="calendarioTableBody">
+                    <tr>
+                        <td colspan="6" class="text-center">
+                            <i class="fas fa-spinner fa-spin"></i> Cargando...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalDia" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalDiaTitle">Agregar Día</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formDia">
+                    <input type="hidden" id="diaId">
+                    <div class="mb-3">
+                        <label for="diaFecha" class="form-label">Fecha</label>
+                        <input type="date" class="form-control" id="diaFecha" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="diaTipo" class="form-label">Tipo de Día</label>
+                        <select class="form-select" id="diaTipo" required>
+                            <option value="habil">Hábil</option>
+                            <option value="feriado">Feriado</option>
+                            <option value="suspension">Suspensión</option>
+                            <option value="fin_semana">Fin de Semana</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="diaDescripcion" class="form-label">Descripción</label>
+                        <input type="text" class="form-control" id="diaDescripcion" placeholder="Ej: Día de la Independencia">
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="diaLaborable" checked>
+                        <label class="form-check-label" for="diaLaborable">
+                            Es día laborable para el personal
+                        </label>
+                    </div>
+                    <div class="mb-3">
+                        <label for="diaObservaciones" class="form-label">Observaciones</label>
+                        <textarea class="form-control" id="diaObservaciones" rows="3" placeholder="Observaciones adicionales"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-gradient" onclick="guardarDia()">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let modalDia;
+let modoEdicion = false;
+
+document.addEventListener('DOMContentLoaded', function() {
+    modalDia = new bootstrap.Modal(document.getElementById('modalDia'));
+    
+    const currentYear = new Date().getFullYear();
+    const filtroAnio = document.getElementById('filtroAnio');
+    for (let year = currentYear - 2; year <= currentYear + 5; year++) {
+        const option = document.createElement('option');
+        option.value = year;
+        option.textContent = year;
+        if (year === currentYear) option.selected = true;
+        filtroAnio.appendChild(option);
+    }
+    
+    document.getElementById('filtroMes').addEventListener('change', cargarCalendario);
+    document.getElementById('filtroAnio').addEventListener('change', cargarCalendario);
+    document.getElementById('filtroTipo').addEventListener('change', cargarCalendario);
+    
+    cargarCalendario();
+    cargarEstadisticas();
+});
+
+function cargarCalendario() {
+    const mes = document.getElementById('filtroMes').value;
+    const anio = document.getElementById('filtroAnio').value;
+    const tipo = document.getElementById('filtroTipo').value;
+    
+    let url = '/admin/calendario/obtener?';
+    if (mes) url += `mes=${mes}&`;
+    if (anio) url += `anio=${anio}&`;
+    if (tipo) url += `tipo_dia=${tipo}`;
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                mostrarDias(data.dias);
+            } else {
+                mostrarError('Error al cargar calendario: ' + data.message);
+            }
+        })
+        .catch(error => {
+            mostrarError('Error de conexión: ' + error);
+        });
+}
+
+function cargarEstadisticas() {
+    const anio = document.getElementById('filtroAnio').value;
+    const mes = document.getElementById('filtroMes').value;
+    
+    let url = `/admin/calendario/estadisticas?anio=${anio}`;
+    if (mes) url += `&mes=${mes}`;
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const stats = data.estadisticas;
+                document.getElementById('statDiasHabiles').textContent = stats.dias_habiles;
+                document.getElementById('statFeriados').textContent = stats.feriados;
+                document.getElementById('statSuspensiones').textContent = stats.suspensiones;
+                document.getElementById('statFinesSemana').textContent = stats.fines_semana;
+            }
+        })
+        .catch(error => console.error('Error al cargar estadísticas:', error));
+}
+
+function mostrarDias(dias) {
+    const tbody = document.getElementById('calendarioTableBody');
+    
+    if (dias.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center">No hay días registrados</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = dias.map(dia => `
+        <tr>
+            <td>${formatearFecha(dia.fecha)}</td>
+            <td><span class="badge badge-tipo badge-${dia.tipo_dia}">${formatearTipo(dia.tipo_dia)}</span></td>
+            <td>${dia.descripcion || '-'}</td>
+            <td>${dia.es_laborable ? '<i class="fas fa-check text-success"></i>' : '<i class="fas fa-times text-danger"></i>'}</td>
+            <td>${dia.observaciones || '-'}</td>
+            <td>
+                <button class="action-btn btn-edit" onclick="editarDia(${dia.id_calendario})" title="Editar">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="action-btn btn-delete" onclick="eliminarDia(${dia.id_calendario})" title="Eliminar">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function formatearFecha(fecha) {
+    const date = new Date(fecha + 'T00:00:00');
+    const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    return `${dias[date.getDay()]}, ${date.getDate()} ${meses[date.getMonth()]} ${date.getFullYear()}`;
+}
+
+function formatearTipo(tipo) {
+    const tipos = {
+        'habil': 'Hábil',
+        'feriado': 'Feriado',
+        'suspension': 'Suspensión',
+        'fin_semana': 'Fin de Semana'
+    };
+    return tipos[tipo] || tipo;
+}
+
+function abrirModalAgregar() {
+    modoEdicion = false;
+    document.getElementById('modalDiaTitle').textContent = 'Agregar Día';
+    document.getElementById('formDia').reset();
+    document.getElementById('diaId').value = '';
+    document.getElementById('diaLaborable').checked = true;
+    document.getElementById('diaFecha').removeAttribute('readonly');
+    modalDia.show();
+}
+
+function editarDia(id) {
+    modoEdicion = true;
+    document.getElementById('modalDiaTitle').textContent = 'Editar Día';
+    
+    const mes = document.getElementById('filtroMes').value;
+    const anio = document.getElementById('filtroAnio').value;
+    const tipo = document.getElementById('filtroTipo').value;
+    
+    let url = '/admin/calendario/obtener?';
+    if (mes) url += `mes=${mes}&`;
+    if (anio) url += `anio=${anio}&`;
+    if (tipo) url += `tipo_dia=${tipo}`;
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const dia = data.dias.find(d => d.id_calendario === id);
+                if (dia) {
+                    document.getElementById('diaId').value = dia.id_calendario;
+                    document.getElementById('diaFecha').value = dia.fecha;
+                    document.getElementById('diaFecha').setAttribute('readonly', 'readonly');
+                    document.getElementById('diaTipo').value = dia.tipo_dia;
+                    document.getElementById('diaDescripcion').value = dia.descripcion || '';
+                    document.getElementById('diaLaborable').checked = dia.es_laborable;
+                    document.getElementById('diaObservaciones').value = dia.observaciones || '';
+                    modalDia.show();
+                }
+            }
+        })
+        .catch(error => mostrarError('Error al cargar día: ' + error));
+}
+
+function guardarDia() {
+    const id = document.getElementById('diaId').value;
+    const fecha = document.getElementById('diaFecha').value;
+    const tipo = document.getElementById('diaTipo').value;
+    const descripcion = document.getElementById('diaDescripcion').value;
+    const laborable = document.getElementById('diaLaborable').checked;
+    const observaciones = document.getElementById('diaObservaciones').value;
+    
+    if (!fecha || !tipo) {
+        mostrarError('Por favor complete todos los campos requeridos');
+        return;
+    }
+    
+    const data = {
+        fecha: fecha,
+        tipo_dia: tipo,
+        descripcion: descripcion,
+        es_laborable: laborable,
+        observaciones: observaciones
+    };
+    
+    let url, method;
+    if (modoEdicion && id) {
+        url = `/admin/calendario/editar/${id}`;
+        method = 'PUT';
+    } else {
+        url = '/admin/calendario/agregar';
+        method = 'POST';
+    }
+    
+    fetch(url, {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            mostrarExito(data.message);
+            modalDia.hide();
+            cargarCalendario();
+            cargarEstadisticas();
+        } else {
+            mostrarError(data.message);
+        }
+    })
+    .catch(error => {
+        mostrarError('Error al guardar: ' + error);
+    });
+}
+
+function eliminarDia(id) {
+    if (!confirm('¿Está seguro de que desea eliminar este día del calendario?')) {
+        return;
+    }
+    
+    fetch(`/admin/calendario/eliminar/${id}`, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            mostrarExito(data.message);
+            cargarCalendario();
+            cargarEstadisticas();
+        } else {
+            mostrarError(data.message);
+        }
+    })
+    .catch(error => {
+        mostrarError('Error al eliminar: ' + error);
+    });
+}
+
+function mostrarExito(mensaje) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-success alert-dismissible fade show';
+    alertDiv.innerHTML = `
+        <i class="fas fa-check-circle"></i> ${mensaje}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.querySelector('.main-content').insertBefore(alertDiv, document.querySelector('.main-content').firstChild);
+    setTimeout(() => alertDiv.remove(), 5000);
+}
+
+function mostrarError(mensaje) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+    alertDiv.innerHTML = `
+        <i class="fas fa-exclamation-circle"></i> ${mensaje}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.querySelector('.main-content').insertBefore(alertDiv, document.querySelector('.main-content').firstChild);
+    setTimeout(() => alertDiv.remove(), 5000);
+}
+</script>
+{% endblock %}

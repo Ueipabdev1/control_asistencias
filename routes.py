@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import func, and_, extract
 from flask_login import login_user, logout_user, login_required, current_user
 from functools import wraps
-from models import db, Etapa, Usuario, Seccion, ProfesorSeccion, Matricula, Asistencia
+from models import db, Etapa, Usuario, Seccion, ProfesorSeccion, Matricula, Asistencia, Calendario
 from app import bcrypt
 
 # Decorador para verificar roles
@@ -1184,3 +1184,190 @@ def registro():
             return redirect(url_for('auth.registro'))
     
     return render_template('registro.html')
+
+# ==================== RUTAS DE CALENDARIO ====================
+
+@admin_bp.route('/calendario')
+@admin_required
+def calendario():
+    """Página de gestión del calendario escolar"""
+    return render_template('calendario.html')
+
+@admin_bp.route('/calendario/obtener', methods=['GET'])
+@admin_required
+def obtener_calendario():
+    """API para obtener días del calendario con filtros opcionales"""
+    try:
+        mes = request.args.get('mes', type=int)
+        anio = request.args.get('anio', type=int)
+        tipo_dia = request.args.get('tipo_dia')
+        
+        query = Calendario.query
+        
+        if mes and anio:
+            query = query.filter(
+                extract('month', Calendario.fecha) == mes,
+                extract('year', Calendario.fecha) == anio
+            )
+        elif anio:
+            query = query.filter(extract('year', Calendario.fecha) == anio)
+        
+        if tipo_dia:
+            query = query.filter(Calendario.tipo_dia == tipo_dia)
+        
+        dias = query.order_by(Calendario.fecha).all()
+        
+        return jsonify({
+            'success': True,
+            'dias': [{
+                'id_calendario': dia.id_calendario,
+                'fecha': dia.fecha.strftime('%Y-%m-%d'),
+                'tipo_dia': dia.tipo_dia,
+                'descripcion': dia.descripcion,
+                'es_laborable': dia.es_laborable,
+                'observaciones': dia.observaciones
+            } for dia in dias]
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error al obtener calendario: {str(e)}'}), 500
+
+@admin_bp.route('/calendario/agregar', methods=['POST'])
+@admin_required
+def agregar_dia_calendario():
+    """API para agregar un día al calendario"""
+    try:
+        data = request.get_json()
+        fecha_str = data.get('fecha')
+        tipo_dia = data.get('tipo_dia', 'habil')
+        descripcion = data.get('descripcion', '')
+        es_laborable = data.get('es_laborable', True)
+        observaciones = data.get('observaciones', '')
+        
+        if not fecha_str:
+            return jsonify({'success': False, 'message': 'La fecha es requerida'}), 400
+        
+        fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+        
+        dia_existente = Calendario.query.filter_by(fecha=fecha).first()
+        if dia_existente:
+            return jsonify({'success': False, 'message': 'Ya existe un registro para esta fecha'}), 400
+        
+        if tipo_dia not in ['habil', 'feriado', 'suspension', 'fin_semana']:
+            return jsonify({'success': False, 'message': 'Tipo de día inválido'}), 400
+        
+        nuevo_dia = Calendario(
+            fecha=fecha,
+            tipo_dia=tipo_dia,
+            descripcion=descripcion,
+            es_laborable=es_laborable,
+            observaciones=observaciones
+        )
+        
+        db.session.add(nuevo_dia)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Día agregado exitosamente',
+            'dia': {
+                'id_calendario': nuevo_dia.id_calendario,
+                'fecha': nuevo_dia.fecha.strftime('%Y-%m-%d'),
+                'tipo_dia': nuevo_dia.tipo_dia,
+                'descripcion': nuevo_dia.descripcion,
+                'es_laborable': nuevo_dia.es_laborable,
+                'observaciones': nuevo_dia.observaciones
+            }
+        }), 201
+    except ValueError:
+        return jsonify({'success': False, 'message': 'Formato de fecha inválido'}), 400
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Error al agregar día: {str(e)}'}), 500
+
+@admin_bp.route('/calendario/editar/<int:id_calendario>', methods=['PUT'])
+@admin_required
+def editar_dia_calendario(id_calendario):
+    """API para editar un día del calendario"""
+    try:
+        dia = Calendario.query.get(id_calendario)
+        if not dia:
+            return jsonify({'success': False, 'message': 'Día no encontrado'}), 404
+        
+        data = request.get_json()
+        
+        if 'tipo_dia' in data:
+            if data['tipo_dia'] not in ['habil', 'feriado', 'suspension', 'fin_semana']:
+                return jsonify({'success': False, 'message': 'Tipo de día inválido'}), 400
+            dia.tipo_dia = data['tipo_dia']
+        
+        if 'descripcion' in data:
+            dia.descripcion = data['descripcion']
+        
+        if 'es_laborable' in data:
+            dia.es_laborable = data['es_laborable']
+        
+        if 'observaciones' in data:
+            dia.observaciones = data['observaciones']
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Día actualizado exitosamente',
+            'dia': {
+                'id_calendario': dia.id_calendario,
+                'fecha': dia.fecha.strftime('%Y-%m-%d'),
+                'tipo_dia': dia.tipo_dia,
+                'descripcion': dia.descripcion,
+                'es_laborable': dia.es_laborable,
+                'observaciones': dia.observaciones
+            }
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Error al editar día: {str(e)}'}), 500
+
+@admin_bp.route('/calendario/eliminar/<int:id_calendario>', methods=['DELETE'])
+@admin_required
+def eliminar_dia_calendario(id_calendario):
+    """API para eliminar un día del calendario"""
+    try:
+        dia = Calendario.query.get(id_calendario)
+        if not dia:
+            return jsonify({'success': False, 'message': 'Día no encontrado'}), 404
+        
+        db.session.delete(dia)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Día eliminado exitosamente'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Error al eliminar día: {str(e)}'}), 500
+
+@admin_bp.route('/calendario/estadisticas', methods=['GET'])
+@admin_required
+def estadisticas_calendario():
+    """API para obtener estadísticas del calendario"""
+    try:
+        mes = request.args.get('mes', type=int)
+        anio = request.args.get('anio', type=int, default=datetime.now().year)
+        
+        query = Calendario.query.filter(extract('year', Calendario.fecha) == anio)
+        
+        if mes:
+            query = query.filter(extract('month', Calendario.fecha) == mes)
+        
+        dias = query.all()
+        
+        estadisticas = {
+            'total_dias': len(dias),
+            'dias_habiles': sum(1 for d in dias if d.tipo_dia == 'habil'),
+            'feriados': sum(1 for d in dias if d.tipo_dia == 'feriado'),
+            'suspensiones': sum(1 for d in dias if d.tipo_dia == 'suspension'),
+            'fines_semana': sum(1 for d in dias if d.tipo_dia == 'fin_semana'),
+            'dias_laborables': sum(1 for d in dias if d.es_laborable)
+        }
+        
+        return jsonify({'success': True, 'estadisticas': estadisticas})
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error al obtener estadísticas: {str(e)}'}), 500

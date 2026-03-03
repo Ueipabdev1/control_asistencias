@@ -122,3 +122,18 @@ class Asistencia(db.Model):
     
     def __repr__(self):
         return f'<Asistencia {self.fecha} Sección:{self.id_seccion} H:{self.asistentes_h} M:{self.asistentes_m}>'
+
+class Calendario(db.Model):
+    __tablename__ = 'calendario'
+    
+    id_calendario = db.Column(db.Integer, primary_key=True)
+    fecha = db.Column(db.Date, nullable=False, unique=True)
+    tipo_dia = db.Column(db.Enum('habil', 'feriado', 'suspension', 'fin_semana'), nullable=False, default='habil')
+    descripcion = db.Column(db.String(255), comment='Descripción del día (nombre del feriado, motivo de suspensión, etc.)')
+    es_laborable = db.Column(db.Boolean, default=True, comment='Indica si es un día laborable para el personal')
+    observaciones = db.Column(db.Text, comment='Observaciones adicionales')
+    fecha_creacion = db.Column(db.TIMESTAMP, default=datetime.utcnow)
+    fecha_actualizacion = db.Column(db.TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<Calendario {self.fecha} - {self.tipo_dia}>'
