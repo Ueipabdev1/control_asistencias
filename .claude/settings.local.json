@@ -37,7 +37,11 @@
       "Bash(sudo chgrp:*)",
       "Bash(git push:*)",
       "Bash(gh api:*)",
-      "Bash(git remote set-url:*)"
+      "Bash(git remote set-url:*)",
+      "Bash(git fetch:*)",
+      "Bash(echo:*)",
+      "Bash(getent passwd:*)",
+      "Bash(su:*)"
     ]
   }
 }

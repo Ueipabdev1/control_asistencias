@@ -5,10 +5,16 @@ from dotenv import load_dotenv
 
 load_dotenv()
 from sqlalchemy import func, and_, extract
+from flask_login import LoginManager
+from flask_bcrypt import Bcrypt
 from werkzeug.middleware.proxy_fix import ProxyFix
 from models import db, Etapa, Usuario, Seccion, ProfesorSeccion, Matricula, Asistencia, Calendario
 
 app = Flask(__name__)
+
+# Inicializar extensiones
+login_manager = LoginManager()
+bcrypt = Bcrypt()
 
 # Handle reverse proxy with script name prefix
 class ReverseProxied:
