@@ -82,7 +82,7 @@ class Seccion(db.Model):
     
     # Relaciones
     profesores = db.relationship('ProfesorSeccion', backref='seccion', lazy=True)
-    estudiantes = db.relationship('Estudiante', backref='seccion', lazy=True)
+    # estudiantes = db.relationship('Estudiante', backref='seccion', lazy=True)  # Comentado: tabla estudiante no existe
     
     # Constraint único
     __table_args__ = (db.UniqueConstraint('id_grado', 'nombre_seccion', name='unique_seccion_grado'),)
@@ -92,10 +92,10 @@ class Seccion(db.Model):
         """Retorna nombre completo: Etapa - Grado - Sección"""
         return f"{self.grado.etapa.nombre_etapa} - {self.grado.nombre_grado} - Sección {self.nombre_seccion}"
     
-    @property
-    def total_estudiantes(self):
-        """Cuenta estudiantes activos en la sección"""
-        return Estudiante.query.filter_by(id_seccion=self.id_seccion, activo=True).count()
+    # @property
+    # def total_estudiantes(self):
+    #     """Cuenta estudiantes activos en la sección"""
+    #     return Estudiante.query.filter_by(id_seccion=self.id_seccion, activo=True).count()
     
     def __repr__(self):
         return f'<Seccion {self.nombre_seccion} - Grado:{self.id_grado}>'
@@ -132,59 +132,59 @@ class Matricula(db.Model):
     def __repr__(self):
         return f'<Matricula Sección:{self.id_seccion} H:{self.num_estudiantes_h} M:{self.num_estudiantes_m}>'
 
-# Modelo para estudiantes individuales (nuevo en V2)
-class Estudiante(db.Model):
-    __tablename__ = 'estudiante'
-    
-    id_estudiante = db.Column(db.Integer, primary_key=True)
-    cedula = db.Column(db.String(20), unique=True, nullable=False, index=True, comment='Cédula de identidad')
-    nombre = db.Column(db.String(100), nullable=False)
-    apellido = db.Column(db.String(100), nullable=False)
-    genero = db.Column(db.Enum('M', 'F'), nullable=False, comment='M=Masculino, F=Femenino')
-    id_seccion = db.Column(db.Integer, db.ForeignKey('seccion.id_seccion', ondelete='RESTRICT'), nullable=False)
-    activo = db.Column(db.Boolean, default=True, comment='Estudiante activo en el sistema')
-    fecha_registro = db.Column(db.TIMESTAMP, default=datetime.utcnow)
-    fecha_actualizacion = db.Column(db.TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    # Relaciones
-    asistencias = db.relationship('AsistenciaEstudiante', backref='estudiante', lazy=True, cascade='all, delete-orphan')
-    
-    @property
-    def nombre_completo(self):
-        return f"{self.nombre} {self.apellido}"
-    
-    @property
-    def genero_texto(self):
-        return 'Masculino' if self.genero == 'M' else 'Femenino'
-    
-    def __repr__(self):
-        return f'<Estudiante {self.cedula} - {self.nombre} {self.apellido}>'
+# # Modelo para estudiantes individuales (nuevo en V2) - COMENTADO: tabla no existe
+# class Estudiante(db.Model):
+#     __tablename__ = 'estudiante'
+#     
+#     id_estudiante = db.Column(db.Integer, primary_key=True)
+#     cedula = db.Column(db.String(20), unique=True, nullable=False, index=True, comment='Cédula de identidad')
+#     nombre = db.Column(db.String(100), nullable=False)
+#     apellido = db.Column(db.String(100), nullable=False)
+#     genero = db.Column(db.Enum('M', 'F'), nullable=False, comment='M=Masculino, F=Femenino')
+#     id_seccion = db.Column(db.Integer, db.ForeignKey('secciones.id_seccion', ondelete='RESTRICT'), nullable=False)
+#     activo = db.Column(db.Boolean, default=True, comment='Estudiante activo en el sistema')
+#     fecha_registro = db.Column(db.TIMESTAMP, default=datetime.utcnow)
+#     fecha_actualizacion = db.Column(db.TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
+#     
+#     # Relaciones
+#     asistencias = db.relationship('AsistenciaEstudiante', backref='estudiante', lazy=True, cascade='all, delete-orphan')
+#     
+#     @property
+#     def nombre_completo(self):
+#         return f"{self.nombre} {self.apellido}"
+#     
+#     @property
+#     def genero_texto(self):
+#         return 'Masculino' if self.genero == 'M' else 'Femenino'
+#     
+#     def __repr__(self):
+#         return f'<Estudiante {self.cedula} - {self.nombre} {self.apellido}>'
 
-# Modelo para asistencia individual por estudiante (nuevo en V2)
-class AsistenciaEstudiante(db.Model):
-    __tablename__ = 'asistencia_estudiante'
-    
-    id_asistencia_estudiante = db.Column(db.Integer, primary_key=True)
-    id_estudiante = db.Column(db.Integer, db.ForeignKey('estudiante.id_estudiante', ondelete='CASCADE'), nullable=False)
-    fecha = db.Column(db.Date, nullable=False, index=True)
-    presente = db.Column(db.Boolean, default=False, nullable=False, comment='TRUE=Presente, FALSE=Ausente')
-    observaciones = db.Column(db.Text, nullable=True, comment='Observaciones opcionales')
-    id_usuario = db.Column(db.Integer, db.ForeignKey('usuario.id_usuario', ondelete='SET NULL'), nullable=True, comment='Usuario que registró')
-    fecha_registro = db.Column(db.TIMESTAMP, default=datetime.utcnow)
-    
-    # Constraint único para evitar duplicados
-    __table_args__ = (
-        db.UniqueConstraint('id_estudiante', 'fecha', name='unique_asistencia_estudiante'),
-        db.Index('idx_fecha_presente', 'fecha', 'presente')
-    )
-    
-    @property
-    def estado_texto(self):
-        return 'Presente' if self.presente else 'Ausente'
-    
-    def __repr__(self):
-        estado = "Presente" if self.presente else "Ausente"
-        return f'<AsistenciaEstudiante {self.fecha} - Estudiante:{self.id_estudiante} - {estado}>'
+# # Modelo para asistencia individual por estudiante (nuevo en V2) - COMENTADO: tabla no existe
+# class AsistenciaEstudiante(db.Model):
+#     __tablename__ = 'asistencia_estudiante'
+#     
+#     id_asistencia_estudiante = db.Column(db.Integer, primary_key=True)
+#     id_estudiante = db.Column(db.Integer, db.ForeignKey('estudiante.id_estudiante', ondelete='CASCADE'), nullable=False)
+#     fecha = db.Column(db.Date, nullable=False, index=True)
+#     presente = db.Column(db.Boolean, default=False, nullable=False, comment='TRUE=Presente, FALSE=Ausente')
+#     observaciones = db.Column(db.Text, nullable=True, comment='Observaciones opcionales')
+#     id_usuario = db.Column(db.Integer, db.ForeignKey('usuario.id_usuario', ondelete='SET NULL'), nullable=True, comment='Usuario que registró')
+#     fecha_registro = db.Column(db.TIMESTAMP, default=datetime.utcnow)
+#     
+#     # Constraint único para evitar duplicados
+#     __table_args__ = (
+#         db.UniqueConstraint('id_estudiante', 'fecha', name='unique_asistencia_estudiante'),
+#         db.Index('idx_fecha_presente', 'fecha', 'presente')
+#     )
+#     
+#     @property
+#     def estado_texto(self):
+#         return 'Presente' if self.presente else 'Ausente'
+#     
+#     def __repr__(self):
+#         estado = "Presente" if self.presente else "Ausente"
+#         return f'<AsistenciaEstudiante {self.fecha} - Estudiante:{self.id_estudiante} - {estado}>'
 
 # Modelo para observaciones generales de sección
 class ObservacionSeccion(db.Model):
