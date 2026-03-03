@@ -13,8 +13,8 @@ class Etapa(db.Model):
     descripcion = db.Column(db.String(255))
     activa = db.Column(db.Boolean, default=True)
     
-    # Relación con grados
-    grados = db.relationship('Grado', backref='etapa', lazy=True, cascade='all, delete-orphan')
+    # Relación con grados - COMENTADO: modelo Grado no existe
+    # grados = db.relationship('Grado', backref='etapa', lazy=True, cascade='all, delete-orphan')
     
     def __repr__(self):
         return f'<Etapa {self.nombre_etapa}>'
