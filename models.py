@@ -71,7 +71,7 @@ class Grado(db.Model):
 
 # Modelo para secciones (refactorizado en V2)
 class Seccion(db.Model):
-    __tablename__ = 'seccion'
+    __tablename__ = 'secciones'
     
     id_seccion = db.Column(db.Integer, primary_key=True)
     id_grado = db.Column(db.Integer, db.ForeignKey('grado.id_grado', ondelete='CASCADE'), nullable=False)
@@ -102,11 +102,11 @@ class Seccion(db.Model):
 
 # Modelo para relación profesor-secciones (muchos a muchos)
 class ProfesorSeccion(db.Model):
-    __tablename__ = 'profesor_seccion'
+    __tablename__ = 'profesor_secciones'
     
     id_profesor_seccion = db.Column(db.Integer, primary_key=True)
     id_profesor = db.Column(db.Integer, db.ForeignKey('usuario.id_usuario', ondelete='CASCADE'), nullable=False)
-    id_seccion = db.Column(db.Integer, db.ForeignKey('seccion.id_seccion', ondelete='CASCADE'), nullable=False)
+    id_seccion = db.Column(db.Integer, db.ForeignKey('secciones.id_seccion', ondelete='CASCADE'), nullable=False)
     fecha_asignacion = db.Column(db.TIMESTAMP, default=datetime.utcnow)
     
     # Constraint único para evitar duplicados
@@ -120,7 +120,7 @@ class Matricula(db.Model):
     __tablename__ = 'matricula'
     
     id_matricula = db.Column(db.Integer, primary_key=True)
-    id_seccion = db.Column(db.Integer, db.ForeignKey('seccion.id_seccion', ondelete='CASCADE'), nullable=False, unique=True)
+    id_seccion = db.Column(db.Integer, db.ForeignKey('secciones.id_seccion', ondelete='CASCADE'), nullable=False, unique=True)
     num_estudiantes_h = db.Column(db.Integer, default=0, comment='Número de estudiantes hombres')
     num_estudiantes_m = db.Column(db.Integer, default=0, comment='Número de estudiantes mujeres')
     fecha_actualizacion = db.Column(db.TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -191,7 +191,7 @@ class ObservacionSeccion(db.Model):
     __tablename__ = 'observacion_seccion'
     
     id_observacion = db.Column(db.Integer, primary_key=True)
-    id_seccion = db.Column(db.Integer, db.ForeignKey('seccion.id_seccion', ondelete='CASCADE'), nullable=False)
+    id_seccion = db.Column(db.Integer, db.ForeignKey('secciones.id_seccion', ondelete='CASCADE'), nullable=False)
     fecha = db.Column(db.Date, nullable=False)
     observaciones = db.Column(db.Text, nullable=True, comment='Observaciones generales de la clase')
     id_usuario = db.Column(db.Integer, db.ForeignKey('usuario.id_usuario', ondelete='SET NULL'), nullable=True, comment='Usuario que registró la observación')
