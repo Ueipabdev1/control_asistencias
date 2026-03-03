@@ -5,8 +5,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 from sqlalchemy import func, and_, extract
-from flask_login import LoginManager
-from flask_bcrypt import Bcrypt
 from werkzeug.middleware.proxy_fix import ProxyFix
 from models import db, Etapa, Usuario, Seccion, ProfesorSeccion, Matricula, Asistencia, Calendario
 
@@ -33,19 +31,18 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'tu_clave_secreta_aqui')
 
 # Inicializar Flask-Login
-login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'auth.login'
 login_manager.login_message = 'Por favor inicia sesión para acceder a esta página.'
 login_manager.login_message_category = 'info'
 
 # Inicializar Flask-Bcrypt
-bcrypt = Bcrypt(app)
+bcrypt.init_app(app)
 
 # Configuración para MariaDB/MySQL
 # En producción (Railway), usa DATABASE_URL de las variables de entorno
 # En desarrollo local, usa la configuración por defecto
-database_url = os.environ.get('DATABASE_URL', 'mysql+pymysql://root:0000@localhost/control_asistencias?charset=utf8mb4')
+database_url = os.environ.get('DATABASE_URL', 'mysql+pymysql://root:0000@localhost:3306/control_asistencias?charset=utf8mb4')
 
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -70,9 +67,19 @@ def load_user(user_id):
 
 # Registrar blueprints
 from routes import main_bp, admin_bp, auth_bp
+from routes_estudiantes import estudiantes_bp, asistencia_individual_bp
+from routes_observaciones import observaciones_bp
+from routes_estadisticas import estadisticas_bp
+from routes_calendario import calendario_bp
+
 app.register_blueprint(main_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(auth_bp)
+app.register_blueprint(estudiantes_bp)
+app.register_blueprint(asistencia_individual_bp)
+app.register_blueprint(observaciones_bp)
+app.register_blueprint(estadisticas_bp)
+app.register_blueprint(calendario_bp)
 
 if __name__ == '__main__':
     try:

@@ -7,3 +7,6 @@ Flask-Login==0.6.3
 gunicorn==21.2.0
 cryptography==41.0.7
 python-dotenv==1.2.1
+pandas>=3.0.0
+openpyxl>=3.1.5
+xlrd>=2.0.1
