@@ -73,18 +73,18 @@ def load_user(user_id):
 
 # Registrar blueprints
 from routes import main_bp, admin_bp, auth_bp
-from routes_estudiantes import estudiantes_bp, asistencia_individual_bp
+# from routes_estudiantes import estudiantes_bp, asistencia_individual_bp  # Comentado: depende de modelo Estudiante
 from routes_observaciones import observaciones_bp
-from routes_estadisticas import estadisticas_bp
+# from routes_estadisticas import estadisticas_bp  # Comentado: depende de modelo Estudiante
 from routes_calendario import calendario_bp
 
 app.register_blueprint(main_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(auth_bp)
-app.register_blueprint(estudiantes_bp)
-app.register_blueprint(asistencia_individual_bp)
+# app.register_blueprint(estudiantes_bp)  # Comentado: depende de modelo Estudiante
+# app.register_blueprint(asistencia_individual_bp)  # Comentado: depende de modelo Estudiante
 app.register_blueprint(observaciones_bp)
-app.register_blueprint(estadisticas_bp)
+# app.register_blueprint(estadisticas_bp)  # Comentado: depende de modelo Estudiante
 app.register_blueprint(calendario_bp)
 
 if __name__ == '__main__':
