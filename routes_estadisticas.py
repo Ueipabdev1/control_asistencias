@@ -158,7 +158,7 @@ def obtener_estadisticas():
         # Contar asistentes por género
         asistentes_por_genero = db.session.query(
             Estudiante.genero,
-            func.count(AsistenciaEstudiante.id_asistencia).label('total')
+            func.count(AsistenciaEstudiante.id_asistencia_estudiante).label('total')
         ).join(
             AsistenciaEstudiante, Estudiante.id_estudiante == AsistenciaEstudiante.id_estudiante
         ).join(

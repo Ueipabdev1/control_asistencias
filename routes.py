@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import func, and_, extract
 from flask_login import login_user, logout_user, login_required, current_user
 from functools import wraps
-from models import db, Etapa, Usuario, Seccion, ProfesorSeccion, Matricula, Asistencia, Calendario
+from models import db, Etapa, Grado, Usuario, Seccion, ProfesorSeccion, Matricula, Asistencia, Calendario, Estudiante, AsistenciaEstudiante, SeccionLegacy
 from app import bcrypt
 
 # Decorador para verificar roles
@@ -52,15 +52,19 @@ def obtener_secciones():
     """API para obtener lista de secciones con su matrícula"""
     # Si es administrador, mostrar todas las secciones
     if current_user.is_admin:
-        secciones = db.session.query(Seccion, Etapa, Matricula).select_from(Seccion).join(
-            Etapa, Seccion.id_etapa == Etapa.id_etapa
+        secciones = db.session.query(Seccion, Grado, Etapa, Matricula).select_from(Seccion).join(
+            Grado, Seccion.id_grado == Grado.id_grado
+        ).join(
+            Etapa, Grado.id_etapa == Etapa.id_etapa
         ).outerjoin(
             Matricula, Seccion.id_seccion == Matricula.id_seccion
         ).all()
     else:
         # Si es profesor, solo mostrar sus secciones asignadas
-        secciones = db.session.query(Seccion, Etapa, Matricula).select_from(Seccion).join(
-            Etapa, Seccion.id_etapa == Etapa.id_etapa
+        secciones = db.session.query(Seccion, Grado, Etapa, Matricula).select_from(Seccion).join(
+            Grado, Seccion.id_grado == Grado.id_grado
+        ).join(
+            Etapa, Grado.id_etapa == Etapa.id_etapa
         ).outerjoin(
             Matricula, Seccion.id_seccion == Matricula.id_seccion
         ).join(
@@ -68,12 +72,13 @@ def obtener_secciones():
         ).filter(
             ProfesorSeccion.id_profesor == current_user.id_usuario
         ).all()
-    
+
     return jsonify([{
         'id_seccion': s.Seccion.id_seccion,
-        'nombre_seccion': f"{s.Etapa.nombre_etapa} - Sección {s.Seccion.nombre_seccion}",
+        'nombre_seccion': f"{s.Etapa.nombre_etapa} - {s.Grado.nombre_grado} {s.Seccion.nombre_seccion}",
         'etapa': s.Etapa.nombre_etapa,
         'seccion': s.Seccion.nombre_seccion,
+        'grado': s.Grado.nombre_grado,
         'matricula_h': s.Matricula.num_estudiantes_h if s.Matricula else 0,
         'matricula_m': s.Matricula.num_estudiantes_m if s.Matricula else 0,
         'total_matricula': (s.Matricula.num_estudiantes_h + s.Matricula.num_estudiantes_m) if s.Matricula else 0
@@ -113,10 +118,10 @@ def guardar_asistencia():
         
         # Buscar asistencia existente para esta fecha y sección
         asistencia_existente = Asistencia.query.filter_by(
-            id_seccion=id_seccion, 
+            id_seccion_legacy=id_seccion,
             fecha=fecha
         ).first()
-        
+
         if asistencia_existente:
             # Actualizar asistencia existente
             asistencia_existente.asistentes_h = asistentes_h
@@ -125,7 +130,7 @@ def guardar_asistencia():
         else:
             # Crear nueva asistencia
             nueva_asistencia = Asistencia(
-                id_seccion=id_seccion,
+                id_seccion_legacy=id_seccion,
                 id_usuario=current_user.id_usuario,
                 fecha=fecha,
                 asistentes_h=asistentes_h,
@@ -149,7 +154,7 @@ def verificar_asistencia(fecha, id_seccion):
         
         # Buscar asistencia existente
         asistencia = Asistencia.query.filter_by(
-            id_seccion=id_seccion,
+            id_seccion_legacy=id_seccion,
             fecha=fecha_obj
         ).first()
         
@@ -173,26 +178,26 @@ def obtener_asistencia(fecha):
     try:
         fecha_obj = datetime.strptime(fecha, '%Y-%m-%d').date()
         
-        # Query base
-        query = db.session.query(Asistencia, Seccion, Etapa).select_from(Asistencia).join(
-            Seccion, Asistencia.id_seccion == Seccion.id_seccion
+        # Query base — join legacy asistencia con secciones V1 (SeccionLegacy)
+        query = db.session.query(Asistencia, SeccionLegacy, Etapa).select_from(Asistencia).join(
+            SeccionLegacy, Asistencia.id_seccion_legacy == SeccionLegacy.id_seccion
         ).join(
-            Etapa, Seccion.id_etapa == Etapa.id_etapa
+            Etapa, SeccionLegacy.id_etapa == Etapa.id_etapa
         ).filter(Asistencia.fecha == fecha_obj)
-        
+
         # Si es profesor, filtrar solo sus secciones asignadas
         if not current_user.is_admin:
             query = query.join(
-                ProfesorSeccion, Seccion.id_seccion == ProfesorSeccion.id_seccion
+                ProfesorSeccion, SeccionLegacy.id_seccion == ProfesorSeccion.id_seccion
             ).filter(
                 ProfesorSeccion.id_profesor == current_user.id_usuario
             )
-        
+
         asistencias = query.all()
-        
+
         return jsonify([{
-            'id_seccion': a.Asistencia.id_seccion,
-            'nombre_seccion': a.Seccion.nombre_seccion,
+            'id_seccion': a.Asistencia.id_seccion_legacy,
+            'nombre_seccion': a.SeccionLegacy.nombre_seccion,
             'etapa': a.Etapa.nombre_etapa,
             'asistentes_h': a.Asistencia.asistentes_h,
             'asistentes_m': a.Asistencia.asistentes_m,
@@ -460,13 +465,17 @@ def eliminar_profesor(profesor_id):
 def obtener_secciones_por_etapa(etapa):
     """API para obtener secciones por etapa educativa"""
     try:
-        secciones = db.session.query(Seccion).select_from(Seccion).join(Etapa, Seccion.id_etapa == Etapa.id_etapa).filter(
+        secciones = db.session.query(Seccion, Grado).select_from(Seccion).join(
+            Grado, Seccion.id_grado == Grado.id_grado
+        ).join(
+            Etapa, Grado.id_etapa == Etapa.id_etapa
+        ).filter(
             Etapa.nombre_etapa == etapa
         ).all()
-        
+
         return jsonify([{
-            'id': s.id_seccion,
-            'nombre': s.nombre_seccion
+            'id': s.Seccion.id_seccion,
+            'nombre': f"{s.Grado.nombre_grado} {s.Seccion.nombre_seccion}"
         } for s in secciones])
         
     except Exception as e:
@@ -481,18 +490,20 @@ def obtener_secciones_profesor(profesor_id):
             return jsonify({'error': 'Profesor no encontrado'}), 404
         
         # Obtener secciones asignadas al profesor
-        asignaciones = db.session.query(ProfesorSeccion, Seccion, Etapa).select_from(ProfesorSeccion).join(
+        asignaciones = db.session.query(ProfesorSeccion, Seccion, Grado, Etapa).select_from(ProfesorSeccion).join(
             Seccion, ProfesorSeccion.id_seccion == Seccion.id_seccion
         ).join(
-            Etapa, Seccion.id_etapa == Etapa.id_etapa
+            Grado, Seccion.id_grado == Grado.id_grado
+        ).join(
+            Etapa, Grado.id_etapa == Etapa.id_etapa
         ).filter(ProfesorSeccion.id_profesor == profesor_id).all()
-        
+
         secciones = [{
             'id': a.Seccion.id_seccion,
-            'seccion': a.Seccion.nombre_seccion,
+            'seccion': f"{a.Grado.nombre_grado} {a.Seccion.nombre_seccion}",
             'etapa': a.Etapa.nombre_etapa
         } for a in asignaciones]
-        
+
         return jsonify({
             'profesor': {
                 'id': profesor.id_usuario,
@@ -594,15 +605,17 @@ def obtener_todas_asignaciones():
         resultado = []
         for profesor in profesores:
             # Obtener secciones asignadas
-            asignaciones = db.session.query(ProfesorSeccion, Seccion, Etapa).select_from(ProfesorSeccion).join(
+            asignaciones = db.session.query(ProfesorSeccion, Seccion, Grado, Etapa).select_from(ProfesorSeccion).join(
                 Seccion, ProfesorSeccion.id_seccion == Seccion.id_seccion
             ).join(
-                Etapa, Seccion.id_etapa == Etapa.id_etapa
+                Grado, Seccion.id_grado == Grado.id_grado
+            ).join(
+                Etapa, Grado.id_etapa == Etapa.id_etapa
             ).filter(ProfesorSeccion.id_profesor == profesor.id_usuario).all()
-            
+
             secciones = [{
                 'id': a.Seccion.id_seccion,
-                'seccion': a.Seccion.nombre_seccion,
+                'seccion': f"{a.Grado.nombre_grado} {a.Seccion.nombre_seccion}",
                 'etapa': a.Etapa.nombre_etapa
             } for a in asignaciones]
             
@@ -639,19 +652,19 @@ def eliminar_asignaciones_profesor(profesor_id):
 def obtener_matriculas():
     """API para obtener todas las matrículas"""
     try:
-        matriculas = db.session.query(Matricula, Seccion, Etapa).select_from(Matricula).join(
-            Seccion, Matricula.id_seccion == Seccion.id_seccion
+        matriculas = db.session.query(Matricula, SeccionLegacy, Etapa).select_from(Matricula).join(
+            SeccionLegacy, Matricula.id_seccion == SeccionLegacy.id_seccion
         ).join(
-            Etapa, Seccion.id_etapa == Etapa.id_etapa
+            Etapa, SeccionLegacy.id_etapa == Etapa.id_etapa
         ).all()
-        
+
         return jsonify([{
             'id': m.Matricula.id_matricula,
-            'id_seccion': m.Seccion.id_seccion,
+            'id_seccion': m.SeccionLegacy.id_seccion,
             'etapa_nombre': m.Etapa.nombre_etapa,
-            'seccion_nombre': f"{m.Etapa.nombre_etapa} - Sección {m.Seccion.nombre_seccion}",
+            'seccion_nombre': f"{m.Etapa.nombre_etapa} - {m.SeccionLegacy.nombre_seccion}",
             'etapa': m.Etapa.nombre_etapa,
-            'seccion': m.Seccion.nombre_seccion,
+            'seccion': m.SeccionLegacy.nombre_seccion,
             'num_estudiantes_h': m.Matricula.num_estudiantes_h,
             'num_estudiantes_m': m.Matricula.num_estudiantes_m,
             'total': m.Matricula.total_estudiantes
@@ -707,19 +720,19 @@ def crear_matricula():
 def obtener_matricula(id):
     """API para obtener una matrícula específica"""
     try:
-        matricula = db.session.query(Matricula, Seccion, Etapa).select_from(Matricula).join(
-            Seccion, Matricula.id_seccion == Seccion.id_seccion
+        matricula = db.session.query(Matricula, SeccionLegacy, Etapa).select_from(Matricula).join(
+            SeccionLegacy, Matricula.id_seccion == SeccionLegacy.id_seccion
         ).join(
-            Etapa, Seccion.id_etapa == Etapa.id_etapa
+            Etapa, SeccionLegacy.id_etapa == Etapa.id_etapa
         ).filter(Matricula.id_matricula == id).first()
-        
+
         if not matricula:
             return jsonify({'error': 'Matrícula no encontrada'}), 404
-        
+
         return jsonify({
             'id': matricula.Matricula.id_matricula,
             'etapa': matricula.Etapa.nombre_etapa,
-            'seccion': matricula.Seccion.nombre_seccion,
+            'seccion': matricula.SeccionLegacy.nombre_seccion,
             'num_estudiantes_h': matricula.Matricula.num_estudiantes_h,
             'num_estudiantes_m': matricula.Matricula.num_estudiantes_m
         })
@@ -766,70 +779,68 @@ def eliminar_matricula(id):
         db.session.rollback()
         return jsonify({'error': f'Error al eliminar matrícula: {str(e)}'}), 500
 
-# @main_bp.route('/api/matriculas/sincronizar', methods=['POST'])
-# @login_required
-# @admin_required
-# def sincronizar_matriculas():
-#     """API para sincronizar matrículas con estudiantes registrados - COMENTADO: modelo Estudiante no existe"""
-#     try:
-#         from models import Estudiante, Grado
-#         
-#         # Obtener todas las secciones
-#         secciones = Seccion.query.all()
-#         
-#         creadas = 0
-#         actualizadas = 0
-#         
-#         for seccion in secciones:
-#             # Contar estudiantes por género
-#             masculinos = Estudiante.query.filter_by(
-#                 id_seccion=seccion.id_seccion,
-#                 activo=True,
-#                 genero='M'
-#             ).count()
-#             
-#             femeninos = Estudiante.query.filter_by(
-#                 id_seccion=seccion.id_seccion,
-#                 activo=True,
-#                 genero='F'
-#             ).count()
-#             
-#             # Buscar matrícula existente
-#             matricula = Matricula.query.filter_by(id_seccion=seccion.id_seccion).first()
-#             
-#             if matricula:
-#                 # Actualizar
-#                 matricula.num_estudiantes_h = masculinos
-#                 matricula.num_estudiantes_m = femeninos
-#                 actualizadas += 1
-#             else:
-#                 # Crear nueva
-#                 nueva_matricula = Matricula(
-#                     id_seccion=seccion.id_seccion,
-#                     num_estudiantes_h=masculinos,
-#                     num_estudiantes_m=femeninos
-#                 )
-#                 db.session.add(nueva_matricula)
-#                 creadas += 1
-#         
-#         # Guardar cambios
-#         db.session.commit()
-#         
-#         return jsonify({
-#             'success': True,
-#             'message': 'Matrículas sincronizadas correctamente',
-#             'creadas': creadas,
-#             'actualizadas': actualizadas,
-#             'total': creadas + actualizadas
-#         })
-#         
-#     except Exception as e:
-#         db.session.rollback()
-#         return jsonify({'error': f'Error al sincronizar matrículas: {str(e)}'}), 500
+@main_bp.route('/api/matriculas/sincronizar', methods=['POST'])
+@login_required
+@admin_required
+def sincronizar_matriculas():
+    """API para sincronizar matrículas con estudiantes registrados"""
+    try:
+        # Obtener todas las secciones V2
+        secciones = Seccion.query.all()
 
-@admin_bp.route('/estadisticas')
-def obtener_estadisticas():
-    """API para obtener estadísticas detalladas"""
+        creadas = 0
+        actualizadas = 0
+
+        for seccion in secciones:
+            # Contar estudiantes por género
+            masculinos = Estudiante.query.filter_by(
+                id_seccion=seccion.id_seccion,
+                activo=True,
+                genero='M'
+            ).count()
+
+            femeninos = Estudiante.query.filter_by(
+                id_seccion=seccion.id_seccion,
+                activo=True,
+                genero='F'
+            ).count()
+
+            # Buscar matrícula existente
+            matricula = Matricula.query.filter_by(id_seccion=seccion.id_seccion).first()
+
+            if matricula:
+                # Actualizar
+                matricula.num_estudiantes_h = masculinos
+                matricula.num_estudiantes_m = femeninos
+                actualizadas += 1
+            else:
+                # Crear nueva
+                nueva_matricula = Matricula(
+                    id_seccion=seccion.id_seccion,
+                    num_estudiantes_h=masculinos,
+                    num_estudiantes_m=femeninos
+                )
+                db.session.add(nueva_matricula)
+                creadas += 1
+
+        # Guardar cambios
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Matrículas sincronizadas correctamente',
+            'creadas': creadas,
+            'actualizadas': actualizadas,
+            'total': creadas + actualizadas
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Error al sincronizar matrículas: {str(e)}'}), 500
+
+@admin_bp.route('/estadisticas-legacy')
+def obtener_estadisticas_legacy():
+    """API para obtener estadísticas detalladas (legacy - basadas en asistencia por sección)"""
     try:
         fecha_inicio = request.args.get('fecha_inicio')
         fecha_fin = request.args.get('fecha_fin')
@@ -847,46 +858,46 @@ def obtener_estadisticas():
         else:
             fecha_fin = datetime.now().date()
         
-        # Filtro base de secciones
-        secciones_query = db.session.query(Seccion).select_from(Seccion).join(Etapa, Seccion.id_etapa == Etapa.id_etapa)
+        # Filtro base de secciones (legacy)
+        secciones_query = db.session.query(SeccionLegacy).select_from(SeccionLegacy).join(Etapa, SeccionLegacy.id_etapa == Etapa.id_etapa)
         if etapa:
             secciones_query = secciones_query.filter(Etapa.nombre_etapa == etapa)
         if seccion:
-            secciones_query = secciones_query.filter(Seccion.id_seccion == int(seccion))
-        
-        # Filtro base de asistencias
-        asistencias_query = db.session.query(Asistencia).select_from(Asistencia).join(Seccion, Asistencia.id_seccion == Seccion.id_seccion).join(Etapa, Seccion.id_etapa == Etapa.id_etapa).filter(
+            secciones_query = secciones_query.filter(SeccionLegacy.id_seccion == int(seccion))
+
+        # Filtro base de asistencias (legacy)
+        asistencias_query = db.session.query(Asistencia).select_from(Asistencia).join(SeccionLegacy, Asistencia.id_seccion_legacy == SeccionLegacy.id_seccion).join(Etapa, SeccionLegacy.id_etapa == Etapa.id_etapa).filter(
             and_(Asistencia.fecha >= fecha_inicio, Asistencia.fecha <= fecha_fin)
         )
         if etapa:
             asistencias_query = asistencias_query.filter(Etapa.nombre_etapa == etapa)
         if seccion:
-            asistencias_query = asistencias_query.filter(Seccion.id_seccion == int(seccion))
+            asistencias_query = asistencias_query.filter(SeccionLegacy.id_seccion == int(seccion))
         
         # Estadísticas generales
         total_secciones = secciones_query.count()
         total_asistencias = asistencias_query.count()
         
-        # Calcular total de estudiantes matriculados
+        # Calcular total de estudiantes matriculados (legacy)
         total_estudiantes = db.session.query(
             func.sum(Matricula.num_estudiantes_h + Matricula.num_estudiantes_m)
-        ).join(Seccion).join(Etapa)
+        ).join(SeccionLegacy, Matricula.id_seccion == SeccionLegacy.id_seccion).join(Etapa, SeccionLegacy.id_etapa == Etapa.id_etapa)
         if etapa:
             total_estudiantes = total_estudiantes.filter(Etapa.nombre_etapa == etapa)
         if seccion:
-            total_estudiantes = total_estudiantes.filter(Seccion.id_seccion == int(seccion))
+            total_estudiantes = total_estudiantes.filter(SeccionLegacy.id_seccion == int(seccion))
         total_estudiantes = total_estudiantes.scalar() or 0
-        
-        # Calcular total de asistentes
+
+        # Calcular total de asistentes (legacy)
         total_asistentes = db.session.query(
             func.sum(Asistencia.asistentes_h + Asistencia.asistentes_m)
-        ).join(Seccion).join(Etapa).filter(
+        ).join(SeccionLegacy, Asistencia.id_seccion_legacy == SeccionLegacy.id_seccion).join(Etapa, SeccionLegacy.id_etapa == Etapa.id_etapa).filter(
             and_(Asistencia.fecha >= fecha_inicio, Asistencia.fecha <= fecha_fin)
         )
         if etapa:
             total_asistentes = total_asistentes.filter(Etapa.nombre_etapa == etapa)
         if seccion:
-            total_asistentes = total_asistentes.filter(Seccion.id_seccion == int(seccion))
+            total_asistentes = total_asistentes.filter(SeccionLegacy.id_seccion == int(seccion))
         total_asistentes = total_asistentes.scalar() or 0
         
         # Calcular días analizados
@@ -900,28 +911,28 @@ def obtener_estadisticas():
         stats_asistentes = db.session.query(
             func.sum(Asistencia.asistentes_h).label('total_h'),
             func.sum(Asistencia.asistentes_m).label('total_m')
-        ).join(Seccion, Asistencia.id_seccion == Seccion.id_seccion
-        ).join(Etapa, Seccion.id_etapa == Etapa.id_etapa
+        ).join(SeccionLegacy, Asistencia.id_seccion_legacy == SeccionLegacy.id_seccion
+        ).join(Etapa, SeccionLegacy.id_etapa == Etapa.id_etapa
         ).filter(and_(Asistencia.fecha >= fecha_inicio, Asistencia.fecha <= fecha_fin))
-        
+
         if etapa:
             stats_asistentes = stats_asistentes.filter(Etapa.nombre_etapa == etapa)
         if seccion:
-            stats_asistentes = stats_asistentes.filter(Seccion.id_seccion == int(seccion))
-        
+            stats_asistentes = stats_asistentes.filter(SeccionLegacy.id_seccion == int(seccion))
+
         asistentes_result = stats_asistentes.first()
-        
+
         # Obtener la matrícula total (sin duplicar por cada asistencia)
         stats_matricula = db.session.query(
             func.sum(Matricula.num_estudiantes_h).label('matricula_h'),
             func.sum(Matricula.num_estudiantes_m).label('matricula_m')
-        ).join(Seccion, Matricula.id_seccion == Seccion.id_seccion
-        ).join(Etapa, Seccion.id_etapa == Etapa.id_etapa)
-        
+        ).join(SeccionLegacy, Matricula.id_seccion == SeccionLegacy.id_seccion
+        ).join(Etapa, SeccionLegacy.id_etapa == Etapa.id_etapa)
+
         if etapa:
             stats_matricula = stats_matricula.filter(Etapa.nombre_etapa == etapa)
         if seccion:
-            stats_matricula = stats_matricula.filter(Seccion.id_seccion == int(seccion))
+            stats_matricula = stats_matricula.filter(SeccionLegacy.id_seccion == int(seccion))
         
         matricula_result = stats_matricula.first()
         
@@ -955,22 +966,22 @@ def obtener_estadisticas():
                 'porcentaje': round((total_m / (matricula_m * dias_analizados) * 100) if matricula_m and dias_analizados else 0, 1)
             }
         
-        # Estadísticas por sección
+        # Estadísticas por sección (legacy)
         stats_seccion = db.session.query(
-            Seccion.nombre_seccion,
+            SeccionLegacy.nombre_seccion,
             func.sum(Asistencia.asistentes_h + Asistencia.asistentes_m).label('total_asistentes'),
             func.avg(Matricula.num_estudiantes_h + Matricula.num_estudiantes_m).label('matricula_promedio')
-        ).join(Asistencia, Seccion.id_seccion == Asistencia.id_seccion
-        ).join(Etapa, Seccion.id_etapa == Etapa.id_etapa
-        ).join(Matricula, Seccion.id_seccion == Matricula.id_seccion
+        ).join(Asistencia, SeccionLegacy.id_seccion == Asistencia.id_seccion_legacy
+        ).join(Etapa, SeccionLegacy.id_etapa == Etapa.id_etapa
+        ).join(Matricula, SeccionLegacy.id_seccion == Matricula.id_seccion
         ).filter(and_(Asistencia.fecha >= fecha_inicio, Asistencia.fecha <= fecha_fin))
-        
+
         if etapa:
             stats_seccion = stats_seccion.filter(Etapa.nombre_etapa == etapa)
         if seccion:
-            stats_seccion = stats_seccion.filter(Seccion.id_seccion == int(seccion))
-        
-        stats_seccion = stats_seccion.group_by(Seccion.nombre_seccion).all()
+            stats_seccion = stats_seccion.filter(SeccionLegacy.id_seccion == int(seccion))
+
+        stats_seccion = stats_seccion.group_by(SeccionLegacy.nombre_seccion).all()
         
         seccion_data = {}
         for stat in stats_seccion:
@@ -982,14 +993,14 @@ def obtener_estadisticas():
                 'porcentaje': porcentaje
             }
         
-        # Estadísticas por etapa
+        # Estadísticas por etapa (legacy)
         stats_etapa = db.session.query(
             Etapa.nombre_etapa,
             func.sum(Asistencia.asistentes_h + Asistencia.asistentes_m).label('total_asistentes'),
             func.sum(Matricula.num_estudiantes_h + Matricula.num_estudiantes_m).label('total_matricula')
-        ).join(Seccion, Etapa.id_etapa == Seccion.id_etapa
-        ).join(Asistencia, Seccion.id_seccion == Asistencia.id_seccion
-        ).join(Matricula, Seccion.id_seccion == Matricula.id_seccion
+        ).join(SeccionLegacy, Etapa.id_etapa == SeccionLegacy.id_etapa
+        ).join(Asistencia, SeccionLegacy.id_seccion == Asistencia.id_seccion_legacy
+        ).join(Matricula, SeccionLegacy.id_seccion == Matricula.id_seccion
         ).filter(and_(Asistencia.fecha >= fecha_inicio, Asistencia.fecha <= fecha_fin)
         ).group_by(Etapa.nombre_etapa).all()
         
@@ -1008,15 +1019,15 @@ def obtener_estadisticas():
             Asistencia.fecha,
             func.sum(Asistencia.asistentes_h + Asistencia.asistentes_m).label('total_asistentes'),
             func.sum(Matricula.num_estudiantes_h + Matricula.num_estudiantes_m).label('total_matricula')
-        ).join(Seccion, Asistencia.id_seccion == Seccion.id_seccion
-        ).join(Etapa, Seccion.id_etapa == Etapa.id_etapa
-        ).join(Matricula, Seccion.id_seccion == Matricula.id_seccion
+        ).join(SeccionLegacy, Asistencia.id_seccion_legacy == SeccionLegacy.id_seccion
+        ).join(Etapa, SeccionLegacy.id_etapa == Etapa.id_etapa
+        ).join(Matricula, SeccionLegacy.id_seccion == Matricula.id_seccion
         ).filter(and_(Asistencia.fecha >= fecha_inicio, Asistencia.fecha <= fecha_fin))
-        
+
         if etapa:
             tendencia_query = tendencia_query.filter(Etapa.nombre_etapa == etapa)
         if seccion:
-            tendencia_query = tendencia_query.filter(Seccion.id_seccion == int(seccion))
+            tendencia_query = tendencia_query.filter(SeccionLegacy.id_seccion == int(seccion))
         
         tendencia_query = tendencia_query.group_by(Asistencia.fecha).order_by(Asistencia.fecha)
         
@@ -1097,17 +1108,17 @@ def gestionar_matricula():
             db.session.rollback()
             return jsonify({'success': False, 'message': f'Error al actualizar matrícula: {str(e)}'})
     
-    # GET - Listar matrícula por secciones
-    matriculas = db.session.query(Matricula, Seccion, Etapa).select_from(Matricula).join(
-        Seccion, Matricula.id_seccion == Seccion.id_seccion
+    # GET - Listar matrícula por secciones (legacy)
+    matriculas = db.session.query(Matricula, SeccionLegacy, Etapa).select_from(Matricula).join(
+        SeccionLegacy, Matricula.id_seccion == SeccionLegacy.id_seccion
     ).join(
-        Etapa, Seccion.id_etapa == Etapa.id_etapa
+        Etapa, SeccionLegacy.id_etapa == Etapa.id_etapa
     ).all()
-    
+
     return jsonify([{
         'id_matricula': m.Matricula.id_matricula,
         'id_seccion': m.Matricula.id_seccion,
-        'nombre_seccion': m.Seccion.nombre_seccion,
+        'nombre_seccion': m.SeccionLegacy.nombre_seccion,
         'etapa': m.Etapa.nombre_etapa,
         'num_estudiantes_h': m.Matricula.num_estudiantes_h,
         'num_estudiantes_m': m.Matricula.num_estudiantes_m,
