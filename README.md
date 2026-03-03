@@ -7,10 +7,13 @@ Una aplicación web moderna desarrollada con Flask para gestionar la asistencia 
 - Interfaz moderna y responsiva con Bootstrap 5
 - Sistema de autenticación con roles (Administrador/Profesor)
 - Gestión de asistencia por secciones y etapas educativas (Maternal, Primaria, Secundaria)
-- Registro de asistencia diferenciado por género
+- Registro de asistencia individual por estudiante
+- Carga masiva de estudiantes desde archivos Excel
 - Dashboard administrativo con estadísticas
 - Gestión de matrícula por sección
 - Asignación de profesores a secciones
+- Observaciones por sección y fecha
+- Calendario escolar (feriados, suspensiones, días hábiles)
 - Base de datos MariaDB/MySQL
 
 ## Requisitos
@@ -40,8 +43,11 @@ Una aplicación web moderna desarrollada con Flask para gestionar la asistencia 
 
 4. **Configurar la base de datos:**
    ```bash
-   # Crear la base de datos en MariaDB
-   mysql -u root -p < database_schema.sql
+   # Crear la base de datos en MariaDB (esquema V2)
+   mysql -u root -p < database_schema_v2.sql
+
+   # Aplicar migración del calendario escolar
+   mysql -u root -p control_asistencias < migrations/create_calendario_table.sql
 
    # (Opcional) Cargar datos de prueba
    mysql -u root -p control_asistencias < seed_data.sql
@@ -102,24 +108,43 @@ sudo nginx -t && sudo systemctl reload nginx
 
 ```
 control_asistencias/
-├── app.py                  # Aplicación principal Flask
-├── models.py               # Modelos SQLAlchemy
-├── routes.py               # Rutas y endpoints API
-├── requirements.txt        # Dependencias Python
-├── database_schema.sql     # Esquema de la base de datos
-├── seed_data.sql           # Datos de prueba
-├── .env                    # Variables de entorno (no versionado)
-├── .env.example            # Ejemplo de configuración
-├── git_credentials.json    # Credenciales Git (no versionado)
-├── templates/
-│   ├── base.html           # Plantilla base
-│   ├── login.html          # Página de inicio de sesión
-│   ├── registro.html       # Registro de usuarios
-│   ├── index.html          # Dashboard principal (profesores)
+├── app.py                      # Aplicación principal Flask
+├── models.py                   # Modelos SQLAlchemy
+├── extensions.py               # Extensiones compartidas (bcrypt, login_manager)
+├── requirements.txt            # Dependencias Python
+├── database_schema_v2.sql      # Esquema de la base de datos (V2 normalizado)
+├── seed_data.sql               # Datos de prueba
+├── .env                        # Variables de entorno (no versionado)
+├── .env.example                # Ejemplo de configuración
+│
+├── routes/                     # Rutas organizadas por módulo
+│   ├── routes.py               # Rutas principales y administración
+│   ├── routes_estudiantes.py   # Gestión de estudiantes y asistencia individual
+│   ├── routes_observaciones.py # Observaciones por sección
+│   ├── routes_estadisticas.py  # Estadísticas de asistencia
+│   └── routes_calendario.py    # Calendario escolar
+│
+├── utils/                      # Utilidades
+│   ├── excel_processor.py      # Procesador de archivos Excel
+│   └── calendario_utils.py     # Helpers del calendario escolar
+│
+├── migrations/                 # Migraciones SQL
+│   ├── create_calendario_table.sql
+│   ├── add_observaciones_seccion.sql
+│   ├── add_usuario_to_asistencia.sql
+│   └── populate_usuario_asistencias.sql
+│
+├── templates/                  # Plantillas HTML
+│   ├── base.html               # Plantilla base
+│   ├── login.html              # Inicio de sesión
+│   ├── index.html              # Dashboard principal (profesores)
 │   ├── admin_dashboard.html    # Dashboard administrativo
 │   ├── gestion_matricula.html  # Gestión de matrículas
-│   └── gestion_profesores.html # Gestión de profesores
-└── README.md
+│   ├── gestion_profesores.html # Gestión de profesores
+│   ├── logs_asistencia.html    # Logs de asistencia
+│   └── calendario_escolar.html # Calendario escolar
+│
+└── backups/                    # Respaldos de base de datos
 ```
 
 ## Archivos Sensibles (No Versionados)
@@ -158,6 +183,7 @@ Estos archivos existen solo en el servidor de producción.
 - `GET /admin/estadisticas` - Estadísticas de asistencia
 - `GET /admin/gestion-matricula` - Gestión de matrícula
 - `GET /admin/gestion-profesores` - Gestión de profesores
+- `GET /admin/calendario` - Calendario escolar
 
 ### API
 - `POST /api/usuario` - Crear usuario
@@ -165,6 +191,21 @@ Estos archivos existen solo en el servidor de producción.
 - `POST /api/profesor/asignar-secciones` - Asignar secciones a profesor
 - `POST /api/matricula` - Guardar matrícula
 - `GET /api/matriculas` - Lista de matrículas
+
+### Estudiantes y Asistencia Individual
+- `POST /api/estudiantes/cargar-excel` - Importar estudiantes desde Excel
+- `GET /api/asistencia-individual/lista/<seccion_id>` - Estudiantes por sección
+- `POST /api/asistencia-individual/guardar` - Guardar asistencia individual
+
+### Observaciones
+- `POST /api/observaciones/guardar` - Guardar observación de sección
+- `GET /api/observaciones/<seccion_id>` - Obtener observaciones
+
+### Calendario Escolar
+- `GET /admin/calendario/obtener` - Obtener días del calendario
+- `POST /admin/calendario/agregar` - Agregar día al calendario
+- `PUT /admin/calendario/editar/<id>` - Editar día
+- `DELETE /admin/calendario/eliminar/<id>` - Eliminar día
 
 ## Usuarios de Prueba
 

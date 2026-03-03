@@ -98,6 +98,8 @@ Etapa (Maternal, Primaria, Secundaria)
 - **asistencia_estudiante**: Registro de asistencia individual
 - **usuario**: Administradores y profesores
 - **profesor_seccion**: Asignación de profesores a secciones
+- **observacion_seccion**: Observaciones por sección y fecha
+- **calendario**: Días hábiles, feriados y suspensiones del año escolar
 
 ## 📤 Carga de Estudiantes desde Excel
 
@@ -296,7 +298,10 @@ Si tienes datos en el sistema anterior, consulta `MIGRACION_V2.md` para instrucc
 ## 📚 Documentación Adicional
 
 - `MIGRACION_V2.md` - Guía completa de migración
+- `CALENDARIO_README.md` - Documentación del módulo de calendario escolar
+- `CALENDARIO_ESCOLAR_INTEGRACION.md` - Integración del calendario en cálculos de asistencia
 - `database_schema_v2.sql` - Esquema de base de datos con comentarios
+- `migrations/` - Migraciones SQL incrementales
 - `backups/database_schema_v1_backup.sql` - Backup del esquema anterior
 
 ## 🤝 Contribuir
