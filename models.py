@@ -160,14 +160,15 @@ class AsistenciaEstudiante(db.Model):
     id_asistencia_estudiante = db.Column(db.Integer, primary_key=True)
     id_estudiante = db.Column(db.Integer, db.ForeignKey('estudiante.id_estudiante', ondelete='CASCADE'), nullable=False)
     fecha = db.Column(db.Date, nullable=False, index=True)
+    bloque = db.Column(db.Enum('completo', 'bloque_1', 'bloque_2', 'bloque_3', 'bloque_4'), nullable=False, default='completo', comment='Bloque de clase: completo=todo el dia')
     presente = db.Column(db.Boolean, default=False, nullable=False, comment='TRUE=Presente, FALSE=Ausente')
     observaciones = db.Column(db.Text, nullable=True, comment='Observaciones opcionales')
     id_usuario = db.Column(db.Integer, db.ForeignKey('usuario.id_usuario', ondelete='SET NULL'), nullable=True, comment='Usuario que registró')
     fecha_registro = db.Column(db.TIMESTAMP, default=datetime.utcnow)
 
-    # Constraint único para evitar duplicados
+    # Constraint único: un estudiante solo puede tener una asistencia por fecha y bloque
     __table_args__ = (
-        db.UniqueConstraint('id_estudiante', 'fecha', name='unique_asistencia_estudiante'),
+        db.UniqueConstraint('id_estudiante', 'fecha', 'bloque', name='unique_asistencia_estudiante_bloque'),
         db.Index('idx_fecha_presente', 'fecha', 'presente')
     )
 

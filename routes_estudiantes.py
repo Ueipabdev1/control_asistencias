@@ -406,62 +406,80 @@ def obtener_asistencia_seccion(fecha, id_seccion):
 @login_required
 def verificar_asistencia_existente():
     """
-    Verifica si existe asistencia registrada para una fecha y sección
-    Espera: { fecha: 'YYYY-MM-DD', id_seccion: 1 }
+    Verifica si existe asistencia registrada para una fecha, sección y bloque
+    Espera: { fecha: 'YYYY-MM-DD', id_seccion: 1, bloque: 'completo' }
     """
     try:
         data = request.get_json()
-        
+
         if not data or 'fecha' not in data or 'id_seccion' not in data:
             return jsonify({'error': 'Datos incompletos'}), 400
-        
+
         fecha_str = data['fecha']
         id_seccion = data['id_seccion']
-        
+        bloque = data.get('bloque', 'completo')
+
+        # Validar bloque
+        bloques_validos = ['completo', 'bloque_1', 'bloque_2', 'bloque_3', 'bloque_4']
+        if bloque not in bloques_validos:
+            return jsonify({'error': 'Bloque inválido'}), 400
+
         # Convertir fecha
         try:
             fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
         except ValueError:
             return jsonify({'error': 'Formato de fecha inválido'}), 400
-        
+
         # Obtener estudiantes de la sección
         estudiantes = Estudiante.query.filter_by(
             id_seccion=id_seccion,
             activo=True
         ).all()
-        
+
         estudiantes_ids = [e.id_estudiante for e in estudiantes]
-        
-        # Buscar asistencias existentes
+
+        # Buscar asistencias existentes para este bloque
         asistencias = AsistenciaEstudiante.query.filter(
             AsistenciaEstudiante.fecha == fecha,
+            AsistenciaEstudiante.bloque == bloque,
             AsistenciaEstudiante.id_estudiante.in_(estudiantes_ids)
         ).all()
-        
+
+        # Verificar qué bloques ya tienen asistencia registrada
+        bloques_registrados = db.session.query(
+            AsistenciaEstudiante.bloque
+        ).filter(
+            AsistenciaEstudiante.fecha == fecha,
+            AsistenciaEstudiante.id_estudiante.in_(estudiantes_ids)
+        ).distinct().all()
+        bloques_registrados = [b[0] for b in bloques_registrados]
+
         if not asistencias:
             return jsonify({
                 'existe': False,
-                'total_estudiantes': len(estudiantes)
+                'total_estudiantes': len(estudiantes),
+                'bloques_registrados': bloques_registrados
             }), 200
-        
+
         # Contar presentes
         total_presentes = sum(1 for a in asistencias if a.presente)
-        
+
         # Construir lista de asistencias
         asistencias_list = [{
             'id_estudiante': a.id_estudiante,
             'presente': a.presente,
             'observaciones': a.observaciones
         } for a in asistencias]
-        
+
         return jsonify({
             'existe': True,
             'total_estudiantes': len(estudiantes),
             'total_presentes': total_presentes,
             'total_ausentes': len(estudiantes) - total_presentes,
-            'asistencias': asistencias_list
+            'asistencias': asistencias_list,
+            'bloques_registrados': bloques_registrados
         }), 200
-        
+
     except Exception as e:
         return jsonify({'error': f'Error al verificar asistencia: {str(e)}'}), 500
 
@@ -470,59 +488,66 @@ def verificar_asistencia_existente():
 def guardar_asistencia_individual():
     """
     Guarda o actualiza asistencia individual de estudiantes
-    Espera: { fecha: 'YYYY-MM-DD', id_seccion: 1, asistencias: [{id_estudiante: 1, presente: true}] }
+    Espera: { fecha: 'YYYY-MM-DD', id_seccion: 1, bloque: 'completo', asistencias: [{id_estudiante: 1, presente: true}] }
     """
     try:
         data = request.get_json()
-        
+
         if not data or 'fecha' not in data or 'id_seccion' not in data or 'asistencias' not in data:
             return jsonify({'error': 'Datos incompletos'}), 400
-        
+
         fecha_str = data['fecha']
         id_seccion = data['id_seccion']
+        bloque = data.get('bloque', 'completo')
         asistencias_data = data['asistencias']
-        
+
+        # Validar bloque
+        bloques_validos = ['completo', 'bloque_1', 'bloque_2', 'bloque_3', 'bloque_4']
+        if bloque not in bloques_validos:
+            return jsonify({'error': 'Bloque inválido'}), 400
+
         # Convertir fecha
         try:
             fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
         except ValueError:
             return jsonify({'error': 'Formato de fecha inválido'}), 400
-        
+
         # Verificar sección
         seccion = Seccion.query.get(id_seccion)
         if not seccion:
             return jsonify({'error': 'Sección no encontrada'}), 404
-        
+
         registros_creados = 0
         registros_actualizados = 0
         errores = []
-        
+
         for asistencia_data in asistencias_data:
             try:
                 id_estudiante = asistencia_data.get('id_estudiante')
                 presente = asistencia_data.get('presente', False)
                 observaciones = asistencia_data.get('observaciones', '')
-                
+
                 if not id_estudiante:
                     continue
-                
+
                 # Verificar que el estudiante existe y pertenece a la sección
                 estudiante = Estudiante.query.filter_by(
                     id_estudiante=id_estudiante,
                     id_seccion=id_seccion,
                     activo=True
                 ).first()
-                
+
                 if not estudiante:
                     errores.append(f'Estudiante {id_estudiante} no encontrado en esta sección')
                     continue
-                
-                # Buscar asistencia existente
+
+                # Buscar asistencia existente para este bloque
                 asistencia_existente = AsistenciaEstudiante.query.filter_by(
                     id_estudiante=id_estudiante,
-                    fecha=fecha
+                    fecha=fecha,
+                    bloque=bloque
                 ).first()
-                
+
                 if asistencia_existente:
                     # Actualizar
                     asistencia_existente.presente = presente
@@ -534,24 +559,25 @@ def guardar_asistencia_individual():
                     nueva_asistencia = AsistenciaEstudiante(
                         id_estudiante=id_estudiante,
                         fecha=fecha,
+                        bloque=bloque,
                         presente=presente,
                         observaciones=observaciones,
                         id_usuario=current_user.id_usuario
                     )
                     db.session.add(nueva_asistencia)
                     registros_creados += 1
-                    
+
             except Exception as e:
                 errores.append(f'Error procesando estudiante {id_estudiante}: {str(e)}')
                 continue
-        
+
         # Guardar cambios
         db.session.commit()
-        
+
         mensaje = f'Asistencia guardada: {registros_creados} nuevos, {registros_actualizados} actualizados'
         if errores:
             mensaje += f'. {len(errores)} errores'
-        
+
         return jsonify({
             'success': True,
             'message': mensaje,
@@ -559,7 +585,7 @@ def guardar_asistencia_individual():
             'registros_actualizados': registros_actualizados,
             'errores': errores
         }), 200
-        
+
     except Exception as e:
         db.session.rollback()
         return jsonify({

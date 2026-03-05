@@ -280,6 +280,25 @@
     .female-icon {
         color: #f48fb1;
     }
+
+    .bloque-badge {
+        padding: 5px 12px;
+        border-radius: 8px;
+        font-size: 0.8em;
+        font-weight: 600;
+    }
+
+    .bloque-badge.registrado {
+        background: rgba(40, 167, 69, 0.2);
+        color: #28a745;
+        border: 1px solid rgba(40, 167, 69, 0.3);
+    }
+
+    .bloque-badge.pendiente {
+        background: rgba(108, 117, 125, 0.15);
+        color: #6c757d;
+        border: 1px solid rgba(108, 117, 125, 0.2);
+    }
     
     .btn-primary {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -323,23 +342,42 @@
     
     <div class="form-section">
         <form id="asistenciaForm">
-            <!-- Selección de fecha y sección -->
+            <!-- Selección de fecha, sección y bloque -->
             <div class="row">
-                <div class="col-md-6 form-group">
+                <div class="col-md-4 form-group">
                     <label for="fecha" class="form-label">
                         <i class="fas fa-calendar-alt"></i> Fecha de la Clase
                     </label>
                     <input type="date" class="form-control" id="fecha" required>
                 </div>
-                
-                <div class="col-md-6 form-group">
+
+                <div class="col-md-4 form-group">
                     <label for="seccion" class="form-label">
-                        <i class="fas fa-school"></i> Sección
+                        <i class="fas fa-school"></i> Seccion
                     </label>
                     <select class="form-control" id="seccion" required>
-                        <option value="">Seleccione una sección...</option>
+                        <option value="">Seleccione una seccion...</option>
                     </select>
                 </div>
+
+                <div class="col-md-4 form-group">
+                    <label for="bloque" class="form-label">
+                        <i class="fas fa-clock"></i> Bloque de Clase
+                    </label>
+                    <select class="form-control" id="bloque" required>
+                        <option value="completo">Dia Completo</option>
+                        <option value="bloque_1">Bloque 1</option>
+                        <option value="bloque_2">Bloque 2</option>
+                        <option value="bloque_3">Bloque 3</option>
+                        <option value="bloque_4">Bloque 4</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Indicadores de bloques registrados -->
+            <div id="bloquesStatus" class="mb-3" style="display: none;">
+                <small style="color: #a0a0b8;"><i class="fas fa-info-circle"></i> Bloques registrados para esta fecha y seccion:</small>
+                <div id="bloquesIndicadores" class="d-flex gap-2 mt-2 flex-wrap"></div>
             </div>
             
             <!-- Mensaje de asistencia existente -->
@@ -466,9 +504,10 @@
         $('#fecha').val(today).attr('max', today);
         
         cargarSecciones();
-        
+
         $('#seccion').on('change', cargarEstudiantes);
         $('#fecha').on('change', cargarEstudiantes);
+        $('#bloque').on('change', cargarEstudiantes);
         $('#buscarEstudiante').on('input', filtrarEstudiantes);
         
         $('.btn-filtro').on('click', function() {
@@ -526,18 +565,22 @@
     }
     
     function verificarAsistenciaExistente(fecha, seccionId) {
+        const bloque = $('#bloque').val();
         $.ajax({
             url: BASE_URL + '/api/asistencia-individual/verificar',
             method: 'POST',
             contentType: 'application/json',
-            data: JSON.stringify({ fecha: fecha, id_seccion: parseInt(seccionId) }),
+            data: JSON.stringify({ fecha: fecha, id_seccion: parseInt(seccionId), bloque: bloque }),
             success: function(response) {
                 asistenciaExistente = response.existe ? response.asistencias : null;
-                
+
+                // Mostrar indicadores de bloques registrados
+                mostrarBloquesRegistrados(response.bloques_registrados || []);
+
                 if (response.existe) {
                     $('#alertaAsistenciaExistente').show();
                     $('#textoAsistenciaExistente').text(`${response.total_presentes} de ${estudiantesData.length} estudiantes presentes.`);
-                    
+
                     if (!esAdmin) {
                         $('#btnGuardar').prop('disabled', true);
                         $('.estudiante-checkbox').prop('disabled', true);
@@ -547,7 +590,7 @@
                     $('#btnGuardar').prop('disabled', false);
                     $('.estudiante-checkbox').prop('disabled', false);
                 }
-                
+
                 mostrarEstudiantes();
                 cargarObservaciones(fecha, seccionId);
             },
@@ -558,6 +601,34 @@
                 cargarObservaciones(fecha, seccionId);
             }
         });
+    }
+
+    function mostrarBloquesRegistrados(bloquesRegistrados) {
+        const container = $('#bloquesIndicadores');
+        container.empty();
+
+        if (bloquesRegistrados.length === 0) {
+            $('#bloquesStatus').hide();
+            return;
+        }
+
+        const bloqueLabels = {
+            completo: 'Dia Completo',
+            bloque_1: 'Bloque 1',
+            bloque_2: 'Bloque 2',
+            bloque_3: 'Bloque 3',
+            bloque_4: 'Bloque 4'
+        };
+
+        const todosLosBloques = ['completo', 'bloque_1', 'bloque_2', 'bloque_3', 'bloque_4'];
+        todosLosBloques.forEach(function(b) {
+            const registrado = bloquesRegistrados.includes(b);
+            const icon = registrado ? 'fa-check-circle' : 'fa-circle';
+            const clase = registrado ? 'registrado' : 'pendiente';
+            container.append(`<span class="bloque-badge ${clase}"><i class="fas ${icon}"></i> ${bloqueLabels[b]}</span>`);
+        });
+
+        $('#bloquesStatus').show();
     }
     
     function cargarObservaciones(fecha, seccionId) {
@@ -691,6 +762,7 @@
     
     function limpiarFormulario() {
         $('#seccion').val('');
+        $('#bloque').val('completo');
         $('#buscarEstudiante').val('');
         $('#observacionesTexto').val('');
         $('.btn-filtro').removeClass('active').first().addClass('active');
@@ -699,21 +771,23 @@
         $('#contadoresAsistencia').hide();
         $('#botonesAccion').hide();
         $('#alertaAsistenciaExistente').hide();
+        $('#bloquesStatus').hide();
         estudiantesData = [];
         asistenciaExistente = null;
     }
     
     function guardarAsistencia(e) {
         e.preventDefault();
-        
+
         const fecha = $('#fecha').val();
         const seccionId = parseInt($('#seccion').val());
-        
+        const bloque = $('#bloque').val();
+
         if (!fecha || !seccionId) {
-            alert('Por favor seleccione fecha y sección');
+            alert('Por favor seleccione fecha y seccion');
             return;
         }
-        
+
         const asistencias = [];
         $('.estudiante-checkbox').each(function() {
             asistencias.push({
@@ -721,19 +795,19 @@
                 presente: $(this).is(':checked')
             });
         });
-        
+
         const observaciones = $('#observacionesTexto').val().trim();
-        
-        const mensaje = asistenciaExistente 
-            ? '¿Está seguro de actualizar la asistencia registrada?' 
-            : '¿Está seguro de guardar esta asistencia?';
-        
+
+        const mensaje = asistenciaExistente
+            ? 'Esta seguro de actualizar la asistencia registrada?'
+            : 'Esta seguro de guardar esta asistencia?';
+
         if (!confirm(mensaje)) return;
-        
+
         const btnGuardar = $('#btnGuardar');
         const textoOriginal = btnGuardar.html();
         btnGuardar.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Guardando...');
-        
+
         // Guardar asistencia
         $.ajax({
             url: BASE_URL + '/api/asistencia-individual/guardar',
@@ -742,6 +816,7 @@
             data: JSON.stringify({
                 fecha: fecha,
                 id_seccion: seccionId,
+                bloque: bloque,
                 asistencias: asistencias
             }),
             success: function(response) {
