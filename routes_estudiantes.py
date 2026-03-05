@@ -56,10 +56,11 @@ def cargar_estudiantes_excel():
         
         # Guardar archivo temporalmente
         filename = secure_filename(archivo.filename)
-        temp_path = os.path.join('data_estudiantes_akademia', filename)
-        
+        upload_dir = os.path.join(current_app.root_path, 'data_estudiantes_akademia')
+        temp_path = os.path.join(upload_dir, filename)
+
         # Crear directorio si no existe
-        os.makedirs('data_estudiantes_akademia', exist_ok=True)
+        os.makedirs(upload_dir, exist_ok=True)
         
         archivo.save(temp_path)
         
