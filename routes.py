@@ -678,9 +678,9 @@ def obtener_matriculas():
             'seccion_nombre': f"{r.nombre_etapa} - {r.nombre_grado} {r.nombre_seccion}",
             'etapa': r.nombre_etapa,
             'seccion': f"{r.nombre_grado} {r.nombre_seccion}",
-            'num_estudiantes_h': r.num_h or 0,
-            'num_estudiantes_m': r.num_f or 0,
-            'total': r.total or 0
+            'num_estudiantes_h': int(r.num_h or 0),
+            'num_estudiantes_m': int(r.num_f or 0),
+            'total': int(r.total or 0)
         } for r in resultados])
 
     except Exception as e:
