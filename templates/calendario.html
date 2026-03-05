@@ -4,298 +4,699 @@
 
 {% block extra_css %}
 <style>
-    .calendar-container {
-        background: rgba(255, 255, 255, 0.05);
-        backdrop-filter: blur(10px);
+    .main-container {
+        background: rgba(30, 30, 45, 0.95);
         border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
         padding: 30px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
     }
-    
-    .stats-card {
-        background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
-        border-radius: 15px;
-        padding: 20px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        transition: transform 0.3s;
+
+    .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 20px;
+        text-align: center;
+        margin-bottom: 30px;
     }
-    
-    .stats-card:hover {
-        transform: translateY(-5px);
+
+    .header p { opacity: 0.85; }
+
+    /* ===== Estadisticas ===== */
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 12px;
+        margin-bottom: 24px;
     }
-    
-    .stats-card .icon {
-        width: 50px;
-        height: 50px;
-        border-radius: 10px;
+
+    .stat-card {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 16px 18px;
+        background: rgba(50, 50, 70, 0.5);
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        transition: transform 0.2s;
+    }
+
+    .stat-card:hover { transform: translateY(-2px); }
+
+    .stat-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 24px;
-        margin-bottom: 10px;
+        font-size: 1.15em;
+        flex-shrink: 0;
     }
-    
-    .calendar-table {
-        background: rgba(255, 255, 255, 0.03);
+
+    .stat-value {
+        font-size: 1.6em;
+        font-weight: 800;
+        color: #e0e0e0;
+        line-height: 1;
+    }
+
+    .stat-label {
+        font-size: 0.72em;
+        color: #8a8aaa;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* ===== Calendario visual ===== */
+    .calendar-section {
+        background: rgba(40, 40, 60, 0.8);
         border-radius: 15px;
-        overflow: hidden;
+        padding: 25px;
+        margin-bottom: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
     }
-    
-    .calendar-table thead {
-        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+
+    .calendar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
     }
-    
-    .calendar-table th {
-        color: white;
+
+    .calendar-nav {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+    }
+
+    .calendar-nav .btn-nav {
+        width: 38px;
+        height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        border-radius: 10px;
+        background: rgba(102, 126, 234, 0.15);
+        border: 1px solid rgba(102, 126, 234, 0.3);
+        color: #a0b0ff;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .calendar-nav .btn-nav:hover {
+        background: rgba(102, 126, 234, 0.3);
+        color: #fff;
+    }
+
+    .calendar-title {
+        font-size: 1.4em;
+        font-weight: 700;
+        color: #e0e0e0;
+        min-width: 220px;
+        text-align: center;
+    }
+
+    .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 6px;
+    }
+
+    .calendar-day-header {
+        text-align: center;
+        padding: 10px 4px;
+        font-weight: 700;
+        font-size: 0.8em;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #8a94d6;
+    }
+
+    .calendar-day {
+        aspect-ratio: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 6px;
+        background: rgba(50, 50, 70, 0.5);
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 2px solid transparent;
+        position: relative;
+        gap: 3px;
+    }
+
+    .calendar-day:hover {
+        background: rgba(102, 126, 234, 0.15);
+        border-color: rgba(102, 126, 234, 0.3);
+        transform: translateY(-1px);
+    }
+
+    .calendar-day.other-month {
+        opacity: 0.15;
+        pointer-events: none;
+    }
+
+    .calendar-day.today {
+        border-color: #667eea;
+        background: rgba(102, 126, 234, 0.15);
+        box-shadow: 0 0 15px rgba(102, 126, 234, 0.2);
+    }
+
+    .calendar-day.today .day-number {
+        color: #667eea;
+        font-weight: 800;
+    }
+
+    .calendar-day.fin-semana {
+        background: rgba(255, 255, 255, 0.02);
+        cursor: default;
+    }
+
+    .calendar-day.fin-semana:hover {
+        transform: none;
+        border-color: transparent;
+    }
+
+    .calendar-day.fin-semana .day-number { color: #555570; }
+
+    .calendar-day.tipo-habil { }
+
+    .calendar-day.tipo-feriado {
+        background: rgba(239, 68, 68, 0.12);
+        border-color: rgba(239, 68, 68, 0.35);
+    }
+
+    .calendar-day.tipo-suspension {
+        background: rgba(245, 158, 11, 0.12);
+        border-color: rgba(245, 158, 11, 0.35);
+    }
+
+    .calendar-day.tipo-fin_semana {
+        background: rgba(107, 114, 128, 0.12);
+        border-color: rgba(107, 114, 128, 0.3);
+    }
+
+    .day-number {
+        font-size: 1.1em;
         font-weight: 600;
-        padding: 15px;
-        border: none;
+        color: #d0d0e0;
+        line-height: 1;
     }
-    
-    .calendar-table td {
-        padding: 12px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        color: rgba(255, 255, 255, 0.9);
+
+    .day-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
     }
-    
-    .calendar-table tbody tr:hover {
+
+    .dot-feriado { background: #ef4444; }
+    .dot-suspension { background: #f59e0b; }
+    .dot-habil-bd { background: #22c55e; }
+    .dot-fin_semana { background: #6b7280; }
+
+    .day-tooltip {
+        display: none;
+        position: absolute;
+        bottom: calc(100% + 8px);
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(20, 20, 35, 0.97);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 0.75em;
+        color: #e0e0e0;
+        white-space: nowrap;
+        z-index: 10;
+        pointer-events: none;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    }
+
+    .day-tooltip::after {
+        content: '';
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        border: 5px solid transparent;
+        border-top-color: rgba(20, 20, 35, 0.97);
+    }
+
+    .calendar-day:hover .day-tooltip { display: block; }
+
+    /* ===== Leyenda ===== */
+    .legend {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+        padding: 14px 18px;
+        background: rgba(50, 50, 70, 0.3);
+        border-radius: 10px;
+        margin-top: 16px;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #a0a0b8;
+        font-size: 0.85em;
+    }
+
+    .legend-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .legend-swatch {
+        width: 20px;
+        height: 20px;
+        border-radius: 6px;
+        flex-shrink: 0;
+    }
+
+    /* ===== Lista de dias ===== */
+    .lista-section {
+        background: rgba(40, 40, 60, 0.8);
+        border-radius: 15px;
+        padding: 25px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .lista-section h4 {
+        color: #e0e0e0;
+        font-weight: 700;
+    }
+
+    .filtros-row {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
+    }
+
+    .filtros-row .form-select {
+        max-width: 180px;
+    }
+
+    .dia-card {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 14px 18px;
+        background: rgba(50, 50, 70, 0.5);
+        border-radius: 12px;
+        border-left: 4px solid transparent;
+        transition: all 0.2s;
+        margin-bottom: 8px;
+    }
+
+    .dia-card:hover { background: rgba(60, 60, 80, 0.6); }
+
+    .dia-card.card-habil { border-left-color: #22c55e; }
+    .dia-card.card-feriado { border-left-color: #ef4444; }
+    .dia-card.card-suspension { border-left-color: #f59e0b; }
+    .dia-card.card-fin_semana { border-left-color: #6b7280; }
+
+    .dia-card.not-in-bd { opacity: 0.45; }
+
+    .dia-fecha-box {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 56px;
+        padding: 8px 12px;
         background: rgba(102, 126, 234, 0.1);
-    }
-    
-    .badge-tipo {
-        padding: 5px 12px;
-        border-radius: 20px;
-        font-size: 12px;
-        font-weight: 600;
-    }
-    
-    .badge-habil {
-        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-    }
-    
-    .badge-feriado {
-        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-    }
-    
-    .badge-suspension {
-        background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
-        color: #000;
-    }
-    
-    .badge-fin_semana {
-        background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
-    }
-    
-    .btn-gradient {
-        background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-        border: none;
-        color: white;
-        padding: 10px 20px;
-        border-radius: 10px;
-        font-weight: 600;
-        transition: all 0.3s;
-    }
-    
-    .btn-gradient:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        color: white;
-    }
-    
-    .modal-content {
-        background: var(--darker-bg);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 15px;
-    }
-    
-    .modal-header {
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    
-    .modal-footer {
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    
-    .form-control, .form-select {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        color: white;
         border-radius: 10px;
     }
-    
-    .form-control:focus, .form-select:focus {
-        background: rgba(255, 255, 255, 0.08);
-        border-color: var(--primary-color);
-        color: white;
-        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+
+    .dia-fecha-num {
+        font-size: 1.5em;
+        font-weight: 800;
+        color: #e0e0e0;
+        line-height: 1;
     }
-    
-    .form-control::placeholder {
-        color: rgba(255, 255, 255, 0.5);
+
+    .dia-fecha-dia {
+        font-size: 0.65em;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #8a94d6;
+        font-weight: 600;
     }
-    
-    .form-label {
-        color: rgba(255, 255, 255, 0.9);
-        font-weight: 500;
+
+    .dia-info { flex: 1; }
+
+    .dia-desc {
+        color: #e0e0e0;
+        font-weight: 600;
+        margin-bottom: 2px;
     }
-    
-    .form-check-input {
-        background-color: rgba(255, 255, 255, 0.1);
-        border-color: rgba(255, 255, 255, 0.3);
+
+    .dia-meta {
+        font-size: 0.8em;
+        color: #8a8aaa;
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
     }
-    
-    .form-check-input:checked {
-        background-color: var(--primary-color);
-        border-color: var(--primary-color);
+
+    .dia-acciones {
+        display: flex;
+        gap: 6px;
     }
-    
-    .action-btn {
-        padding: 5px 10px;
-        border-radius: 5px;
+
+    .btn-icon {
+        width: 34px;
+        height: 34px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        border-radius: 8px;
         border: none;
         cursor: pointer;
-        transition: all 0.3s;
-        margin: 0 2px;
+        transition: all 0.2s;
     }
-    
-    .action-btn:hover {
-        transform: scale(1.1);
+
+    .btn-icon-edit {
+        background: rgba(59, 130, 246, 0.15);
+        color: #3b82f6;
     }
-    
-    .btn-edit {
-        background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+
+    .btn-icon-edit:hover {
+        background: rgba(59, 130, 246, 0.3);
+        color: #60a5fa;
+    }
+
+    .btn-icon-danger {
+        background: rgba(239, 68, 68, 0.15);
+        color: #ef4444;
+    }
+
+    .btn-icon-danger:hover {
+        background: rgba(239, 68, 68, 0.3);
+        color: #f87171;
+    }
+
+    .btn-icon-add {
+        background: rgba(34, 197, 94, 0.15);
+        color: #22c55e;
+    }
+
+    .btn-icon-add:hover {
+        background: rgba(34, 197, 94, 0.3);
+        color: #4ade80;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: #555570;
+    }
+
+    .empty-state i {
+        font-size: 3em;
+        margin-bottom: 15px;
+        opacity: 0.3;
+    }
+
+    .badge-tipo {
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.75em;
+        font-weight: 600;
+    }
+
+    .badge-habil { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
+    .badge-feriado { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+    .badge-suspension { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+    .badge-fin_semana { background: rgba(107, 114, 128, 0.2); color: #9ca3af; }
+
+    /* ===== Botones y formularios ===== */
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 10px;
+        padding: 10px 20px;
+        font-weight: 600;
+    }
+
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #7a8ff0 0%, #8a5db5 100%);
+    }
+
+    .form-control, .form-select {
+        background: rgba(50, 50, 70, 0.8);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        color: #e0e0e0;
+        border-radius: 10px;
+        padding: 10px 14px;
+    }
+
+    .form-control:focus, .form-select:focus {
+        background: rgba(60, 60, 80, 0.9);
+        border-color: #667eea;
+        color: #ffffff;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+    }
+
+    .form-control::placeholder { color: rgba(255, 255, 255, 0.35); }
+
+    .form-label {
+        color: #b0b0c8;
+        font-weight: 600;
+        font-size: 0.9em;
+    }
+
+    .form-check-input {
+        background-color: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .form-check-input:checked {
+        background-color: #667eea;
+        border-color: #667eea;
+    }
+
+    .form-check-label { color: #b0b0c8; }
+
+    /* ===== Modal ===== */
+    .modal-content {
+        background: rgba(30, 30, 45, 0.98);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 15px;
+        backdrop-filter: blur(20px);
+    }
+
+    .modal-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 15px 15px 0 0;
+        border-bottom: none;
+        padding: 18px 24px;
+    }
+
+    .modal-title { color: white; }
+    .modal-body { padding: 24px; }
+    .modal-footer {
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        padding: 16px 24px;
+    }
+
+    .btn-close { filter: invert(1); }
+
+    .btn-secondary {
+        background: rgba(100, 100, 120, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #c0c0d0;
+        border-radius: 10px;
+    }
+
+    /* ===== Alertas ===== */
+    .toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+    }
+
+    .custom-toast {
+        padding: 14px 20px;
+        border-radius: 12px;
         color: white;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        animation: slideIn 0.3s ease;
+        margin-bottom: 8px;
     }
-    
-    .btn-delete {
-        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-        color: white;
+
+    .toast-success { background: rgba(34, 197, 94, 0.9); }
+    .toast-error { background: rgba(239, 68, 68, 0.9); }
+
+    @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* ===== Responsive ===== */
+    @media (max-width: 768px) {
+        .calendar-header { flex-direction: column; gap: 12px; }
+        .calendar-grid { gap: 3px; }
+        .calendar-day { border-radius: 8px; padding: 4px; }
+        .day-number { font-size: 0.85em; }
+        .stats-row { grid-template-columns: repeat(2, 1fr); }
+        .filtros-row .form-select { max-width: 100%; flex: 1; }
+        .dia-card { flex-wrap: wrap; }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="row mb-4">
-        <div class="col-12">
-            <h1 class="mb-3">
-                <i class="fas fa-calendar-alt"></i> Calendario Escolar
-            </h1>
-            <p class="text-muted">Gestión detallada de días hábiles, feriados y suspensiones</p>
-        </div>
+<div class="main-container">
+    <div class="header">
+        <h1><i class="fas fa-calendar-alt"></i> Calendario Escolar</h1>
+        <p class="mb-0">Gestion de dias habiles, feriados y suspensiones</p>
     </div>
-    
-    <div class="row mb-4" id="statsContainer">
-        <div class="col-md-3 mb-3">
-            <div class="stats-card">
-                <div class="icon" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">
-                    <i class="fas fa-calendar-check"></i>
-                </div>
-                <h3 id="statDiasHabiles">0</h3>
-                <p class="mb-0 text-muted">Días Hábiles</p>
+
+    <!-- Estadisticas -->
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(34, 197, 94, 0.15); color: #22c55e;">
+                <i class="fas fa-calendar-check"></i>
+            </div>
+            <div>
+                <div class="stat-value" id="statDiasHabiles">0</div>
+                <div class="stat-label">Habiles</div>
             </div>
         </div>
-        <div class="col-md-3 mb-3">
-            <div class="stats-card">
-                <div class="icon" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);">
-                    <i class="fas fa-calendar-times"></i>
-                </div>
-                <h3 id="statFeriados">0</h3>
-                <p class="mb-0 text-muted">Feriados</p>
+        <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(239, 68, 68, 0.15); color: #ef4444;">
+                <i class="fas fa-flag"></i>
+            </div>
+            <div>
+                <div class="stat-value" id="statFeriados">0</div>
+                <div class="stat-label">Feriados</div>
             </div>
         </div>
-        <div class="col-md-3 mb-3">
-            <div class="stats-card">
-                <div class="icon" style="background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);">
-                    <i class="fas fa-pause-circle"></i>
-                </div>
-                <h3 id="statSuspensiones">0</h3>
-                <p class="mb-0 text-muted">Suspensiones</p>
+        <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">
+                <i class="fas fa-pause-circle"></i>
+            </div>
+            <div>
+                <div class="stat-value" id="statSuspensiones">0</div>
+                <div class="stat-label">Suspensiones</div>
             </div>
         </div>
-        <div class="col-md-3 mb-3">
-            <div class="stats-card">
-                <div class="icon" style="background: linear-gradient(135deg, #6c757d 0%, #495057 100%);">
-                    <i class="fas fa-calendar-week"></i>
-                </div>
-                <h3 id="statFinesSemana">0</h3>
-                <p class="mb-0 text-muted">Fines de Semana</p>
+        <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(107, 114, 128, 0.15); color: #6b7280;">
+                <i class="fas fa-calendar-week"></i>
+            </div>
+            <div>
+                <div class="stat-value" id="statFinesSemana">0</div>
+                <div class="stat-label">Fines de semana</div>
             </div>
         </div>
     </div>
-    
-    <div class="calendar-container">
-        <div class="row mb-4">
-            <div class="col-md-3">
-                <label for="filtroMes" class="form-label">Mes</label>
-                <select id="filtroMes" class="form-select">
-                    <option value="">Todos</option>
-                    <option value="1">Enero</option>
-                    <option value="2">Febrero</option>
-                    <option value="3">Marzo</option>
-                    <option value="4">Abril</option>
-                    <option value="5">Mayo</option>
-                    <option value="6">Junio</option>
-                    <option value="7">Julio</option>
-                    <option value="8">Agosto</option>
-                    <option value="9">Septiembre</option>
-                    <option value="10">Octubre</option>
-                    <option value="11">Noviembre</option>
-                    <option value="12">Diciembre</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <label for="filtroAnio" class="form-label">Año</label>
-                <select id="filtroAnio" class="form-select">
-                </select>
-            </div>
-            <div class="col-md-3">
-                <label for="filtroTipo" class="form-label">Tipo de Día</label>
-                <select id="filtroTipo" class="form-select">
-                    <option value="">Todos</option>
-                    <option value="habil">Hábil</option>
-                    <option value="feriado">Feriado</option>
-                    <option value="suspension">Suspensión</option>
-                    <option value="fin_semana">Fin de Semana</option>
-                </select>
-            </div>
-            <div class="col-md-3 d-flex align-items-end">
-                <button class="btn btn-gradient w-100" onclick="abrirModalAgregar()">
-                    <i class="fas fa-plus"></i> Agregar Día
+
+    <!-- Calendario visual -->
+    <div class="calendar-section">
+        <div class="calendar-header">
+            <div class="calendar-nav">
+                <button class="btn-nav" id="btnMesAnterior" title="Mes anterior">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <h3 class="calendar-title mb-0" id="mesActual"></h3>
+                <button class="btn-nav" id="btnMesSiguiente" title="Mes siguiente">
+                    <i class="fas fa-chevron-right"></i>
                 </button>
             </div>
+            <button class="btn btn-primary" onclick="abrirModalAgregar()">
+                <i class="fas fa-plus"></i> Agregar Dia
+            </button>
         </div>
-        
-        <div class="table-responsive">
-            <table class="table calendar-table">
-                <thead>
-                    <tr>
-                        <th>Fecha</th>
-                        <th>Tipo de Día</th>
-                        <th>Descripción</th>
-                        <th>Laborable</th>
-                        <th>Observaciones</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="calendarioTableBody">
-                    <tr>
-                        <td colspan="6" class="text-center">
-                            <i class="fas fa-spinner fa-spin"></i> Cargando...
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+
+        <div class="calendar-grid" id="calendarioGrid">
+            <div class="calendar-day-header">Dom</div>
+            <div class="calendar-day-header">Lun</div>
+            <div class="calendar-day-header">Mar</div>
+            <div class="calendar-day-header">Mie</div>
+            <div class="calendar-day-header">Jue</div>
+            <div class="calendar-day-header">Vie</div>
+            <div class="calendar-day-header">Sab</div>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-swatch" style="background: rgba(102, 126, 234, 0.15); border: 2px solid #667eea;"></div>
+                <span>Hoy</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot" style="background: #22c55e;"></div>
+                <span>Habil (registrado)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot" style="background: #ef4444;"></div>
+                <span>Feriado</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot" style="background: #f59e0b;"></div>
+                <span>Suspension</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot" style="background: #6b7280;"></div>
+                <span>Fin de semana</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de dias del mes -->
+    <div class="lista-section">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="mb-0"><i class="fas fa-list-ul"></i> Detalle del Mes</h4>
+            <span class="badge bg-secondary" id="totalDias" style="font-size: 0.85em; padding: 6px 14px; border-radius: 8px;">0 dias</span>
+        </div>
+
+        <div class="filtros-row">
+            <select id="filtroTipo" class="form-select">
+                <option value="">Todos los tipos</option>
+                <option value="habil">Habiles</option>
+                <option value="feriado">Feriados</option>
+                <option value="suspension">Suspensiones</option>
+                <option value="fin_semana">Fines de semana</option>
+            </select>
+        </div>
+
+        <div id="listaDiasContainer">
+            <div class="empty-state">
+                <i class="fas fa-spinner fa-spin d-block"></i>
+                <p>Cargando...</p>
+            </div>
         </div>
     </div>
 </div>
 
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Modal -->
 <div class="modal fade" id="modalDia" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="modalDiaTitle">Agregar Día</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                <h5 class="modal-title" id="modalDiaTitle"><i class="fas fa-calendar-plus"></i> Agregar Dia</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <form id="formDia">
@@ -305,23 +706,21 @@
                         <input type="date" class="form-control" id="diaFecha" required>
                     </div>
                     <div class="mb-3">
-                        <label for="diaTipo" class="form-label">Tipo de Día</label>
+                        <label for="diaTipo" class="form-label">Tipo de Dia</label>
                         <select class="form-select" id="diaTipo" required>
-                            <option value="habil">Hábil</option>
+                            <option value="habil">Habil</option>
                             <option value="feriado">Feriado</option>
-                            <option value="suspension">Suspensión</option>
+                            <option value="suspension">Suspension</option>
                             <option value="fin_semana">Fin de Semana</option>
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label for="diaDescripcion" class="form-label">Descripción</label>
-                        <input type="text" class="form-control" id="diaDescripcion" placeholder="Ej: Día de la Independencia">
+                        <label for="diaDescripcion" class="form-label">Descripcion</label>
+                        <input type="text" class="form-control" id="diaDescripcion" placeholder="Ej: Dia de la Independencia">
                     </div>
                     <div class="mb-3 form-check">
                         <input type="checkbox" class="form-check-input" id="diaLaborable" checked>
-                        <label class="form-check-label" for="diaLaborable">
-                            Es día laborable para el personal
-                        </label>
+                        <label class="form-check-label" for="diaLaborable">Es dia laborable para el personal</label>
                     </div>
                     <div class="mb-3">
                         <label for="diaObservaciones" class="form-label">Observaciones</label>
@@ -331,7 +730,9 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-gradient" onclick="guardarDia()">Guardar</button>
+                <button type="button" class="btn btn-primary" onclick="guardarDia()">
+                    <i class="fas fa-save"></i> Guardar
+                </button>
             </div>
         </div>
     </div>
@@ -342,155 +743,245 @@
 <script>
 let modalDia;
 let modoEdicion = false;
+let mesActual;
+let diasDelMes = [];
+
+const mesesNombres = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+const mesesCortos = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+                     'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+const diasSemCortos = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
+
+const tipoLabels = {
+    habil: 'Habil',
+    feriado: 'Feriado',
+    suspension: 'Suspension',
+    fin_semana: 'Fin de semana'
+};
 
 document.addEventListener('DOMContentLoaded', function() {
     modalDia = new bootstrap.Modal(document.getElementById('modalDia'));
-    
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1;
-    const filtroAnio = document.getElementById('filtroAnio');
-    for (let year = currentYear - 2; year <= currentYear + 5; year++) {
-        const option = document.createElement('option');
-        option.value = year;
-        option.textContent = year;
-        if (year === currentYear) option.selected = true;
-        filtroAnio.appendChild(option);
-    }
+    mesActual = new Date();
 
-    // Seleccionar mes actual por defecto
-    document.getElementById('filtroMes').value = currentMonth;
+    document.getElementById('btnMesAnterior').addEventListener('click', function() {
+        mesActual.setMonth(mesActual.getMonth() - 1);
+        cargarTodo();
+    });
 
-    document.getElementById('filtroMes').addEventListener('change', cargarTodo);
-    document.getElementById('filtroAnio').addEventListener('change', cargarTodo);
-    document.getElementById('filtroTipo').addEventListener('change', cargarTodo);
+    document.getElementById('btnMesSiguiente').addEventListener('click', function() {
+        mesActual.setMonth(mesActual.getMonth() + 1);
+        cargarTodo();
+    });
+
+    document.getElementById('filtroTipo').addEventListener('change', renderizarLista);
 
     cargarTodo();
 });
 
 function cargarTodo() {
-    cargarCalendario();
-    cargarEstadisticas();
+    const mes = mesActual.getMonth() + 1;
+    const anio = mesActual.getFullYear();
+    $('#mesActual').text(`${mesesNombres[mes - 1]} ${anio}`);
+
+    cargarCalendario(mes, anio);
+    cargarEstadisticas(mes, anio);
 }
 
-function cargarCalendario() {
-    const mes = document.getElementById('filtroMes').value;
-    const anio = document.getElementById('filtroAnio').value;
-    const tipo = document.getElementById('filtroTipo').value;
-
-    let url = BASE_URL + '/admin/calendario/obtener?';
-    if (mes) url += `mes=${mes}&`;
-    if (anio) url += `anio=${anio}&`;
-    if (tipo) url += `tipo_dia=${tipo}`;
-
-    fetch(url)
-        .then(response => response.json())
+function cargarCalendario(mes, anio) {
+    fetch(BASE_URL + `/admin/calendario/obtener?mes=${mes}&anio=${anio}`)
+        .then(r => r.json())
         .then(data => {
             if (data.success) {
-                mostrarDias(data.dias);
-            } else {
-                mostrarError('Error al cargar calendario: ' + data.message);
+                diasDelMes = data.dias;
+                renderizarCalendarioVisual(mes, anio);
+                renderizarLista();
             }
         })
-        .catch(error => {
-            mostrarError('Error de conexión: ' + error);
-        });
+        .catch(err => console.error('Error:', err));
 }
 
-function cargarEstadisticas() {
-    const anio = document.getElementById('filtroAnio').value;
-    const mes = document.getElementById('filtroMes').value;
-
-    let url = BASE_URL + `/admin/calendario/estadisticas?anio=${anio}`;
-    if (mes) url += `&mes=${mes}`;
-
-    fetch(url)
-        .then(response => response.json())
+function cargarEstadisticas(mes, anio) {
+    fetch(BASE_URL + `/admin/calendario/estadisticas?anio=${anio}&mes=${mes}`)
+        .then(r => r.json())
         .then(data => {
             if (data.success) {
-                const stats = data.estadisticas;
-                document.getElementById('statDiasHabiles').textContent = stats.dias_habiles;
-                document.getElementById('statFeriados').textContent = stats.feriados;
-                document.getElementById('statSuspensiones').textContent = stats.suspensiones;
-                document.getElementById('statFinesSemana').textContent = stats.fines_semana;
+                const s = data.estadisticas;
+                document.getElementById('statDiasHabiles').textContent = s.dias_habiles;
+                document.getElementById('statFeriados').textContent = s.feriados;
+                document.getElementById('statSuspensiones').textContent = s.suspensiones;
+                document.getElementById('statFinesSemana').textContent = s.fines_semana;
             }
         })
-        .catch(error => console.error('Error al cargar estadísticas:', error));
+        .catch(err => console.error('Error stats:', err));
 }
 
-function mostrarDias(dias) {
-    const tbody = document.getElementById('calendarioTableBody');
+function renderizarCalendarioVisual(mes, anio) {
+    const year = anio;
+    const month = mes - 1; // JS es 0-based
+
+    const primerDia = new Date(year, month, 1);
+    const ultimoDia = new Date(year, month + 1, 0);
+    const celdas = [];
+
+    // Dias del mes anterior
+    const inicio = primerDia.getDay();
+    for (let i = inicio - 1; i >= 0; i--) {
+        celdas.push({ fecha: new Date(year, month, -i), otroMes: true });
+    }
+
+    // Dias del mes
+    for (let d = 1; d <= ultimoDia.getDate(); d++) {
+        celdas.push({ fecha: new Date(year, month, d), otroMes: false });
+    }
+
+    // Completar 42 celdas
+    const rest = 42 - celdas.length;
+    for (let i = 1; i <= rest; i++) {
+        celdas.push({ fecha: new Date(year, month + 1, i), otroMes: true });
+    }
+
+    const grid = document.getElementById('calendarioGrid');
+    const headers = grid.querySelectorAll('.calendar-day-header');
+    grid.innerHTML = '';
+    headers.forEach(h => grid.appendChild(h));
+
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+
+    // Crear mapa de dias del mes
+    const diasMap = {};
+    diasDelMes.forEach(d => { diasMap[d.fecha] = d; });
+
+    celdas.forEach(({ fecha, otroMes }) => {
+        const fechaStr = fecha.toISOString().split('T')[0];
+        const diaData = diasMap[fechaStr];
+        const esHoy = fecha.getTime() === hoy.getTime();
+        const esFinSemana = fecha.getDay() === 0 || fecha.getDay() === 6;
+
+        let clases = 'calendar-day';
+        if (otroMes) clases += ' other-month';
+        if (esHoy) clases += ' today';
+
+        if (!otroMes && diaData) {
+            clases += ` tipo-${diaData.tipo_dia}`;
+        } else if (!otroMes && esFinSemana) {
+            clases += ' fin-semana';
+        }
+
+        let interior = `<div class="day-number">${fecha.getDate()}</div>`;
+
+        if (!otroMes && diaData && diaData.en_bd) {
+            const dotClass = diaData.tipo_dia === 'habil' ? 'dot-habil-bd' : `dot-${diaData.tipo_dia}`;
+            interior += `<div class="day-dot ${dotClass}"></div>`;
+            interior += `<div class="day-tooltip"><strong>${tipoLabels[diaData.tipo_dia] || diaData.tipo_dia}</strong>`;
+            if (diaData.descripcion) interior += `<br>${diaData.descripcion}`;
+            interior += `</div>`;
+        } else if (!otroMes && esFinSemana) {
+            interior += `<div class="day-dot dot-fin_semana"></div>`;
+        }
+
+        const div = document.createElement('div');
+        div.className = clases;
+        div.dataset.fecha = fechaStr;
+        div.innerHTML = interior;
+
+        if (!otroMes) {
+            div.addEventListener('click', function() {
+                if (diaData && diaData.en_bd) {
+                    editarDia(diaData.id_calendario);
+                } else {
+                    agregarDiaDesdeCalendario(fechaStr);
+                }
+            });
+        }
+
+        grid.appendChild(div);
+    });
+}
+
+function renderizarLista() {
+    const container = document.getElementById('listaDiasContainer');
+    const filtro = document.getElementById('filtroTipo').value;
+
+    let dias = diasDelMes;
+    if (filtro) {
+        dias = dias.filter(d => d.tipo_dia === filtro);
+    }
+
+    document.getElementById('totalDias').textContent = dias.length + ' dias';
 
     if (dias.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center">No hay días registrados para este período</td></tr>';
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-calendar-check d-block"></i>
+                <p>No hay dias para mostrar</p>
+            </div>`;
         return;
     }
 
-    tbody.innerHTML = dias.map(dia => {
-        const enBd = dia.en_bd;
-        const esFinSemana = dia.tipo_dia === 'fin_semana';
-        const esFeriado = dia.tipo_dia === 'feriado';
-        const esSuspension = dia.tipo_dia === 'suspension';
-        const rowStyle = (!enBd && !esFinSemana) ? 'opacity: 0.55;' : '';
-        const rowBg = esFinSemana ? 'background: rgba(108, 117, 125, 0.15);'
-                     : esFeriado ? 'background: rgba(220, 53, 69, 0.12);'
-                     : esSuspension ? 'background: rgba(255, 193, 7, 0.12);'
-                     : '';
-        const acciones = enBd
-            ? `<button class="action-btn btn-edit" onclick="editarDia(${dia.id_calendario})" title="Editar">
-                   <i class="fas fa-edit"></i>
-               </button>
-               <button class="action-btn btn-delete" onclick="eliminarDia(${dia.id_calendario})" title="Eliminar">
-                   <i class="fas fa-trash"></i>
-               </button>`
-            : `<button class="action-btn btn-edit" onclick="agregarDiaDesdeTabla('${dia.fecha}')" title="Registrar este día">
-                   <i class="fas fa-plus"></i>
-               </button>`;
+    container.innerHTML = dias.map(dia => {
+        const fecha = new Date(dia.fecha + 'T12:00:00');
+        const numDia = fecha.getDate();
+        const diaSem = diasSemCortos[fecha.getDay()];
+        const tipoLabel = tipoLabels[dia.tipo_dia] || dia.tipo_dia;
+        const notInBd = dia.en_bd ? '' : ' not-in-bd';
 
-        return `<tr style="${rowStyle}${rowBg}">
-            <td>${formatearFecha(dia.fecha)}</td>
-            <td><span class="badge badge-tipo badge-${dia.tipo_dia}">${formatearTipo(dia.tipo_dia)}</span></td>
-            <td>${dia.descripcion || '-'}</td>
-            <td>${dia.es_laborable ? '<i class="fas fa-check text-success"></i>' : '<i class="fas fa-times text-danger"></i>'}</td>
-            <td>${dia.observaciones || '-'}</td>
-            <td>${acciones}</td>
-        </tr>`;
+        let metaItems = `<span><i class="fas fa-tag"></i> ${tipoLabel}</span>`;
+        if (dia.es_laborable) {
+            metaItems += '<span><i class="fas fa-check-circle" style="color:#22c55e"></i> Laborable</span>';
+        } else {
+            metaItems += '<span><i class="fas fa-times-circle" style="color:#ef4444"></i> No laborable</span>';
+        }
+        if (dia.observaciones) {
+            metaItems += `<span><i class="fas fa-comment"></i> ${dia.observaciones}</span>`;
+        }
+
+        let acciones = '';
+        if (dia.en_bd) {
+            acciones = `
+                <button class="btn-icon btn-icon-edit" onclick="editarDia(${dia.id_calendario})" title="Editar">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn-icon btn-icon-danger" onclick="eliminarDia(${dia.id_calendario})" title="Eliminar">
+                    <i class="fas fa-trash-alt"></i>
+                </button>`;
+        } else if (dia.tipo_dia !== 'fin_semana') {
+            acciones = `
+                <button class="btn-icon btn-icon-add" onclick="agregarDiaDesdeCalendario('${dia.fecha}')" title="Registrar">
+                    <i class="fas fa-plus"></i>
+                </button>`;
+        }
+
+        return `
+            <div class="dia-card card-${dia.tipo_dia}${notInBd}">
+                <div class="dia-fecha-box">
+                    <div class="dia-fecha-num">${numDia}</div>
+                    <div class="dia-fecha-dia">${diaSem}</div>
+                </div>
+                <div class="dia-info">
+                    <div class="dia-desc">${dia.descripcion || 'Sin descripcion'}</div>
+                    <div class="dia-meta">${metaItems}</div>
+                </div>
+                <div class="dia-acciones">${acciones}</div>
+            </div>`;
     }).join('');
 }
 
-function agregarDiaDesdeTabla(fecha) {
+function agregarDiaDesdeCalendario(fecha) {
+    modoEdicion = false;
+    document.getElementById('modalDiaTitle').innerHTML = '<i class="fas fa-calendar-plus"></i> Agregar Dia';
+    document.getElementById('formDia').reset();
+    document.getElementById('diaId').value = '';
     document.getElementById('diaFecha').value = fecha;
     document.getElementById('diaFecha').removeAttribute('readonly');
-    modoEdicion = false;
-    document.getElementById('modalDiaTitle').textContent = 'Agregar Día';
-    document.getElementById('diaId').value = '';
     document.getElementById('diaLaborable').checked = true;
     document.getElementById('diaTipo').value = 'feriado';
-    document.getElementById('diaDescripcion').value = '';
-    document.getElementById('diaObservaciones').value = '';
     modalDia.show();
-}
-
-function formatearFecha(fecha) {
-    const date = new Date(fecha + 'T00:00:00');
-    const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-    const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-    return `${dias[date.getDay()]}, ${date.getDate()} ${meses[date.getMonth()]} ${date.getFullYear()}`;
-}
-
-function formatearTipo(tipo) {
-    const tipos = {
-        'habil': 'Hábil',
-        'feriado': 'Feriado',
-        'suspension': 'Suspensión',
-        'fin_semana': 'Fin de Semana'
-    };
-    return tipos[tipo] || tipo;
 }
 
 function abrirModalAgregar() {
     modoEdicion = false;
-    document.getElementById('modalDiaTitle').textContent = 'Agregar Día';
+    document.getElementById('modalDiaTitle').innerHTML = '<i class="fas fa-calendar-plus"></i> Agregar Dia';
     document.getElementById('formDia').reset();
     document.getElementById('diaId').value = '';
     document.getElementById('diaLaborable').checked = true;
@@ -499,36 +990,19 @@ function abrirModalAgregar() {
 }
 
 function editarDia(id) {
+    const dia = diasDelMes.find(d => d.id_calendario === id);
+    if (!dia) return;
+
     modoEdicion = true;
-    document.getElementById('modalDiaTitle').textContent = 'Editar Día';
-    
-    const mes = document.getElementById('filtroMes').value;
-    const anio = document.getElementById('filtroAnio').value;
-    const tipo = document.getElementById('filtroTipo').value;
-    
-    let url = BASE_URL + '/admin/calendario/obtener?';
-    if (mes) url += `mes=${mes}&`;
-    if (anio) url += `anio=${anio}&`;
-    if (tipo) url += `tipo_dia=${tipo}`;
-    
-    fetch(url)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const dia = data.dias.find(d => d.id_calendario === id);
-                if (dia) {
-                    document.getElementById('diaId').value = dia.id_calendario;
-                    document.getElementById('diaFecha').value = dia.fecha;
-                    document.getElementById('diaFecha').setAttribute('readonly', 'readonly');
-                    document.getElementById('diaTipo').value = dia.tipo_dia;
-                    document.getElementById('diaDescripcion').value = dia.descripcion || '';
-                    document.getElementById('diaLaborable').checked = dia.es_laborable;
-                    document.getElementById('diaObservaciones').value = dia.observaciones || '';
-                    modalDia.show();
-                }
-            }
-        })
-        .catch(error => mostrarError('Error al cargar día: ' + error));
+    document.getElementById('modalDiaTitle').innerHTML = '<i class="fas fa-edit"></i> Editar Dia';
+    document.getElementById('diaId').value = dia.id_calendario;
+    document.getElementById('diaFecha').value = dia.fecha;
+    document.getElementById('diaFecha').setAttribute('readonly', 'readonly');
+    document.getElementById('diaTipo').value = dia.tipo_dia;
+    document.getElementById('diaDescripcion').value = dia.descripcion || '';
+    document.getElementById('diaLaborable').checked = dia.es_laborable;
+    document.getElementById('diaObservaciones').value = dia.observaciones || '';
+    modalDia.show();
 }
 
 function guardarDia() {
@@ -538,20 +1012,20 @@ function guardarDia() {
     const descripcion = document.getElementById('diaDescripcion').value;
     const laborable = document.getElementById('diaLaborable').checked;
     const observaciones = document.getElementById('diaObservaciones').value;
-    
+
     if (!fecha || !tipo) {
-        mostrarError('Por favor complete todos los campos requeridos');
+        mostrarToast('Complete todos los campos requeridos', 'error');
         return;
     }
-    
-    const data = {
+
+    const payload = {
         fecha: fecha,
         tipo_dia: tipo,
         descripcion: descripcion,
         es_laborable: laborable,
         observaciones: observaciones
     };
-    
+
     let url, method;
     if (modoEdicion && id) {
         url = BASE_URL + `/admin/calendario/editar/${id}`;
@@ -560,73 +1034,54 @@ function guardarDia() {
         url = BASE_URL + '/admin/calendario/agregar';
         method = 'POST';
     }
-    
+
     fetch(url, {
         method: method,
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
     })
-    .then(response => response.json())
+    .then(r => r.json())
     .then(data => {
         if (data.success) {
-            mostrarExito(data.message);
+            mostrarToast(data.message, 'success');
             modalDia.hide();
-            cargarCalendario();
-            cargarEstadisticas();
+            cargarTodo();
         } else {
-            mostrarError(data.message);
+            mostrarToast(data.message, 'error');
         }
     })
-    .catch(error => {
-        mostrarError('Error al guardar: ' + error);
-    });
+    .catch(err => mostrarToast('Error al guardar: ' + err, 'error'));
 }
 
 function eliminarDia(id) {
-    if (!confirm('¿Está seguro de que desea eliminar este día del calendario?')) {
-        return;
-    }
-    
-    fetch(BASE_URL + `/admin/calendario/eliminar/${id}`, {
-        method: 'DELETE'
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            mostrarExito(data.message);
-            cargarCalendario();
-            cargarEstadisticas();
-        } else {
-            mostrarError(data.message);
-        }
-    })
-    .catch(error => {
-        mostrarError('Error al eliminar: ' + error);
-    });
+    if (!confirm('Esta seguro de eliminar este dia del calendario?')) return;
+
+    fetch(BASE_URL + `/admin/calendario/eliminar/${id}`, { method: 'DELETE' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                mostrarToast(data.message, 'success');
+                cargarTodo();
+            } else {
+                mostrarToast(data.message, 'error');
+            }
+        })
+        .catch(err => mostrarToast('Error al eliminar: ' + err, 'error'));
 }
 
-function mostrarExito(mensaje) {
-    const alertDiv = document.createElement('div');
-    alertDiv.className = 'alert alert-success alert-dismissible fade show';
-    alertDiv.innerHTML = `
-        <i class="fas fa-check-circle"></i> ${mensaje}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-    document.querySelector('.main-content').insertBefore(alertDiv, document.querySelector('.main-content').firstChild);
-    setTimeout(() => alertDiv.remove(), 5000);
-}
-
-function mostrarError(mensaje) {
-    const alertDiv = document.createElement('div');
-    alertDiv.className = 'alert alert-danger alert-dismissible fade show';
-    alertDiv.innerHTML = `
-        <i class="fas fa-exclamation-circle"></i> ${mensaje}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-    document.querySelector('.main-content').insertBefore(alertDiv, document.querySelector('.main-content').firstChild);
-    setTimeout(() => alertDiv.remove(), 5000);
+function mostrarToast(mensaje, tipo) {
+    const container = document.getElementById('toastContainer');
+    const icon = tipo === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+    const toast = document.createElement('div');
+    toast.className = `custom-toast toast-${tipo}`;
+    toast.innerHTML = `<i class="fas ${icon}"></i> ${mensaje}`;
+    container.appendChild(toast);
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100%)';
+        toast.style.transition = 'all 0.3s';
+        setTimeout(() => toast.remove(), 300);
+    }, 4000);
 }
 </script>
 {% endblock %}
