@@ -4,6 +4,7 @@
 
 {% block extra_css %}
 <style>
+    /* ========== BASE / DESKTOP ========== */
     .main-container {
         background: rgba(30, 30, 45, 0.95);
         border-radius: 20px;
@@ -15,14 +16,20 @@
     .header {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
-        padding: 30px;
+        padding: 28px 30px;
         border-radius: 20px 20px 0 0;
         text-align: center;
     }
 
     .header h1 {
         font-size: 1.8rem;
-        margin-bottom: 5px;
+        margin-bottom: 4px;
+        font-weight: 700;
+    }
+
+    .header p {
+        opacity: 0.9;
+        font-size: 0.95rem;
     }
 
     .form-section {
@@ -30,24 +37,24 @@
         border-radius: 15px;
         box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
         margin: 30px;
-        padding: 40px;
+        padding: 36px;
         border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     .form-group {
-        margin-bottom: 25px;
+        margin-bottom: 20px;
     }
 
     .form-label {
         font-weight: 600;
         color: #e0e0e0;
-        margin-bottom: 10px;
+        margin-bottom: 8px;
         display: block;
         font-size: 0.95rem;
     }
 
     .form-control {
-        border: 2px solid rgba(255, 255, 255, 0.2);
+        border: 2px solid rgba(255, 255, 255, 0.15);
         border-radius: 12px;
         padding: 12px 16px;
         font-size: 15px;
@@ -71,33 +78,54 @@
     /* Lista de estudiantes */
     .estudiantes-container {
         display: none;
-        margin-top: 30px;
+        margin-top: 28px;
     }
 
     .estudiantes-container.show {
         display: block;
     }
 
+    .estudiantes-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .estudiantes-header h5 {
+        color: #e0e0e0;
+        margin: 0;
+        font-size: 1.1rem;
+    }
+
     .estudiante-item {
         background: rgba(50, 50, 70, 0.6);
-        border-radius: 10px;
-        padding: 12px 16px;
+        border-radius: 12px;
+        padding: 14px 16px;
         margin-bottom: 8px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        transition: all 0.3s ease;
+        transition: background 0.2s ease, border-color 0.2s ease;
         border: 2px solid transparent;
-        gap: 10px;
+        gap: 12px;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
     }
 
     .estudiante-item:hover {
         background: rgba(60, 60, 80, 0.8);
     }
 
+    .estudiante-item:active {
+        background: rgba(70, 70, 90, 0.9);
+    }
+
     .estudiante-item.presente {
         border-color: #28a745;
-        background: rgba(40, 167, 69, 0.2);
+        background: rgba(40, 167, 69, 0.15);
     }
 
     .estudiante-info {
@@ -112,6 +140,7 @@
         font-size: 1.4em;
         width: 28px;
         flex-shrink: 0;
+        text-align: center;
     }
 
     .estudiante-datos {
@@ -122,7 +151,7 @@
     .estudiante-nombre {
         font-weight: 600;
         color: #e0e0e0;
-        font-size: 1rem;
+        font-size: 0.95rem;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -130,7 +159,8 @@
 
     .estudiante-cedula {
         color: #a0a0a0;
-        font-size: 0.85em;
+        font-size: 0.82em;
+        margin-top: 2px;
     }
 
     .estudiante-checkbox {
@@ -145,8 +175,8 @@
     .contadores-asistencia {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
-        gap: 15px;
-        margin-bottom: 25px;
+        gap: 14px;
+        margin-bottom: 24px;
     }
 
     .contador-card {
@@ -155,27 +185,20 @@
         padding: 16px 12px;
         text-align: center;
         border: 2px solid rgba(255, 255, 255, 0.1);
+        transition: border-color 0.3s ease;
     }
 
-    .contador-card.masculino {
-        border-color: rgba(79, 195, 247, 0.5);
-    }
-
-    .contador-card.femenino {
-        border-color: rgba(244, 143, 177, 0.5);
-    }
-
-    .contador-card.total {
-        border-color: rgba(102, 126, 234, 0.5);
-    }
+    .contador-card.masculino { border-color: rgba(79, 195, 247, 0.5); }
+    .contador-card.femenino { border-color: rgba(244, 143, 177, 0.5); }
+    .contador-card.total { border-color: rgba(102, 126, 234, 0.5); }
 
     .contador-icon {
-        font-size: 1.8em;
-        margin-bottom: 8px;
+        font-size: 1.6em;
+        margin-bottom: 6px;
     }
 
     .contador-valor {
-        font-size: 2.2em;
+        font-size: 2rem;
         font-weight: 700;
         color: #ffffff;
         margin-bottom: 4px;
@@ -184,7 +207,7 @@
 
     .contador-label {
         color: #b0b0b0;
-        font-size: 0.8em;
+        font-size: 0.78em;
         text-transform: uppercase;
         letter-spacing: 0.5px;
     }
@@ -193,7 +216,7 @@
     .filtros-estudiantes {
         display: flex;
         gap: 10px;
-        margin-bottom: 20px;
+        margin-bottom: 18px;
         align-items: center;
         flex-wrap: wrap;
     }
@@ -206,19 +229,21 @@
 
     .btn-filtro {
         background: rgba(50, 50, 70, 0.8);
-        border: 2px solid rgba(255, 255, 255, 0.2);
+        border: 2px solid rgba(255, 255, 255, 0.15);
         border-radius: 10px;
         padding: 8px 14px;
         color: #e0e0e0;
         cursor: pointer;
-        transition: all 0.3s ease;
+        transition: all 0.2s ease;
         font-size: 0.85rem;
         white-space: nowrap;
+        -webkit-tap-highlight-color: transparent;
     }
 
     .btn-filtro:hover, .btn-filtro.active {
         background: rgba(102, 126, 234, 0.3);
         border-color: #667eea;
+        color: #fff;
     }
 
     .search-box {
@@ -234,13 +259,13 @@
 
     .acciones-grupo .btn {
         font-size: 0.85rem;
-        padding: 8px 14px;
+        padding: 8px 16px;
         white-space: nowrap;
     }
 
     /* Observaciones */
     .observaciones-container {
-        margin-top: 25px;
+        margin-top: 24px;
         padding: 20px;
         background: rgba(50, 50, 70, 0.6);
         border-radius: 12px;
@@ -266,6 +291,7 @@
         margin-top: 8px;
     }
 
+    /* Botones */
     .btn-success {
         background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
         border: none;
@@ -279,64 +305,6 @@
     .btn-success:hover {
         transform: translateY(-2px);
         box-shadow: 0 8px 20px rgba(40, 167, 69, 0.5);
-    }
-
-    .alert {
-        border-radius: 12px;
-        padding: 16px;
-        margin-bottom: 20px;
-        border: 2px solid;
-        font-size: 0.9rem;
-    }
-
-    .alert-info {
-        background: rgba(23, 162, 184, 0.2);
-        color: #17a2b8;
-        border-color: rgba(23, 162, 184, 0.3);
-    }
-
-    .alert-warning {
-        background: rgba(255, 193, 7, 0.2);
-        color: #ffc107;
-        border-color: rgba(255, 193, 7, 0.3);
-    }
-
-    .alert-success {
-        background: rgba(40, 167, 69, 0.2);
-        color: #28a745;
-        border-color: rgba(40, 167, 69, 0.3);
-    }
-
-    .gender-icon {
-        font-size: 2.5em;
-        margin-bottom: 15px;
-    }
-
-    .male-icon {
-        color: #4fc3f7;
-    }
-
-    .female-icon {
-        color: #f48fb1;
-    }
-
-    .bloque-badge {
-        padding: 4px 10px;
-        border-radius: 8px;
-        font-size: 0.75em;
-        font-weight: 600;
-    }
-
-    .bloque-badge.registrado {
-        background: rgba(40, 167, 69, 0.2);
-        color: #28a745;
-        border: 1px solid rgba(40, 167, 69, 0.3);
-    }
-
-    .bloque-badge.pendiente {
-        background: rgba(108, 117, 125, 0.15);
-        color: #6c757d;
-        border: 1px solid rgba(108, 117, 125, 0.2);
     }
 
     .btn-primary {
@@ -370,58 +338,156 @@
         box-shadow: 0 8px 20px rgba(108, 117, 125, 0.5);
     }
 
-    /* ========== RESPONSIVE ========== */
+    /* Botones de accion - contenedor */
+    .botones-accion {
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        margin-top: 28px;
+    }
 
-    /* Tablets */
+    /* Alertas */
+    .alert {
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 20px;
+        border: 2px solid;
+        font-size: 0.9rem;
+    }
+
+    .alert-info {
+        background: rgba(23, 162, 184, 0.2);
+        color: #17a2b8;
+        border-color: rgba(23, 162, 184, 0.3);
+    }
+
+    .alert-warning {
+        background: rgba(255, 193, 7, 0.2);
+        color: #ffc107;
+        border-color: rgba(255, 193, 7, 0.3);
+    }
+
+    .alert-success {
+        background: rgba(40, 167, 69, 0.2);
+        color: #28a745;
+        border-color: rgba(40, 167, 69, 0.3);
+    }
+
+    .male-icon { color: #4fc3f7; }
+    .female-icon { color: #f48fb1; }
+
+    .bloque-badge {
+        padding: 4px 10px;
+        border-radius: 8px;
+        font-size: 0.75em;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .bloque-badge.registrado {
+        background: rgba(40, 167, 69, 0.2);
+        color: #28a745;
+        border: 1px solid rgba(40, 167, 69, 0.3);
+    }
+
+    .bloque-badge.pendiente {
+        background: rgba(108, 117, 125, 0.15);
+        color: #6c757d;
+        border: 1px solid rgba(108, 117, 125, 0.2);
+    }
+
+    /* Overlay para sidebar en movil */
+    .sidebar-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 999;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .sidebar-overlay.active {
+        display: block;
+        opacity: 1;
+    }
+
+    /* ========== TABLETS (max 991px) ========== */
     @media (max-width: 991px) {
         .form-section {
             margin: 20px;
-            padding: 25px;
+            padding: 28px;
         }
 
         .header {
-            padding: 25px 20px;
+            padding: 24px 20px;
         }
 
         .header h1 {
             font-size: 1.5rem;
         }
+
+        .contadores-asistencia {
+            gap: 10px;
+        }
+
+        .contador-card {
+            padding: 14px 10px;
+        }
+
+        .contador-valor {
+            font-size: 1.8rem;
+        }
     }
 
-    /* Mobile */
+    /* ========== MOBILE (max 767px) ========== */
     @media (max-width: 767px) {
         .main-container {
             border-radius: 0;
-            margin: -10px -15px;
+            margin: 0 -15px;
+            border: none;
+            box-shadow: none;
         }
 
         .header {
             border-radius: 0;
-            padding: 20px 15px;
+            padding: 18px 16px;
+            position: sticky;
+            top: 0;
+            z-index: 50;
         }
 
         .header h1 {
-            font-size: 1.3rem;
+            font-size: 1.2rem;
+            margin-bottom: 2px;
+        }
+
+        .header h1 i {
+            font-size: 0.9em;
         }
 
         .header p {
-            font-size: 0.85rem;
+            font-size: 0.8rem;
+            opacity: 0.85;
         }
 
         .form-section {
-            margin: 10px;
-            padding: 15px;
-            border-radius: 12px;
+            margin: 12px 10px;
+            padding: 16px;
+            border-radius: 14px;
         }
 
         .form-group {
-            margin-bottom: 15px;
+            margin-bottom: 14px;
         }
 
         .form-control {
-            padding: 10px 14px;
-            font-size: 14px;
+            padding: 11px 14px;
+            font-size: 16px; /* Evita zoom en iOS */
             border-radius: 10px;
+            border-width: 2px;
         }
 
         .form-label {
@@ -429,58 +495,70 @@
             margin-bottom: 6px;
         }
 
-        /* Contadores: 3 en fila pero compactos */
+        .form-label i {
+            font-size: 0.85em;
+        }
+
+        /* Contadores: fila horizontal compacta */
         .contadores-asistencia {
             gap: 8px;
-            margin-bottom: 20px;
+            margin-bottom: 18px;
         }
 
         .contador-card {
-            padding: 10px 6px;
+            padding: 12px 8px;
             border-radius: 10px;
         }
 
         .contador-icon {
-            font-size: 1.3em;
+            font-size: 1.2em;
             margin-bottom: 4px;
         }
 
         .contador-valor {
-            font-size: 1.6em;
+            font-size: 1.5rem;
         }
 
         .contador-label {
             font-size: 0.65em;
+            letter-spacing: 0.3px;
         }
 
-        /* Filtros: stack vertical */
+        /* Filtros: layout vertical optimizado */
         .filtros-estudiantes {
             flex-direction: column;
             gap: 10px;
             align-items: stretch;
         }
 
+        .search-box {
+            min-width: 100%;
+            order: -1;
+        }
+
+        .search-box .form-control {
+            padding: 12px 14px;
+        }
+
         .filtros-grupo {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(5, 1fr);
             gap: 6px;
         }
 
         .filtros-grupo .btn-filtro {
             text-align: center;
-            padding: 8px 6px;
-            font-size: 0.75rem;
+            padding: 10px 4px;
+            font-size: 0.7rem;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
         }
 
         .filtros-grupo .btn-filtro i {
-            display: block;
-            margin-bottom: 2px;
-            font-size: 1em;
-        }
-
-        .search-box {
-            min-width: 100%;
-            order: -1;
+            font-size: 1.1em;
         }
 
         .acciones-grupo {
@@ -491,16 +569,18 @@
         }
 
         .acciones-grupo .btn {
-            font-size: 0.8rem;
-            padding: 10px 8px;
+            font-size: 0.82rem;
+            padding: 11px 8px;
             text-align: center;
+            border-radius: 10px;
         }
 
-        /* Estudiantes */
+        /* Estudiantes: tarjetas tactiles */
         .estudiante-item {
-            padding: 10px 12px;
+            padding: 12px 14px;
             margin-bottom: 6px;
-            border-radius: 8px;
+            border-radius: 10px;
+            min-height: 56px;
         }
 
         .estudiante-genero {
@@ -509,74 +589,220 @@
         }
 
         .estudiante-nombre {
-            font-size: 0.9rem;
+            font-size: 0.88rem;
         }
 
         .estudiante-cedula {
-            font-size: 0.75rem;
+            font-size: 0.73rem;
         }
 
         .estudiante-checkbox {
-            width: 26px;
-            height: 26px;
+            width: 32px;
+            height: 32px;
+            min-width: 32px;
         }
 
-        /* Bloques status */
+        /* Badges de bloques */
         .bloque-badge {
             padding: 3px 8px;
-            font-size: 0.7em;
+            font-size: 0.68em;
+        }
+
+        #bloquesIndicadores {
+            gap: 4px !important;
         }
 
         /* Observaciones */
         .observaciones-container {
-            padding: 15px;
-            margin-top: 20px;
+            padding: 14px;
+            margin-top: 18px;
         }
 
         .observaciones-container h5 {
-            font-size: 1rem;
+            font-size: 0.95rem;
         }
 
-        /* Botones de accion */
-        .text-center.mt-4 {
-            display: flex;
+        .observaciones-container textarea {
+            font-size: 16px; /* Evita zoom en iOS */
+        }
+
+        /* Botones de accion: sticky en movil */
+        .botones-accion {
+            position: sticky;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            margin: 20px -16px -16px -16px;
+            padding: 14px 16px;
+            background: rgba(30, 30, 50, 0.97);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 0;
             flex-direction: column;
-            gap: 10px;
+            gap: 8px;
+            z-index: 40;
         }
 
-        .text-center.mt-4 .btn {
+        .botones-accion .btn {
             width: 100%;
             padding: 14px;
             font-size: 15px;
+            border-radius: 10px;
         }
 
-        .text-center.mt-4 .btn.me-2 {
+        .botones-accion .btn.me-2 {
             margin-right: 0 !important;
         }
 
         .alert {
             padding: 12px;
-            font-size: 0.85rem;
+            font-size: 0.84rem;
+            border-radius: 10px;
+        }
+
+        .alert strong {
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .estudiantes-header h5 {
+            font-size: 1rem;
         }
     }
 
-    /* Small mobile */
+    /* ========== SMALL MOBILE (max 400px) ========== */
     @media (max-width: 400px) {
-        .form-section {
-            margin: 5px;
-            padding: 12px;
+        .main-container {
+            margin: 0 -10px;
         }
 
-        .filtros-grupo {
-            grid-template-columns: repeat(2, 1fr);
+        .form-section {
+            margin: 8px 6px;
+            padding: 12px;
+            border-radius: 12px;
+        }
+
+        .header {
+            padding: 14px 12px;
+        }
+
+        .header h1 {
+            font-size: 1.05rem;
+        }
+
+        .header p {
+            font-size: 0.75rem;
+        }
+
+        .contadores-asistencia {
+            gap: 6px;
+        }
+
+        .contador-card {
+            padding: 10px 4px;
+            border-radius: 8px;
+        }
+
+        .contador-icon {
+            font-size: 1em;
+            margin-bottom: 2px;
         }
 
         .contador-valor {
-            font-size: 1.4em;
+            font-size: 1.3rem;
         }
 
         .contador-label {
+            font-size: 0.58em;
+        }
+
+        .filtros-grupo {
+            grid-template-columns: repeat(5, 1fr);
+            gap: 4px;
+        }
+
+        .filtros-grupo .btn-filtro {
+            padding: 8px 2px;
+            font-size: 0.62rem;
+            border-width: 1px;
+        }
+
+        .estudiante-item {
+            padding: 10px 10px;
+            gap: 8px;
+        }
+
+        .estudiante-info {
+            gap: 8px;
+        }
+
+        .estudiante-nombre {
+            font-size: 0.82rem;
+        }
+
+        .estudiante-cedula {
+            font-size: 0.68rem;
+        }
+
+        .botones-accion {
+            margin: 16px -12px -12px -12px;
+            padding: 12px;
+        }
+
+        .bloque-badge {
+            padding: 2px 6px;
             font-size: 0.6em;
+        }
+    }
+
+    /* ========== LANDSCAPE MOBILE ========== */
+    @media (max-height: 500px) and (orientation: landscape) {
+        .header {
+            padding: 12px 16px;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 1.1rem;
+        }
+
+        .header p {
+            display: none;
+        }
+
+        .form-section {
+            padding: 14px;
+        }
+
+        .contadores-asistencia {
+            margin-bottom: 14px;
+        }
+
+        .contador-card {
+            padding: 8px 6px;
+        }
+
+        .contador-icon {
+            display: none;
+        }
+
+        .contador-valor {
+            font-size: 1.4rem;
+        }
+
+        .botones-accion {
+            position: relative;
+            margin: 16px 0 0 0;
+            padding: 0;
+            background: transparent;
+            border: none;
+            backdrop-filter: none;
+            flex-direction: row;
+        }
+
+        .botones-accion .btn {
+            width: auto;
+            flex: 1;
         }
     }
 </style>
@@ -670,10 +896,12 @@
             
             <!-- Lista de estudiantes -->
             <div class="estudiantes-container" id="estudiantesContainer">
-                <h5 class="mb-3" style="color: #e0e0e0;">
-                    <i class="fas fa-list"></i> Lista de Estudiantes
-                    <span id="totalEstudiantes" class="badge bg-primary ms-2">0</span>
-                </h5>
+                <div class="estudiantes-header">
+                    <h5>
+                        <i class="fas fa-list"></i> Lista de Estudiantes
+                        <span id="totalEstudiantes" class="badge bg-primary ms-2">0</span>
+                    </h5>
+                </div>
                 
                 <!-- Filtros y busqueda -->
                 <div class="filtros-estudiantes">
@@ -733,7 +961,7 @@
             </div>
             
             <!-- Botones de acción -->
-            <div class="text-center mt-4" id="botonesAccion" style="display: none;">
+            <div class="botones-accion" id="botonesAccion" style="display: none;">
                 <button type="submit" class="btn btn-primary me-2" id="btnGuardar">
                     <i class="fas fa-save"></i> Guardar Asistencia
                 </button>
@@ -768,7 +996,16 @@
             $(this).addClass('active');
             filtrarEstudiantes();
         });
-        
+
+        // Click en la fila del estudiante para marcar/desmarcar
+        $(document).on('click', '.estudiante-item', function(e) {
+            if ($(e.target).is('.estudiante-checkbox') || $(e.target).closest('.estudiante-checkbox').length) return;
+            const checkbox = $(this).find('.estudiante-checkbox');
+            if (checkbox.prop('disabled')) return;
+            checkbox.prop('checked', !checkbox.prop('checked'));
+            actualizarContadores();
+        });
+
         $('#asistenciaForm').on('submit', guardarAsistencia);
     });
     
@@ -951,7 +1188,7 @@
         $('#totalEstudiantes').text(estudiantesData.length);
         $('#estudiantesContainer').addClass('show');
         $('#contadoresAsistencia').show();
-        $('#botonesAccion').show();
+        $('#botonesAccion').css('display', 'flex');
         
         actualizarContadores();
         filtrarEstudiantes();
@@ -1022,7 +1259,7 @@
         $('#estudiantesContainer').removeClass('show');
         $('#observacionesContainer').hide();
         $('#contadoresAsistencia').hide();
-        $('#botonesAccion').hide();
+        $('#botonesAccion').css('display', 'none');
         $('#alertaAsistenciaExistente').hide();
         $('#bloquesStatus').hide();
         estudiantesData = [];
