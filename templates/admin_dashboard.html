@@ -180,6 +180,17 @@
                     <option value="">Todas</option>
                 </select>
             </div>
+            <div class="col-md-2">
+                <label class="form-label">Bloque:</label>
+                <select id="filtroBloque" class="form-control">
+                    <option value="">Todos</option>
+                    <option value="completo">Dia Completo</option>
+                    <option value="bloque_1">Bloque 1</option>
+                    <option value="bloque_2">Bloque 2</option>
+                    <option value="bloque_3">Bloque 3</option>
+                    <option value="bloque_4">Bloque 4</option>
+                </select>
+            </div>
             <div class="col-md-2 d-flex align-items-end">
                 <button id="aplicarFiltroFecha" class="btn btn-primary w-100">
                     <i class="fas fa-search"></i> Filtrar
@@ -360,7 +371,8 @@
         const fechaFin = $('#fechaFin').val();
         const etapa = $('#filtroEtapa').val();
         const seccion = $('#filtroSeccion').val();
-        
+        const bloque = $('#filtroBloque').val();
+
         $.ajax({
             url: BASE_URL + '/admin/estadisticas',
             method: 'GET',
@@ -368,7 +380,8 @@
                 fecha_inicio: fechaInicio,
                 fecha_fin: fechaFin,
                 etapa: etapa,
-                seccion: seccion
+                seccion: seccion,
+                bloque: bloque
             },
             success: function(data) {
                 if (data.success) {
