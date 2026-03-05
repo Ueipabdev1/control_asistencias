@@ -1288,27 +1288,80 @@ def calendario():
 @admin_bp.route('/calendario/obtener', methods=['GET'])
 @admin_required
 def obtener_calendario():
-    """API para obtener días del calendario con filtros opcionales"""
+    """API para obtener días del calendario — genera todas las fechas del mes, fines de semana marcados por defecto"""
     try:
+        import calendar
         mes = request.args.get('mes', type=int)
         anio = request.args.get('anio', type=int)
         tipo_dia = request.args.get('tipo_dia')
-        
-        query = Calendario.query
-        
+
+        # Si hay mes y año, generar todas las fechas del mes
         if mes and anio:
-            query = query.filter(
+            # Obtener días registrados en BD para este mes
+            dias_bd = Calendario.query.filter(
                 extract('month', Calendario.fecha) == mes,
                 extract('year', Calendario.fecha) == anio
-            )
-        elif anio:
+            ).all()
+            dias_bd_map = {dia.fecha: dia for dia in dias_bd}
+
+            # Generar todas las fechas del mes
+            num_dias = calendar.monthrange(anio, mes)[1]
+            resultado = []
+            for d in range(1, num_dias + 1):
+                from datetime import date as dt_date
+                fecha = dt_date(anio, mes, d)
+                dia_semana = fecha.weekday()  # 0=lun, 5=sab, 6=dom
+                es_fin_semana = dia_semana >= 5
+
+                if fecha in dias_bd_map:
+                    dia = dias_bd_map[fecha]
+                    entrada = {
+                        'id_calendario': dia.id_calendario,
+                        'fecha': dia.fecha.strftime('%Y-%m-%d'),
+                        'tipo_dia': dia.tipo_dia,
+                        'descripcion': dia.descripcion,
+                        'es_laborable': dia.es_laborable,
+                        'observaciones': dia.observaciones,
+                        'en_bd': True
+                    }
+                elif es_fin_semana:
+                    nombre_dia = 'Sábado' if dia_semana == 5 else 'Domingo'
+                    entrada = {
+                        'id_calendario': None,
+                        'fecha': fecha.strftime('%Y-%m-%d'),
+                        'tipo_dia': 'fin_semana',
+                        'descripcion': nombre_dia,
+                        'es_laborable': False,
+                        'observaciones': None,
+                        'en_bd': False
+                    }
+                else:
+                    entrada = {
+                        'id_calendario': None,
+                        'fecha': fecha.strftime('%Y-%m-%d'),
+                        'tipo_dia': 'habil',
+                        'descripcion': '',
+                        'es_laborable': True,
+                        'observaciones': None,
+                        'en_bd': False
+                    }
+
+                # Aplicar filtro de tipo si se pidió
+                if tipo_dia and entrada['tipo_dia'] != tipo_dia:
+                    continue
+                resultado.append(entrada)
+
+            return jsonify({'success': True, 'dias': resultado})
+
+        # Sin mes específico: solo devolver días registrados en BD
+        query = Calendario.query
+        if anio:
             query = query.filter(extract('year', Calendario.fecha) == anio)
-        
         if tipo_dia:
             query = query.filter(Calendario.tipo_dia == tipo_dia)
-        
+
         dias = query.order_by(Calendario.fecha).all()
-        
+
         return jsonify({
             'success': True,
             'dias': [{
@@ -1317,7 +1370,8 @@ def obtener_calendario():
                 'tipo_dia': dia.tipo_dia,
                 'descripcion': dia.descripcion,
                 'es_laborable': dia.es_laborable,
-                'observaciones': dia.observaciones
+                'observaciones': dia.observaciones,
+                'en_bd': True
             } for dia in dias]
         })
     except Exception as e:
@@ -1439,27 +1493,61 @@ def eliminar_dia_calendario(id_calendario):
 @admin_bp.route('/calendario/estadisticas', methods=['GET'])
 @admin_required
 def estadisticas_calendario():
-    """API para obtener estadísticas del calendario"""
+    """API para obtener estadísticas del calendario — incluye fines de semana automáticos"""
     try:
+        import calendar
+        from datetime import date as dt_date
         mes = request.args.get('mes', type=int)
         anio = request.args.get('anio', type=int, default=datetime.now().year)
-        
+
+        # Obtener días registrados en BD
         query = Calendario.query.filter(extract('year', Calendario.fecha) == anio)
-        
         if mes:
             query = query.filter(extract('month', Calendario.fecha) == mes)
-        
-        dias = query.all()
-        
+        dias_bd = query.all()
+        dias_bd_map = {dia.fecha: dia for dia in dias_bd}
+
+        # Generar rango de fechas
+        if mes:
+            meses = [mes]
+        else:
+            meses = range(1, 13)
+
+        total_dias = 0
+        dias_habiles = 0
+        feriados = 0
+        suspensiones = 0
+        fines_semana = 0
+
+        for m in meses:
+            num_dias = calendar.monthrange(anio, m)[1]
+            for d in range(1, num_dias + 1):
+                fecha = dt_date(anio, m, d)
+                total_dias += 1
+
+                if fecha in dias_bd_map:
+                    dia = dias_bd_map[fecha]
+                    if dia.tipo_dia == 'habil':
+                        dias_habiles += 1
+                    elif dia.tipo_dia == 'feriado':
+                        feriados += 1
+                    elif dia.tipo_dia == 'suspension':
+                        suspensiones += 1
+                    elif dia.tipo_dia == 'fin_semana':
+                        fines_semana += 1
+                elif fecha.weekday() >= 5:
+                    fines_semana += 1
+                else:
+                    dias_habiles += 1
+
         estadisticas = {
-            'total_dias': len(dias),
-            'dias_habiles': sum(1 for d in dias if d.tipo_dia == 'habil'),
-            'feriados': sum(1 for d in dias if d.tipo_dia == 'feriado'),
-            'suspensiones': sum(1 for d in dias if d.tipo_dia == 'suspension'),
-            'fines_semana': sum(1 for d in dias if d.tipo_dia == 'fin_semana'),
-            'dias_laborables': sum(1 for d in dias if d.es_laborable)
+            'total_dias': total_dias,
+            'dias_habiles': dias_habiles,
+            'feriados': feriados,
+            'suspensiones': suspensiones,
+            'fines_semana': fines_semana
         }
-        
+
         return jsonify({'success': True, 'estadisticas': estadisticas})
     except Exception as e:
         return jsonify({'success': False, 'message': f'Error al obtener estadísticas: {str(e)}'}), 500

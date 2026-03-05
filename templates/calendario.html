@@ -346,7 +346,9 @@ let modoEdicion = false;
 document.addEventListener('DOMContentLoaded', function() {
     modalDia = new bootstrap.Modal(document.getElementById('modalDia'));
     
-    const currentYear = new Date().getFullYear();
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
     const filtroAnio = document.getElementById('filtroAnio');
     for (let year = currentYear - 2; year <= currentYear + 5; year++) {
         const option = document.createElement('option');
@@ -355,25 +357,32 @@ document.addEventListener('DOMContentLoaded', function() {
         if (year === currentYear) option.selected = true;
         filtroAnio.appendChild(option);
     }
-    
-    document.getElementById('filtroMes').addEventListener('change', cargarCalendario);
-    document.getElementById('filtroAnio').addEventListener('change', cargarCalendario);
-    document.getElementById('filtroTipo').addEventListener('change', cargarCalendario);
-    
+
+    // Seleccionar mes actual por defecto
+    document.getElementById('filtroMes').value = currentMonth;
+
+    document.getElementById('filtroMes').addEventListener('change', cargarTodo);
+    document.getElementById('filtroAnio').addEventListener('change', cargarTodo);
+    document.getElementById('filtroTipo').addEventListener('change', cargarTodo);
+
+    cargarTodo();
+});
+
+function cargarTodo() {
     cargarCalendario();
     cargarEstadisticas();
-});
+}
 
 function cargarCalendario() {
     const mes = document.getElementById('filtroMes').value;
     const anio = document.getElementById('filtroAnio').value;
     const tipo = document.getElementById('filtroTipo').value;
-    
-    let url = '/admin/calendario/obtener?';
+
+    let url = BASE_URL + '/admin/calendario/obtener?';
     if (mes) url += `mes=${mes}&`;
     if (anio) url += `anio=${anio}&`;
     if (tipo) url += `tipo_dia=${tipo}`;
-    
+
     fetch(url)
         .then(response => response.json())
         .then(data => {
@@ -391,10 +400,10 @@ function cargarCalendario() {
 function cargarEstadisticas() {
     const anio = document.getElementById('filtroAnio').value;
     const mes = document.getElementById('filtroMes').value;
-    
-    let url = `/admin/calendario/estadisticas?anio=${anio}`;
+
+    let url = BASE_URL + `/admin/calendario/estadisticas?anio=${anio}`;
     if (mes) url += `&mes=${mes}`;
-    
+
     fetch(url)
         .then(response => response.json())
         .then(data => {
@@ -411,29 +420,55 @@ function cargarEstadisticas() {
 
 function mostrarDias(dias) {
     const tbody = document.getElementById('calendarioTableBody');
-    
+
     if (dias.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center">No hay días registrados</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center">No hay días registrados para este período</td></tr>';
         return;
     }
-    
-    tbody.innerHTML = dias.map(dia => `
-        <tr>
+
+    tbody.innerHTML = dias.map(dia => {
+        const enBd = dia.en_bd;
+        const esFinSemana = dia.tipo_dia === 'fin_semana';
+        const esFeriado = dia.tipo_dia === 'feriado';
+        const esSuspension = dia.tipo_dia === 'suspension';
+        const rowStyle = (!enBd && !esFinSemana) ? 'opacity: 0.55;' : '';
+        const rowBg = esFinSemana ? 'background: rgba(108, 117, 125, 0.15);'
+                     : esFeriado ? 'background: rgba(220, 53, 69, 0.12);'
+                     : esSuspension ? 'background: rgba(255, 193, 7, 0.12);'
+                     : '';
+        const acciones = enBd
+            ? `<button class="action-btn btn-edit" onclick="editarDia(${dia.id_calendario})" title="Editar">
+                   <i class="fas fa-edit"></i>
+               </button>
+               <button class="action-btn btn-delete" onclick="eliminarDia(${dia.id_calendario})" title="Eliminar">
+                   <i class="fas fa-trash"></i>
+               </button>`
+            : `<button class="action-btn btn-edit" onclick="agregarDiaDesdeTabla('${dia.fecha}')" title="Registrar este día">
+                   <i class="fas fa-plus"></i>
+               </button>`;
+
+        return `<tr style="${rowStyle}${rowBg}">
             <td>${formatearFecha(dia.fecha)}</td>
             <td><span class="badge badge-tipo badge-${dia.tipo_dia}">${formatearTipo(dia.tipo_dia)}</span></td>
             <td>${dia.descripcion || '-'}</td>
             <td>${dia.es_laborable ? '<i class="fas fa-check text-success"></i>' : '<i class="fas fa-times text-danger"></i>'}</td>
             <td>${dia.observaciones || '-'}</td>
-            <td>
-                <button class="action-btn btn-edit" onclick="editarDia(${dia.id_calendario})" title="Editar">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button class="action-btn btn-delete" onclick="eliminarDia(${dia.id_calendario})" title="Eliminar">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </td>
-        </tr>
-    `).join('');
+            <td>${acciones}</td>
+        </tr>`;
+    }).join('');
+}
+
+function agregarDiaDesdeTabla(fecha) {
+    document.getElementById('diaFecha').value = fecha;
+    document.getElementById('diaFecha').removeAttribute('readonly');
+    modoEdicion = false;
+    document.getElementById('modalDiaTitle').textContent = 'Agregar Día';
+    document.getElementById('diaId').value = '';
+    document.getElementById('diaLaborable').checked = true;
+    document.getElementById('diaTipo').value = 'feriado';
+    document.getElementById('diaDescripcion').value = '';
+    document.getElementById('diaObservaciones').value = '';
+    modalDia.show();
 }
 
 function formatearFecha(fecha) {
@@ -471,7 +506,7 @@ function editarDia(id) {
     const anio = document.getElementById('filtroAnio').value;
     const tipo = document.getElementById('filtroTipo').value;
     
-    let url = '/admin/calendario/obtener?';
+    let url = BASE_URL + '/admin/calendario/obtener?';
     if (mes) url += `mes=${mes}&`;
     if (anio) url += `anio=${anio}&`;
     if (tipo) url += `tipo_dia=${tipo}`;
@@ -519,10 +554,10 @@ function guardarDia() {
     
     let url, method;
     if (modoEdicion && id) {
-        url = `/admin/calendario/editar/${id}`;
+        url = BASE_URL + `/admin/calendario/editar/${id}`;
         method = 'PUT';
     } else {
-        url = '/admin/calendario/agregar';
+        url = BASE_URL + '/admin/calendario/agregar';
         method = 'POST';
     }
     
@@ -554,7 +589,7 @@ function eliminarDia(id) {
         return;
     }
     
-    fetch(`/admin/calendario/eliminar/${id}`, {
+    fetch(BASE_URL + `/admin/calendario/eliminar/${id}`, {
         method: 'DELETE'
     })
     .then(response => response.json())
