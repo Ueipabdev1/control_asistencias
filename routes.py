@@ -650,26 +650,39 @@ def eliminar_asignaciones_profesor(profesor_id):
 
 @main_bp.route('/api/matriculas', methods=['GET'])
 def obtener_matriculas():
-    """API para obtener todas las matrículas"""
+    """API para obtener matrículas por género calculadas desde estudiantes"""
     try:
-        matriculas = db.session.query(Matricula, SeccionLegacy, Etapa).select_from(Matricula).join(
-            SeccionLegacy, Matricula.id_seccion == SeccionLegacy.id_seccion
+        resultados = db.session.query(
+            Seccion.id_seccion,
+            Seccion.nombre_seccion,
+            Grado.nombre_grado,
+            Etapa.nombre_etapa,
+            func.sum(db.case((Estudiante.genero == 'M', 1), else_=0)).label('num_h'),
+            func.sum(db.case((Estudiante.genero == 'F', 1), else_=0)).label('num_f'),
+            func.count(Estudiante.id_estudiante).label('total')
+        ).select_from(Seccion).join(
+            Grado, Seccion.id_grado == Grado.id_grado
         ).join(
-            Etapa, SeccionLegacy.id_etapa == Etapa.id_etapa
+            Etapa, Grado.id_etapa == Etapa.id_etapa
+        ).outerjoin(
+            Estudiante, db.and_(Estudiante.id_seccion == Seccion.id_seccion, Estudiante.activo == True)
+        ).group_by(
+            Seccion.id_seccion, Seccion.nombre_seccion, Grado.nombre_grado, Etapa.nombre_etapa
+        ).order_by(
+            Etapa.nombre_etapa, Grado.orden, Seccion.nombre_seccion
         ).all()
 
         return jsonify([{
-            'id': m.Matricula.id_matricula,
-            'id_seccion': m.SeccionLegacy.id_seccion,
-            'etapa_nombre': m.Etapa.nombre_etapa,
-            'seccion_nombre': f"{m.Etapa.nombre_etapa} - {m.SeccionLegacy.nombre_seccion}",
-            'etapa': m.Etapa.nombre_etapa,
-            'seccion': m.SeccionLegacy.nombre_seccion,
-            'num_estudiantes_h': m.Matricula.num_estudiantes_h,
-            'num_estudiantes_m': m.Matricula.num_estudiantes_m,
-            'total': m.Matricula.total_estudiantes
-        } for m in matriculas])
-        
+            'id_seccion': r.id_seccion,
+            'etapa_nombre': r.nombre_etapa,
+            'seccion_nombre': f"{r.nombre_etapa} - {r.nombre_grado} {r.nombre_seccion}",
+            'etapa': r.nombre_etapa,
+            'seccion': f"{r.nombre_grado} {r.nombre_seccion}",
+            'num_estudiantes_h': r.num_h or 0,
+            'num_estudiantes_m': r.num_f or 0,
+            'total': r.total or 0
+        } for r in resultados])
+
     except Exception as e:
         return jsonify({'error': f'Error al obtener matrículas: {str(e)}'}), 500
 
