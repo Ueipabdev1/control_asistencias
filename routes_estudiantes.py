@@ -134,6 +134,70 @@ def obtener_estudiantes_seccion(id_seccion):
     except Exception as e:
         return jsonify({'error': f'Error al obtener estudiantes: {str(e)}'}), 500
 
+@estudiantes_bp.route('', methods=['POST'])
+@login_required
+@admin_required
+def crear_estudiante():
+    """
+    Crea un estudiante de forma manual
+    Espera JSON: { nombre, apellido, cedula, genero, id_seccion }
+    """
+    try:
+        data = request.get_json()
+
+        # Validar campos requeridos
+        campos_requeridos = ['nombre', 'apellido', 'cedula', 'genero', 'id_seccion']
+        for campo in campos_requeridos:
+            if not data.get(campo):
+                return jsonify({'error': f'El campo {campo} es requerido'}), 400
+
+        nombre = data['nombre'].strip()
+        apellido = data['apellido'].strip()
+        cedula = data['cedula'].strip()
+        genero = data['genero'].upper()
+        id_seccion = int(data['id_seccion'])
+
+        # Validar género
+        if genero not in ['M', 'F']:
+            return jsonify({'error': 'El género debe ser M o F'}), 400
+
+        # Verificar que la sección existe
+        seccion = Seccion.query.get(id_seccion)
+        if not seccion:
+            return jsonify({'error': 'Sección no encontrada'}), 404
+
+        # Verificar que la cédula no esté duplicada
+        existente = Estudiante.query.filter_by(cedula=cedula, activo=True).first()
+        if existente:
+            return jsonify({'error': f'Ya existe un estudiante activo con la cédula {cedula}'}), 409
+
+        # Crear estudiante
+        nuevo_estudiante = Estudiante(
+            nombre=nombre,
+            apellido=apellido,
+            cedula=cedula,
+            genero=genero,
+            id_seccion=id_seccion,
+            activo=True
+        )
+
+        db.session.add(nuevo_estudiante)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'message': 'Estudiante creado correctamente',
+            'estudiante': {
+                'id': nuevo_estudiante.id_estudiante,
+                'nombre_completo': nuevo_estudiante.nombre_completo,
+                'cedula': nuevo_estudiante.cedula
+            }
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Error al crear estudiante: {str(e)}'}), 500
+
 @estudiantes_bp.route('/<int:id_estudiante>', methods=['GET'])
 @login_required
 def obtener_estudiante(id_estudiante):

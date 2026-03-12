@@ -244,14 +244,74 @@
         border: 2px solid rgba(255, 255, 255, 0.2);
         color: #e0e0e0;
     }
-    
+
     #buscarEstudiante::placeholder {
         color: #888;
     }
-    
+
     #buscarEstudiante:focus {
         background: rgba(60, 60, 80, 0.9);
         border-color: #667eea;
+    }
+
+    /* Botones de acciones en tabla */
+    .btn-accion {
+        padding: 5px 10px;
+        border-radius: 8px;
+        border: none;
+        font-size: 0.85em;
+        transition: all 0.3s ease;
+        margin: 0 2px;
+    }
+
+    .btn-accion:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .btn-editar {
+        background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+        color: #1a1a2e;
+    }
+
+    .btn-eliminar {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        color: white;
+    }
+
+    .btn-agregar-estudiante {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        border: none;
+        border-radius: 10px;
+        padding: 10px 20px;
+        color: white;
+        font-weight: 600;
+    }
+
+    .btn-agregar-estudiante:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+        color: white;
+    }
+
+    /* Modal personalizado */
+    .modal-content {
+        background: rgba(30, 30, 45, 0.98);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 15px;
+        color: #e0e0e0;
+    }
+
+    .modal-header {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .modal-footer {
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-close {
+        filter: invert(1);
     }
 </style>
 {% endblock %}
@@ -356,7 +416,13 @@
             
             <!-- Tab 2: Lista de Estudiantes -->
             <div class="tab-pane fade" id="estudiantes" role="tabpanel">
-                <!-- Filtros -->
+                <!-- Botón agregar + Filtros -->
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">Estudiantes Registrados</h5>
+                    <button class="btn btn-agregar-estudiante" onclick="abrirModalAgregar()">
+                        <i class="fas fa-plus"></i> Agregar Estudiante
+                    </button>
+                </div>
                 <div class="row mb-3">
                     <div class="col-md-4">
                         <select class="form-select" id="filtroEtapa">
@@ -419,6 +485,7 @@
                                 <th>Sección</th>
                                 <th>Etapa</th>
                                 <th>Estado</th>
+                                <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="estudiantesTable">
@@ -428,6 +495,75 @@
                         </tbody>
                     </table>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Agregar/Editar Estudiante -->
+<div class="modal fade" id="modalEstudiante" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalEstudianteTitle">Agregar Estudiante</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="estudianteId">
+                <div class="mb-3">
+                    <label for="estNombre" class="form-label">Nombre</label>
+                    <input type="text" class="form-control" id="estNombre" required>
+                </div>
+                <div class="mb-3">
+                    <label for="estApellido" class="form-label">Apellido</label>
+                    <input type="text" class="form-control" id="estApellido" required>
+                </div>
+                <div class="mb-3">
+                    <label for="estCedula" class="form-label">Cédula</label>
+                    <input type="text" class="form-control" id="estCedula" required>
+                </div>
+                <div class="mb-3">
+                    <label for="estGenero" class="form-label">Género</label>
+                    <select class="form-select" id="estGenero" required>
+                        <option value="">Seleccionar...</option>
+                        <option value="M">Masculino</option>
+                        <option value="F">Femenino</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="estSeccion" class="form-label">Sección</label>
+                    <select class="form-select" id="estSeccion" required>
+                        <option value="">Seleccionar...</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnGuardarEstudiante" onclick="guardarEstudiante()">
+                    <i class="fas fa-save"></i> Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Confirmar Eliminación -->
+<div class="modal fade" id="modalEliminar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Está seguro que desea desactivar al estudiante <strong id="nombreEliminar"></strong>?</p>
+                <input type="hidden" id="idEliminar">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" onclick="confirmarEliminar()">
+                    <i class="fas fa-trash"></i> Eliminar
+                </button>
             </div>
         </div>
     </div>
@@ -841,19 +977,24 @@
     function mostrarEstudiantes() {
         const tbody = $('#estudiantesTable');
         tbody.empty();
-        
+
         if (estudiantesFiltrados.length === 0) {
-            tbody.append('<tr><td colspan="6" class="text-center">No se encontraron estudiantes</td></tr>');
+            tbody.append('<tr><td colspan="7" class="text-center">No se encontraron estudiantes</td></tr>');
             return;
         }
-        
+
         estudiantesFiltrados.forEach(function(est) {
-            const generoIcono = est.genero === 'M' 
-                ? '<i class="fas fa-male male-icon"></i>' 
+            const generoIcono = est.genero === 'M'
+                ? '<i class="fas fa-male male-icon"></i>'
                 : '<i class="fas fa-female female-icon"></i>';
-            
+
             const estadoBadge = '<span class="badge bg-success">Activo</span>';
-            
+
+            const nombreEscapado = (est.nombre_completo || '').replace(/'/g, "\\'");
+            const nombreEst = (est.nombre || '').replace(/'/g, "\\'");
+            const apellidoEst = (est.apellido || '').replace(/'/g, "\\'");
+            const cedulaEst = (est.cedula || '').replace(/'/g, "\\'");
+
             tbody.append(`
                 <tr>
                     <td><code>${est.cedula}</code></td>
@@ -862,6 +1003,14 @@
                     <td><span class="badge bg-primary">${est.seccion_nombre}</span></td>
                     <td>${extraerEtapa(est.seccion_nombre)}</td>
                     <td>${estadoBadge}</td>
+                    <td>
+                        <button class="btn btn-accion btn-editar" title="Editar" onclick="abrirModalEditar(${est.id_estudiante}, '${nombreEst}', '${apellidoEst}', '${cedulaEst}', '${est.genero}', ${est.seccion_id})">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-accion btn-eliminar" title="Eliminar" onclick="abrirModalEliminar(${est.id_estudiante}, '${nombreEscapado}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
                 </tr>
             `);
         });
@@ -872,6 +1021,144 @@
         if (nombreSeccion.includes('Primaria')) return 'Primaria';
         if (nombreSeccion.includes('Secundaria')) return 'Secundaria';
         return 'N/A';
+    }
+
+    // ==================== FUNCIONES CRUD MANUAL ====================
+
+    let seccionesDisponibles = [];
+
+    function cargarSeccionesModal() {
+        if (seccionesDisponibles.length > 0) return Promise.resolve();
+
+        return $.ajax({
+            url: BASE_URL + '/secciones',
+            method: 'GET',
+            success: function(data) {
+                seccionesDisponibles = data;
+                const select = $('#estSeccion');
+                select.empty();
+                select.append('<option value="">Seleccionar...</option>');
+                data.forEach(function(s) {
+                    select.append(`<option value="${s.id_seccion}">${s.nombre_completo || s.nombre_seccion}</option>`);
+                });
+            }
+        });
+    }
+
+    function abrirModalAgregar() {
+        $('#modalEstudianteTitle').text('Agregar Estudiante');
+        $('#estudianteId').val('');
+        $('#estNombre').val('');
+        $('#estApellido').val('');
+        $('#estCedula').val('').prop('disabled', false);
+        $('#estGenero').val('');
+        $('#estSeccion').val('');
+
+        cargarSeccionesModal().then(function() {
+            new bootstrap.Modal(document.getElementById('modalEstudiante')).show();
+        });
+    }
+
+    function abrirModalEditar(id, nombre, apellido, cedula, genero, idSeccion) {
+        $('#modalEstudianteTitle').text('Editar Estudiante');
+        $('#estudianteId').val(id);
+        $('#estNombre').val(nombre);
+        $('#estApellido').val(apellido);
+        $('#estCedula').val(cedula);
+        $('#estGenero').val(genero);
+
+        cargarSeccionesModal().then(function() {
+            $('#estSeccion').val(idSeccion);
+            new bootstrap.Modal(document.getElementById('modalEstudiante')).show();
+        });
+    }
+
+    function guardarEstudiante() {
+        const id = $('#estudianteId').val();
+        const datos = {
+            nombre: $('#estNombre').val().trim(),
+            apellido: $('#estApellido').val().trim(),
+            cedula: $('#estCedula').val().trim(),
+            genero: $('#estGenero').val(),
+            id_seccion: $('#estSeccion').val()
+        };
+
+        // Validación básica
+        if (!datos.nombre || !datos.apellido || !datos.cedula || !datos.genero || !datos.id_seccion) {
+            alert('Todos los campos son obligatorios');
+            return;
+        }
+
+        const btn = $('#btnGuardarEstudiante');
+        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Guardando...');
+
+        const esEdicion = id !== '';
+        const url = esEdicion
+            ? BASE_URL + '/api/estudiantes/' + id
+            : BASE_URL + '/api/estudiantes';
+        const method = esEdicion ? 'PUT' : 'POST';
+
+        $.ajax({
+            url: url,
+            method: method,
+            contentType: 'application/json',
+            data: JSON.stringify(datos),
+            success: function(response) {
+                btn.prop('disabled', false).html('<i class="fas fa-save"></i> Guardar');
+                bootstrap.Modal.getInstance(document.getElementById('modalEstudiante')).hide();
+
+                // Mostrar mensaje
+                const accion = esEdicion ? 'actualizado' : 'creado';
+                mostrarAlertaTemporal(`Estudiante ${accion} correctamente`, 'success');
+
+                // Recargar datos
+                cargarTodosLosEstudiantes();
+                cargarMatriculas();
+            },
+            error: function(xhr) {
+                btn.prop('disabled', false).html('<i class="fas fa-save"></i> Guardar');
+                const error = xhr.responseJSON || {};
+                alert('Error: ' + (error.error || 'No se pudo guardar el estudiante'));
+            }
+        });
+    }
+
+    function abrirModalEliminar(id, nombreCompleto) {
+        $('#idEliminar').val(id);
+        $('#nombreEliminar').text(nombreCompleto);
+        new bootstrap.Modal(document.getElementById('modalEliminar')).show();
+    }
+
+    function confirmarEliminar() {
+        const id = $('#idEliminar').val();
+
+        $.ajax({
+            url: BASE_URL + '/api/estudiantes/' + id,
+            method: 'DELETE',
+            success: function(response) {
+                bootstrap.Modal.getInstance(document.getElementById('modalEliminar')).hide();
+                mostrarAlertaTemporal('Estudiante eliminado correctamente', 'success');
+                cargarTodosLosEstudiantes();
+                cargarMatriculas();
+            },
+            error: function(xhr) {
+                const error = xhr.responseJSON || {};
+                alert('Error: ' + (error.error || 'No se pudo eliminar el estudiante'));
+            }
+        });
+    }
+
+    function mostrarAlertaTemporal(mensaje, tipo) {
+        const alerta = $(`
+            <div class="alert alert-${tipo} alert-dismissible fade show" role="alert">
+                <i class="fas fa-${tipo === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> ${mensaje}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `);
+        $('#estudiantes').prepend(alerta);
+        setTimeout(function() {
+            alerta.fadeOut(function() { $(this).remove(); });
+        }, 4000);
     }
 </script>
 {% endblock %}
