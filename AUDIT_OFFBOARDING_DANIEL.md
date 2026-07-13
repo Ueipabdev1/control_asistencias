@@ -46,9 +46,12 @@ Historical records authored by this user are **retained** (not deleted) for audi
 | bischeduler (horarios) | none | ✅ N/A — no account |
 | scheduler (`gestion_horarios`) | no auth (decommissioned) | ✅ N/A |
 
-### Still PENDING
-- 🔴 **OS account `dbongianni`** — still has shell + `webdev` write access to production code. Highest remaining risk. Not yet locked.
-- 🔴 **Admin password rotation** — nothing rotated yet:
-  - Priority 1 (shared/reused): `admin@ueipab.edu.ve` (this app + bischeduler), `admin@sistema.com` (minutas).
-  - Priority 2: named admin accounts across apps (policy rotation after departure).
-  - Priority 3: app secrets readable from disk (`SECRET_KEY`, salts, `.env` DB creds); MySQL `root` currently has no password.
+### ✅ Completed 2026-07-13
+- **OS account `dbongianni`** — LOCKED: login shell set to `/usr/sbin/nologin` and account locked (`passwd -S` → `L`). `webdev` group membership retained by decision. Verified no processes/cron/services/sessions ran as this user.
+- **Shared/generic admin password rotated** — `admin@ueipab.edu.ve` (this app) re-hashed with bcrypt; new hash verified against the app's auth check. Distinct from bischeduler's password (cross-app reuse eliminated). Plaintext delivered out-of-band; **not recorded here**.
+
+### Still pending
+- Named/personal admin accounts — intentionally **not** rotated (scope limited to shared accounts by decision).
+- App secrets exposed to prior filesystem access (`SECRET_KEY`, DB creds in `.env`) — not yet rotated.
+- MySQL `root` has no password.
+- Rotate the `infornet1` GitHub PAT exposed during this work.
