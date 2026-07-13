@@ -33,3 +33,22 @@ Historical records authored by this user are **retained** (not deleted) for audi
 - [ ] Rotate shared/generic admin password: `admin@ueipab.edu.ve`.
 - [ ] Rotate app secrets exposed to former user's filesystem access (`SECRET_KEY`, DB credentials in `.env`).
 - [ ] Lock OS account `dbongianni` and review `webdev` group membership (write access to prod code).
+
+---
+
+## Status recap — 2026-07-13 (cross-app offboarding)
+
+### Daniel — application account access
+| App | Account | Status |
+|---|---|---|
+| control_asistencias | profesor `id_usuario=2` | ✅ DISABLED (`activo=0`) |
+| control_minutas | none | ✅ N/A — no account |
+| bischeduler (horarios) | none | ✅ N/A — no account |
+| scheduler (`gestion_horarios`) | no auth (decommissioned) | ✅ N/A |
+
+### Still PENDING
+- 🔴 **OS account `dbongianni`** — still has shell + `webdev` write access to production code. Highest remaining risk. Not yet locked.
+- 🔴 **Admin password rotation** — nothing rotated yet:
+  - Priority 1 (shared/reused): `admin@ueipab.edu.ve` (this app + bischeduler), `admin@sistema.com` (minutas).
+  - Priority 2: named admin accounts across apps (policy rotation after departure).
+  - Priority 3: app secrets readable from disk (`SECRET_KEY`, salts, `.env` DB creds); MySQL `root` currently has no password.
