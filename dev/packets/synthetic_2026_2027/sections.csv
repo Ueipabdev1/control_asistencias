@@ -1,0 +1,16 @@
+grade,section,group_label,active
+Nivel 1 maternal,A,1er grupo · A,true
+Nivel 2 maternal,A,2do grupo · A,true
+Nivel 3 maternal,A,3er grupo · A,true
+1er grado primaria,A,1er Grado · A,true
+2do grado primaria,A,2do Grado · A,true
+3er grado primaria,A,3er Grado · A,true
+4to grado primaria,A,4to Grado · A,true
+5to grado primaria,A,5to Grado · A,true
+6to grado primaria,A,6to Grado · A,true
+1er año secundaria,A,1er Año · A,true
+2do año secundaria,A,2do Año · A,true
+3er año secundaria,A,3er Año · A,true
+4to año secundaria,A,4to Año · A,true
+4to año secundaria,B,4to Año · B,true
+5to año secundaria,A,5to Año · A,true

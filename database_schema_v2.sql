@@ -19,6 +19,26 @@ COLLATE utf8mb4_unicode_ci;
 USE control_asistencias;
 
 -- =====================================================
+-- Tabla: anio_escolar
+-- Periodos académicos para secciones, inscripciones e historial
+-- =====================================================
+CREATE TABLE IF NOT EXISTS anio_escolar (
+    id_anio_escolar INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(9) NOT NULL,
+    codigo VARCHAR(4) NOT NULL,
+    fecha_inicio DATE NOT NULL,
+    fecha_fin DATE NOT NULL,
+    es_actual BOOLEAN NOT NULL DEFAULT FALSE,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_anio_escolar_nombre (nombre),
+    UNIQUE KEY unique_anio_escolar_codigo (codigo)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT IGNORE INTO anio_escolar (id_anio_escolar, nombre, codigo, fecha_inicio, fecha_fin, es_actual) VALUES
+(1, '2025-2026', '2526', '2025-09-01', '2026-08-31', TRUE),
+(2, '2026-2027', '2627', '2026-09-01', '2027-08-31', FALSE);
+
+-- =====================================================
 -- Tabla: etapa
 -- Almacena las etapas educativas (Maternal, Primaria, Secundaria)
 -- =====================================================
@@ -57,13 +77,16 @@ CREATE TABLE IF NOT EXISTS grado (
 CREATE TABLE IF NOT EXISTS seccion (
     id_seccion INT AUTO_INCREMENT PRIMARY KEY,
     id_grado INT NOT NULL,
+    id_anio_escolar INT NOT NULL DEFAULT 1,
     nombre_seccion VARCHAR(50) NOT NULL COMMENT 'A, B, C, Única, etc.',
     capacidad_maxima INT DEFAULT NULL COMMENT 'Capacidad máxima de estudiantes (opcional)',
     activa BOOLEAN DEFAULT TRUE,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (id_grado) REFERENCES grado(id_grado) ON DELETE CASCADE,
-    UNIQUE KEY unique_seccion_grado (id_grado, nombre_seccion),
+    FOREIGN KEY (id_anio_escolar) REFERENCES anio_escolar(id_anio_escolar) ON DELETE RESTRICT,
+    UNIQUE KEY unique_seccion_anio_grado_nombre (id_anio_escolar, id_grado, nombre_seccion),
     INDEX idx_grado (id_grado),
+    INDEX idx_anio_escolar (id_anio_escolar),
     INDEX idx_activa (activa)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -127,6 +150,28 @@ CREATE TABLE IF NOT EXISTS estudiante (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =====================================================
+-- Tabla: inscripcion
+-- Una inscripción por estudiante y período académico
+-- =====================================================
+CREATE TABLE IF NOT EXISTS inscripcion (
+    id_inscripcion INT AUTO_INCREMENT PRIMARY KEY,
+    id_estudiante INT NOT NULL,
+    id_seccion INT NOT NULL,
+    id_anio_escolar INT NOT NULL,
+    estado ENUM('activo', 'promovido', 'graduado', 'retirado', 'inactivo') NOT NULL DEFAULT 'activo',
+    origen VARCHAR(50),
+    fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_estudiante) REFERENCES estudiante(id_estudiante) ON DELETE RESTRICT,
+    FOREIGN KEY (id_seccion) REFERENCES seccion(id_seccion) ON DELETE RESTRICT,
+    FOREIGN KEY (id_anio_escolar) REFERENCES anio_escolar(id_anio_escolar) ON DELETE RESTRICT,
+    UNIQUE KEY unique_inscripcion_estudiante_anio (id_estudiante, id_anio_escolar),
+    UNIQUE KEY unique_inscripcion_estudiante (id_estudiante, id_inscripcion),
+    INDEX idx_inscripcion_anio_seccion_estado (id_anio_escolar, id_seccion, estado),
+    INDEX idx_inscripcion_seccion (id_seccion)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =====================================================
 -- Tabla: asistencia_estudiante
 -- Registra la asistencia individual de cada estudiante
 -- Sistema nuevo: marca presente/ausente por estudiante
@@ -134,6 +179,7 @@ CREATE TABLE IF NOT EXISTS estudiante (
 CREATE TABLE IF NOT EXISTS asistencia_estudiante (
     id_asistencia_estudiante INT AUTO_INCREMENT PRIMARY KEY,
     id_estudiante INT NOT NULL,
+    id_inscripcion INT NOT NULL,
     fecha DATE NOT NULL,
     presente BOOLEAN DEFAULT FALSE NOT NULL COMMENT 'TRUE=Presente, FALSE=Ausente',
     observaciones TEXT COMMENT 'Observaciones opcionales (tardanza, justificación, etc.)',
@@ -141,9 +187,11 @@ CREATE TABLE IF NOT EXISTS asistencia_estudiante (
     fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (id_estudiante) REFERENCES estudiante(id_estudiante) ON DELETE CASCADE,
     FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario) ON DELETE SET NULL,
+    FOREIGN KEY (id_estudiante, id_inscripcion) REFERENCES inscripcion(id_estudiante, id_inscripcion) ON DELETE RESTRICT,
     UNIQUE KEY unique_asistencia_estudiante (id_estudiante, fecha),
     INDEX idx_fecha (fecha),
     INDEX idx_estudiante (id_estudiante),
+    INDEX idx_inscripcion (id_inscripcion),
     INDEX idx_presente (presente),
     INDEX idx_fecha_presente (fecha, presente),
     INDEX idx_usuario (id_usuario)

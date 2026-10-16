@@ -1,0 +1,26 @@
+{
+  "academic_period": "2026-2027",
+  "extractedAt": "2026-10-16T00:00:00Z",
+  "files": {
+    "sections.csv": {
+      "rows": 15,
+      "sha256": "7539debaab4fbc8ae28ccafe40e62f1d7a5ff7d94ec92382b7001778941392e1"
+    },
+    "students.csv": {
+      "rows": 30,
+      "sha256": "7fc7af7c9027ef0063c3c756801643e183cd6a2046603f1c62474499f3b62d36"
+    },
+    "teacher_sections.csv": {
+      "rows": 15,
+      "sha256": "4cd2c613c1f77ef51ee7c5a7563ec08a202df5109424973a56d5e4800d118183"
+    }
+  },
+  "publishedAt": "2026-09-16T12:00:00Z",
+  "schedule_id": "SIM-2627-V1",
+  "schema": "migration-packet-v1",
+  "sources": {
+    "sections": "synthetic Kampus structure",
+    "students": "synthetic roster",
+    "teachers": "synthetic Kampus assignments"
+  }
+}

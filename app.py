@@ -9,6 +9,7 @@ from flask_login import LoginManager
 from flask_bcrypt import Bcrypt
 from werkzeug.middleware.proxy_fix import ProxyFix
 from models import db, Etapa, Grado, Usuario, Seccion, ProfesorSeccion, Matricula, Asistencia, Calendario, Estudiante, AsistenciaEstudiante
+from utils.database_safety import assert_safe_test_database_url
 
 app = Flask(__name__)
 
@@ -35,6 +36,8 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
 # Configuración desde variables de entorno
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'tu_clave_secreta_aqui')
+app.config['APP_ENV'] = os.environ.get('APP_ENV', os.environ.get('FLASK_ENV', 'production'))
+app.config['TESTING'] = app.config['APP_ENV'] == 'testing'
 
 # Inicializar Flask-Login
 login_manager.init_app(app)
@@ -49,6 +52,8 @@ bcrypt.init_app(app)
 # En producción (Railway), usa DATABASE_URL de las variables de entorno
 # En desarrollo local, usa la configuración por defecto
 database_url = os.environ.get('DATABASE_URL', 'mysql+pymysql://root:0000@localhost:3306/control_asistencias?charset=utf8mb4')
+if app.config['TESTING']:
+    assert_safe_test_database_url(database_url)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -77,6 +82,8 @@ from routes_estudiantes import estudiantes_bp, asistencia_individual_bp
 from routes_observaciones import observaciones_bp
 from routes_estadisticas import estadisticas_bp
 from routes_calendario import calendario_bp
+from routes_validation import validation_bp
+from routes_structure import structure_bp
 
 app.register_blueprint(main_bp)
 app.register_blueprint(admin_bp)
@@ -86,6 +93,8 @@ app.register_blueprint(asistencia_individual_bp)
 app.register_blueprint(observaciones_bp)
 app.register_blueprint(estadisticas_bp)
 app.register_blueprint(calendario_bp)
+app.register_blueprint(validation_bp)
+app.register_blueprint(structure_bp)
 
 if __name__ == '__main__':
     try:

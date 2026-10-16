@@ -3,8 +3,9 @@ from datetime import datetime, timedelta
 from sqlalchemy import func, and_, extract
 from flask_login import login_user, logout_user, login_required, current_user
 from functools import wraps
-from models import db, Etapa, Grado, Usuario, Seccion, ProfesorSeccion, Matricula, Asistencia, Calendario, Estudiante, AsistenciaEstudiante, SeccionLegacy
+from models import db, Etapa, Grado, Usuario, Seccion, ProfesorSeccion, Matricula, Asistencia, Calendario, Estudiante, AsistenciaEstudiante, SeccionLegacy, Inscripcion
 from app import bcrypt
+from utils.academic_year import current_academic_year
 
 # Decorador para verificar roles
 def admin_required(f):
@@ -46,32 +47,43 @@ def index():
     """Página principal - Control de asistencias"""
     return render_template('index.html', es_admin=current_user.is_admin)
 
+def _matriculas_por_seccion(id_anio_escolar):
+    rows = db.session.query(
+        Inscripcion.id_seccion,
+        Estudiante.genero,
+        func.count(Inscripcion.id_inscripcion),
+    ).join(
+        Estudiante, Inscripcion.id_estudiante == Estudiante.id_estudiante
+    ).filter(
+        Inscripcion.id_anio_escolar == id_anio_escolar,
+        Inscripcion.estado == 'activo',
+    ).group_by(Inscripcion.id_seccion, Estudiante.genero).all()
+    counts = {}
+    for id_seccion, genero, total in rows:
+        section_counts = counts.setdefault(id_seccion, {'M': 0, 'F': 0, 'total': 0})
+        section_counts[genero] = int(total)
+        section_counts['total'] += int(total)
+    return counts
+
 @main_bp.route('/secciones')
 @login_required
 def obtener_secciones():
     """API para obtener lista de secciones con su matrícula"""
-    # Si es administrador, mostrar todas las secciones
-    if current_user.is_admin:
-        secciones = db.session.query(Seccion, Grado, Etapa, Matricula).select_from(Seccion).join(
-            Grado, Seccion.id_grado == Grado.id_grado
-        ).join(
-            Etapa, Grado.id_etapa == Etapa.id_etapa
-        ).outerjoin(
-            Matricula, Seccion.id_seccion == Matricula.id_seccion
-        ).all()
-    else:
-        # Si es profesor, solo mostrar sus secciones asignadas
-        secciones = db.session.query(Seccion, Grado, Etapa, Matricula).select_from(Seccion).join(
-            Grado, Seccion.id_grado == Grado.id_grado
-        ).join(
-            Etapa, Grado.id_etapa == Etapa.id_etapa
-        ).outerjoin(
-            Matricula, Seccion.id_seccion == Matricula.id_seccion
-        ).join(
+    year = current_academic_year()
+    query = db.session.query(Seccion, Grado, Etapa).select_from(Seccion).join(
+        Grado, Seccion.id_grado == Grado.id_grado
+    ).join(
+        Etapa, Grado.id_etapa == Etapa.id_etapa
+    ).filter(
+        Seccion.id_anio_escolar == year.id_anio_escolar,
+        Seccion.activa == True,
+    )
+    if not current_user.is_admin:
+        query = query.join(
             ProfesorSeccion, Seccion.id_seccion == ProfesorSeccion.id_seccion
-        ).filter(
-            ProfesorSeccion.id_profesor == current_user.id_usuario
-        ).all()
+        ).filter(ProfesorSeccion.id_profesor == current_user.id_usuario)
+    secciones = query.order_by(Etapa.id_etapa, Grado.orden, Seccion.nombre_seccion).all()
+    matriculas = _matriculas_por_seccion(year.id_anio_escolar)
 
     return jsonify([{
         'id_seccion': s.Seccion.id_seccion,
@@ -79,9 +91,10 @@ def obtener_secciones():
         'etapa': s.Etapa.nombre_etapa,
         'seccion': s.Seccion.nombre_seccion,
         'grado': s.Grado.nombre_grado,
-        'matricula_h': s.Matricula.num_estudiantes_h if s.Matricula else 0,
-        'matricula_m': s.Matricula.num_estudiantes_m if s.Matricula else 0,
-        'total_matricula': (s.Matricula.num_estudiantes_h + s.Matricula.num_estudiantes_m) if s.Matricula else 0
+        'matricula_h': matriculas.get(s.Seccion.id_seccion, {}).get('M', 0),
+        'matricula_m': matriculas.get(s.Seccion.id_seccion, {}).get('F', 0),
+        'total_matricula': matriculas.get(s.Seccion.id_seccion, {}).get('total', 0),
+        'anio_escolar': year.nombre,
     } for s in secciones])
 
 @main_bp.route('/guardar_asistencia', methods=['POST'])
@@ -241,12 +254,14 @@ def api_logs_asistencia():
             Grado.nombre_grado,
             Etapa.nombre_etapa,
             AsistenciaEstudiante.id_usuario,
-            func.sum(func.case((and_(AsistenciaEstudiante.presente == True, Estudiante.genero == 'M'), 1), else_=0)).label('asistentes_h'),
-            func.sum(func.case((and_(AsistenciaEstudiante.presente == True, Estudiante.genero == 'F'), 1), else_=0)).label('asistentes_m')
+            func.sum(db.case((and_(AsistenciaEstudiante.presente == True, Estudiante.genero == 'M'), 1), else_=0)).label('asistentes_h'),
+            func.sum(db.case((and_(AsistenciaEstudiante.presente == True, Estudiante.genero == 'F'), 1), else_=0)).label('asistentes_m')
+        ).join(
+            Inscripcion, AsistenciaEstudiante.id_inscripcion == Inscripcion.id_inscripcion
         ).join(
             Estudiante, AsistenciaEstudiante.id_estudiante == Estudiante.id_estudiante
         ).join(
-            Seccion, Estudiante.id_seccion == Seccion.id_seccion
+            Seccion, Inscripcion.id_seccion == Seccion.id_seccion
         ).join(
             Grado, Seccion.id_grado == Grado.id_grado
         ).join(
@@ -470,7 +485,9 @@ def obtener_secciones_por_etapa(etapa):
         ).join(
             Etapa, Grado.id_etapa == Etapa.id_etapa
         ).filter(
-            Etapa.nombre_etapa == etapa
+            Etapa.nombre_etapa == etapa,
+            Seccion.id_anio_escolar == current_academic_year().id_anio_escolar,
+            Seccion.activa == True,
         ).all()
 
         return jsonify([{
@@ -496,7 +513,11 @@ def obtener_secciones_profesor(profesor_id):
             Grado, Seccion.id_grado == Grado.id_grado
         ).join(
             Etapa, Grado.id_etapa == Etapa.id_etapa
-        ).filter(ProfesorSeccion.id_profesor == profesor_id).all()
+        ).filter(
+            ProfesorSeccion.id_profesor == profesor_id,
+            Seccion.id_anio_escolar == current_academic_year().id_anio_escolar,
+            Seccion.activa == True,
+        ).all()
 
         secciones = [{
             'id': a.Seccion.id_seccion,
@@ -611,7 +632,11 @@ def obtener_todas_asignaciones():
                 Grado, Seccion.id_grado == Grado.id_grado
             ).join(
                 Etapa, Grado.id_etapa == Etapa.id_etapa
-            ).filter(ProfesorSeccion.id_profesor == profesor.id_usuario).all()
+            ).filter(
+                ProfesorSeccion.id_profesor == profesor.id_usuario,
+                Seccion.id_anio_escolar == current_academic_year().id_anio_escolar,
+                Seccion.activa == True,
+            ).all()
 
             secciones = [{
                 'id': a.Seccion.id_seccion,
@@ -652,36 +677,28 @@ def eliminar_asignaciones_profesor(profesor_id):
 def obtener_matriculas():
     """API para obtener matrículas por género calculadas desde estudiantes"""
     try:
-        resultados = db.session.query(
-            Seccion.id_seccion,
-            Seccion.nombre_seccion,
-            Grado.nombre_grado,
-            Etapa.nombre_etapa,
-            func.sum(db.case((Estudiante.genero == 'M', 1), else_=0)).label('num_h'),
-            func.sum(db.case((Estudiante.genero == 'F', 1), else_=0)).label('num_f'),
-            func.count(Estudiante.id_estudiante).label('total')
-        ).select_from(Seccion).join(
+        year = current_academic_year()
+        secciones = db.session.query(Seccion, Grado, Etapa).select_from(Seccion).join(
             Grado, Seccion.id_grado == Grado.id_grado
         ).join(
             Etapa, Grado.id_etapa == Etapa.id_etapa
-        ).outerjoin(
-            Estudiante, db.and_(Estudiante.id_seccion == Seccion.id_seccion, Estudiante.activo == True)
-        ).group_by(
-            Seccion.id_seccion, Seccion.nombre_seccion, Grado.nombre_grado, Etapa.nombre_etapa
-        ).order_by(
-            Etapa.nombre_etapa, Grado.orden, Seccion.nombre_seccion
-        ).all()
+        ).filter(
+            Seccion.id_anio_escolar == year.id_anio_escolar,
+            Seccion.activa == True,
+        ).order_by(Etapa.nombre_etapa, Grado.orden, Seccion.nombre_seccion).all()
+        matriculas = _matriculas_por_seccion(year.id_anio_escolar)
 
         return jsonify([{
-            'id_seccion': r.id_seccion,
-            'etapa_nombre': r.nombre_etapa,
-            'seccion_nombre': f"{r.nombre_etapa} - {r.nombre_grado} {r.nombre_seccion}",
-            'etapa': r.nombre_etapa,
-            'seccion': f"{r.nombre_grado} {r.nombre_seccion}",
-            'num_estudiantes_h': int(r.num_h or 0),
-            'num_estudiantes_m': int(r.num_f or 0),
-            'total': int(r.total or 0)
-        } for r in resultados])
+            'id_seccion': s.Seccion.id_seccion,
+            'etapa_nombre': s.Etapa.nombre_etapa,
+            'seccion_nombre': f"{s.Etapa.nombre_etapa} - {s.Grado.nombre_grado} {s.Seccion.nombre_seccion}",
+            'etapa': s.Etapa.nombre_etapa,
+            'seccion': f"{s.Grado.nombre_grado} {s.Seccion.nombre_seccion}",
+            'num_estudiantes_h': matriculas.get(s.Seccion.id_seccion, {}).get('M', 0),
+            'num_estudiantes_m': matriculas.get(s.Seccion.id_seccion, {}).get('F', 0),
+            'total': matriculas.get(s.Seccion.id_seccion, {}).get('total', 0),
+            'anio_escolar': year.nombre,
+        } for s in secciones])
 
     except Exception as e:
         return jsonify({'error': f'Error al obtener matrículas: {str(e)}'}), 500
@@ -798,52 +815,42 @@ def eliminar_matricula(id):
 def sincronizar_matriculas():
     """API para sincronizar matrículas con estudiantes registrados"""
     try:
-        # Obtener todas las secciones V2
-        secciones = Seccion.query.all()
-
+        year = current_academic_year()
+        secciones = Seccion.query.filter_by(
+            id_anio_escolar=year.id_anio_escolar,
+            activa=True,
+        ).all()
+        conteos = _matriculas_por_seccion(year.id_anio_escolar)
         creadas = 0
         actualizadas = 0
+        omitidas = 0
 
         for seccion in secciones:
-            # Contar estudiantes por género
-            masculinos = Estudiante.query.filter_by(
-                id_seccion=seccion.id_seccion,
-                activo=True,
-                genero='M'
-            ).count()
-
-            femeninos = Estudiante.query.filter_by(
-                id_seccion=seccion.id_seccion,
-                activo=True,
-                genero='F'
-            ).count()
-
-            # Buscar matrícula existente
+            if not SeccionLegacy.query.get(seccion.id_seccion):
+                omitidas += 1
+                continue
+            conteo = conteos.get(seccion.id_seccion, {'M': 0, 'F': 0})
             matricula = Matricula.query.filter_by(id_seccion=seccion.id_seccion).first()
-
             if matricula:
-                # Actualizar
-                matricula.num_estudiantes_h = masculinos
-                matricula.num_estudiantes_m = femeninos
+                matricula.num_estudiantes_h = conteo['M']
+                matricula.num_estudiantes_m = conteo['F']
                 actualizadas += 1
             else:
-                # Crear nueva
-                nueva_matricula = Matricula(
+                db.session.add(Matricula(
                     id_seccion=seccion.id_seccion,
-                    num_estudiantes_h=masculinos,
-                    num_estudiantes_m=femeninos
-                )
-                db.session.add(nueva_matricula)
+                    num_estudiantes_h=conteo['M'],
+                    num_estudiantes_m=conteo['F'],
+                ))
                 creadas += 1
 
-        # Guardar cambios
         db.session.commit()
 
         return jsonify({
             'success': True,
-            'message': 'Matrículas sincronizadas correctamente',
+            'message': 'Matrículas legacy sincronizadas; secciones sin contraparte legacy omitidas',
             'creadas': creadas,
             'actualizadas': actualizadas,
+            'omitidas': omitidas,
             'total': creadas + actualizadas
         })
 

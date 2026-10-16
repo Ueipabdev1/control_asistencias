@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Estructura académica{% endblock %}
+
+{% block extra_css %}
+<style>
+    .main-container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+    .page-header { background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-radius: 18px; padding: 24px; margin-bottom: 24px; }
+    .page-header h1 { margin: 0 0 8px; font-size: 1.75rem; }
+    .page-header p { margin: 0; opacity: .9; }
+    .panel { background: rgba(30,30,45,.94); border: 1px solid rgba(255,255,255,.1); border-radius: 15px; padding: 22px; margin-bottom: 22px; }
+    .panel h2 { font-size: 1.25rem; margin-bottom: 18px; color: #fff; }
+    .record { background: rgba(50,50,70,.55); border: 1px solid rgba(255,255,255,.08); border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+    .record-meta { color: #c7c7d8; font-size: .85rem; margin-bottom: 10px; }
+    .record-meta .badge { margin-right: 6px; }
+    .form-label { color: #e5e5ef; font-size: .82rem; }
+    .form-control, .form-select { background: rgba(20,20,35,.8); color: #fff; border: 1px solid rgba(255,255,255,.2); }
+    .form-control:focus, .form-select:focus { color: #fff; background: rgba(30,30,50,.9); border-color: #667eea; box-shadow: none; }
+    .form-control[readonly] { opacity: .65; }
+    .form-check-label { color: #e5e5ef; }
+    .btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); border: 0; }
+    .btn-outline-light { border-color: rgba(255,255,255,.35); }
+    .alert { border-radius: 10px; }
+    .small-note { color: #c7c7d8; font-size: .85rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <div class="page-header">
+        <h1>Estructura académica</h1>
+        <p>Administra grados y secciones del período <strong>{{ current_year.nombre }}</strong>. Las secciones históricas son de solo lectura.</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+    {% endwith %}
+
+    <div class="panel">
+        <h2>Crear grado</h2>
+        <form method="post" action="{{ url_for('structure.crear_grado') }}" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label" for="id_etapa">Etapa</label>
+                <select class="form-select" id="id_etapa" name="id_etapa" required>
+                    {% for etapa in etapas %}<option value="{{ etapa.id_etapa }}">{{ etapa.nombre_etapa }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="nombre_grado">Nombre</label>
+                <input class="form-control" id="nombre_grado" name="nombre_grado" required placeholder="Ej. 6to grado">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label" for="orden">Orden</label>
+                <input class="form-control" id="orden" name="orden" type="number" min="1" value="1" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="descripcion">Descripción</label>
+                <input class="form-control" id="descripcion" name="descripcion" placeholder="Opcional">
+            </div>
+            <div class="col-md-1">
+                <div class="form-check mb-2">
+                    <input class="form-check-input" id="activo" name="activo" type="checkbox" checked>
+                    <label class="form-check-label" for="activo">Activo</label>
+                </div>
+            </div>
+            <div class="col-12"><button class="btn btn-primary" type="submit">Crear grado</button></div>
+        </form>
+    </div>
+
+    <div class="panel">
+        <h2>Grados existentes</h2>
+        {% for grado in grados %}
+            <div class="record">
+                <div class="record-meta">
+                    <strong>{{ grado.etapa.nombre_etapa }}</strong>
+                    <span class="badge text-bg-{{ 'success' if grado.activo else 'secondary' }}">{{ 'Activo' if grado.activo else 'Inactivo' }}</span>
+                    <span class="badge text-bg-info">{{ grado.secciones|length }} secciones</span>
+                </div>
+                <form method="post" action="{{ url_for('structure.editar_grado', id_grado=grado.id_grado) }}" class="row g-2 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label">Nombre</label>
+                        <input class="form-control" name="nombre_grado" value="{{ grado.nombre_grado }}" required {% if grado.secciones %}readonly title="No se renombra un grado con secciones"{% endif %}>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Orden</label>
+                        <input class="form-control" name="orden" type="number" min="1" value="{{ grado.orden }}" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Descripción</label>
+                        <input class="form-control" name="descripcion" value="{{ grado.descripcion or '' }}">
+                    </div>
+                    <div class="col-md-1">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" name="activo" type="checkbox" {% if grado.activo %}checked{% endif %}>
+                            <label class="form-check-label">Activo</label>
+                        </div>
+                    </div>
+                    <div class="col-md-2"><button class="btn btn-outline-light btn-sm" type="submit">Guardar</button></div>
+                </form>
+            </div>
+        {% endfor %}
+    </div>
+
+    <div class="panel">
+        <h2>Crear sección en {{ current_year.nombre }}</h2>
+        <form method="post" action="{{ url_for('structure.crear_seccion') }}" class="row g-3 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label" for="id_grado">Grado</label>
+                <select class="form-select" id="id_grado" name="id_grado" required>
+                    {% for grado in grados if grado.activo %}<option value="{{ grado.id_grado }}">{{ grado.etapa.nombre_etapa }} — {{ grado.nombre_grado }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="nombre_seccion">Sección</label>
+                <input class="form-control" id="nombre_seccion" name="nombre_seccion" required placeholder="A, B o Única">
+            </div>
+            <div class="col-md-2">
+                <div class="form-check mb-2">
+                    <input class="form-check-input" id="activa" name="activa" type="checkbox" checked>
+                    <label class="form-check-label" for="activa">Activa</label>
+                </div>
+            </div>
+            <div class="col-md-2"><button class="btn btn-primary" type="submit">Crear sección</button></div>
+        </form>
+        <p class="small-note mt-2 mb-0">U, UNICA y ÚNICA se normalizan como «Única». Los demás códigos se guardan en mayúscula.</p>
+    </div>
+
+    <div class="panel">
+        <h2>Secciones de {{ current_year.nombre }}</h2>
+        {% for seccion in secciones %}
+            <div class="record">
+                <div class="record-meta">
+                    <strong>{{ seccion.grado.nombre_grado }}</strong>
+                    <span class="badge text-bg-{{ 'success' if seccion.activa else 'secondary' }}">{{ 'Activa' if seccion.activa else 'Inactiva' }}</span>
+                    <span class="badge text-bg-info">{{ seccion.inscripciones|length }} inscripciones</span>
+                </div>
+                <form method="post" action="{{ url_for('structure.editar_seccion', id_seccion=seccion.id_seccion) }}" class="row g-2 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label">Sección</label>
+                        <input class="form-control" name="nombre_seccion" value="{{ seccion.nombre_seccion }}" required {% if seccion.inscripciones %}readonly title="No se renombra una sección con inscripciones"{% endif %}>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" name="activa" type="checkbox" {% if seccion.activa %}checked{% endif %}>
+                            <label class="form-check-label">Activa</label>
+                        </div>
+                    </div>
+                    <div class="col-md-2"><button class="btn btn-outline-light btn-sm" type="submit">Guardar</button></div>
+                </form>
+            </div>
+        {% else %}
+            <p class="small-note">No hay secciones en este período.</p>
+        {% endfor %}
+    </div>
+
+    <a href="{{ url_for('validation.validacion_matricula') }}">Volver a validación académica</a>
+</div>
+{% endblock %}

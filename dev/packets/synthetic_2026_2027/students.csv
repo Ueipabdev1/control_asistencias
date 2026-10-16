@@ -1,0 +1,31 @@
+source_student_id,student_name,match_key,target_grade,section,status,grade_is_target,section_source,review_required
+SIM-STU-0001,Estudiante01 Sintético,TEST0001,Nivel 2 maternal,A,continuing,false,kampus,false
+SIM-STU-0002,Estudiante02 Sintético,TEST0002,Nivel 2 maternal,A,continuing,false,kampus,false
+SIM-STU-0003,Estudiante03 Sintético,TEST0003,Nivel 3 maternal,A,continuing,false,kampus,false
+SIM-STU-0004,Estudiante04 Sintético,TEST0004,Nivel 3 maternal,A,continuing,false,kampus,false
+SIM-STU-0005,Estudiante05 Sintético,TEST0005,1er grado primaria,A,continuing,false,kampus,false
+SIM-STU-0006,Estudiante06 Sintético,TEST0006,1er grado primaria,A,continuing,false,kampus,false
+SIM-STU-0007,Estudiante07 Sintético,TEST0007,2do grado primaria,A,continuing,false,kampus,false
+SIM-STU-0008,Estudiante08 Sintético,TEST0008,2do grado primaria,A,continuing,false,kampus,false
+SIM-STU-0009,Estudiante09 Sintético,TEST0009,3er grado primaria,A,continuing,false,kampus,false
+SIM-STU-0010,Estudiante10 Sintético,TEST0010,3er grado primaria,A,continuing,false,kampus,false
+SIM-STU-0011,Estudiante11 Sintético,TEST0011,4to grado primaria,A,continuing,false,kampus,false
+SIM-STU-0012,Estudiante12 Sintético,TEST0012,4to grado primaria,A,continuing,false,kampus,false
+SIM-STU-0013,Estudiante13 Sintético,TEST0013,5to grado primaria,A,continuing,false,kampus,false
+SIM-STU-0014,Estudiante14 Sintético,TEST0014,5to grado primaria,A,continuing,false,kampus,false
+SIM-STU-0015,Estudiante15 Sintético,TEST0015,6to grado primaria,A,continuing,false,kampus,false
+SIM-STU-0016,Estudiante16 Sintético,TEST0016,6to grado primaria,A,continuing,false,kampus,false
+SIM-STU-0017,Estudiante17 Sintético,TEST0017,1er año secundaria,A,continuing,false,kampus,false
+SIM-STU-0018,Estudiante18 Sintético,TEST0018,1er año secundaria,A,continuing,false,kampus,false
+SIM-STU-0019,Estudiante19 Sintético,TEST0019,2do año secundaria,A,continuing,false,kampus,false
+SIM-STU-0020,Estudiante20 Sintético,TEST0020,2do año secundaria,A,continuing,false,kampus,false
+SIM-STU-0021,Estudiante21 Sintético,TEST0021,3er año secundaria,A,continuing,false,kampus,false
+SIM-STU-0022,Estudiante22 Sintético,TEST0022,3er año secundaria,A,continuing,false,kampus,false
+SIM-STU-0023,Estudiante23 Sintético,TEST0023,4to año secundaria,A,continuing,false,roster,false
+SIM-STU-0024,Estudiante24 Sintético,TEST0024,4to año secundaria,A,continuing,false,roster,false
+SIM-STU-0025,Estudiante25 Sintético,TEST0025,4to año secundaria,B,continuing,false,roster,false
+SIM-STU-0026,Estudiante26 Sintético,TEST0026,4to año secundaria,B,continuing,false,roster,false
+SIM-STU-0027,Estudiante27 Sintético,TEST0027,5to año secundaria,A,continuing,false,kampus,false
+SIM-STU-0028,Estudiante28 Sintético,TEST0028,5to año secundaria,A,continuing,false,kampus,false
+SIM-STU-0029,Estudiante29 Sintético,TEST0029,,,graduated,false,,false
+SIM-STU-0030,Estudiante30 Sintético,TEST0030,,,graduated,false,,false

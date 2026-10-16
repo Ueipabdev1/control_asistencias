@@ -1,59 +1,61 @@
-"""
-Script para sincronizar las matrículas legacy con los estudiantes individuales
-"""
 from app import app, db
-from models import Matricula, Estudiante, Seccion
+from models import Estudiante, Inscripcion, Matricula, Seccion, SeccionLegacy
+from utils.academic_year import current_academic_year
 
 with app.app_context():
-    print("\n" + "="*60)
-    print("SINCRONIZACIÓN DE MATRÍCULAS")
-    print("="*60)
-    
-    # Obtener todas las secciones
-    secciones = Seccion.query.all()
-    
+    print("\n" + "=" * 60)
+    print("SINCRONIZACIÓN DE MATRÍCULAS LEGACY")
+    print("=" * 60)
+
+    year = current_academic_year()
+    secciones = Seccion.query.filter_by(
+        id_anio_escolar=year.id_anio_escolar,
+        activa=True,
+    ).all()
     creadas = 0
     actualizadas = 0
-    
+    omitidas = 0
+
     for seccion in secciones:
-        # Contar estudiantes por género
-        masculinos = Estudiante.query.filter_by(
-            id_seccion=seccion.id_seccion,
-            activo=True,
-            genero='M'
+        if not SeccionLegacy.query.get(seccion.id_seccion):
+            omitidas += 1
+            continue
+
+        masculinos = Inscripcion.query.join(
+            Estudiante, Inscripcion.id_estudiante == Estudiante.id_estudiante
+        ).filter(
+            Inscripcion.id_seccion == seccion.id_seccion,
+            Inscripcion.id_anio_escolar == year.id_anio_escolar,
+            Inscripcion.estado == 'activo',
+            Estudiante.genero == 'M',
         ).count()
-        
-        femeninos = Estudiante.query.filter_by(
-            id_seccion=seccion.id_seccion,
-            activo=True,
-            genero='F'
+        femeninos = Inscripcion.query.join(
+            Estudiante, Inscripcion.id_estudiante == Estudiante.id_estudiante
+        ).filter(
+            Inscripcion.id_seccion == seccion.id_seccion,
+            Inscripcion.id_anio_escolar == year.id_anio_escolar,
+            Inscripcion.estado == 'activo',
+            Estudiante.genero == 'F',
         ).count()
-        
-        # Buscar matrícula existente
+
         matricula = Matricula.query.filter_by(id_seccion=seccion.id_seccion).first()
-        
         if matricula:
-            # Actualizar
             matricula.num_estudiantes_h = masculinos
             matricula.num_estudiantes_m = femeninos
             actualizadas += 1
-            print(f"✅ Actualizada: {seccion.nombre_completo} ({masculinos}H + {femeninos}M)")
+            print(f"Actualizada: {seccion.nombre_completo} ({masculinos}H + {femeninos}M)")
         else:
-            # Crear nueva
-            nueva_matricula = Matricula(
+            db.session.add(Matricula(
                 id_seccion=seccion.id_seccion,
                 num_estudiantes_h=masculinos,
-                num_estudiantes_m=femeninos
-            )
-            db.session.add(nueva_matricula)
+                num_estudiantes_m=femeninos,
+            ))
             creadas += 1
-            print(f"➕ Creada: {seccion.nombre_completo} ({masculinos}H + {femeninos}M)")
-    
-    # Guardar cambios
+            print(f"Creada: {seccion.nombre_completo} ({masculinos}H + {femeninos}M)")
+
     db.session.commit()
-    
-    print("\n" + "="*60)
-    print(f"✅ Matrículas creadas: {creadas}")
-    print(f"🔄 Matrículas actualizadas: {actualizadas}")
-    print(f"📊 Total: {creadas + actualizadas}")
-    print("="*60)
+    print("\n" + "=" * 60)
+    print(f"Matrículas creadas: {creadas}")
+    print(f"Matrículas actualizadas: {actualizadas}")
+    print(f"Secciones sin contraparte legacy omitidas: {omitidas}")
+    print("=" * 60)

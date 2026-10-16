@@ -4,6 +4,20 @@ from datetime import datetime
 
 db = SQLAlchemy()
 
+class AnioEscolar(db.Model):
+    __tablename__ = 'anio_escolar'
+
+    id_anio_escolar = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(9), nullable=False, unique=True)
+    codigo = db.Column(db.String(4), nullable=False, unique=True)
+    fecha_inicio = db.Column(db.Date, nullable=False)
+    fecha_fin = db.Column(db.Date, nullable=False)
+    es_actual = db.Column(db.Boolean, nullable=False, default=False)
+    fecha_creacion = db.Column(db.TIMESTAMP, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<AnioEscolar {self.nombre}>'
+
 # Modelo para etapas educativas
 class Etapa(db.Model):
     __tablename__ = 'etapa'
@@ -76,12 +90,14 @@ class Seccion(db.Model):
 
     id_seccion = db.Column(db.Integer, primary_key=True)
     id_grado = db.Column(db.Integer, db.ForeignKey('grado.id_grado', ondelete='CASCADE'), nullable=False)
+    id_anio_escolar = db.Column(db.Integer, db.ForeignKey('anio_escolar.id_anio_escolar', ondelete='RESTRICT'), nullable=False)
     nombre_seccion = db.Column(db.String(50), nullable=False)
     activa = db.Column(db.Boolean, default=True)
 
     # Relaciones
     profesores = db.relationship('ProfesorSeccion', backref='seccion', lazy=True)
     estudiantes = db.relationship('Estudiante', backref='seccion', lazy=True)
+    inscripciones = db.relationship('Inscripcion', backref='seccion', lazy=True)
 
     @property
     def nombre_completo(self):
@@ -141,6 +157,7 @@ class Estudiante(db.Model):
 
     # Relaciones
     asistencias = db.relationship('AsistenciaEstudiante', backref='estudiante', lazy=True, cascade='all, delete-orphan')
+    inscripciones = db.relationship('Inscripcion', backref='estudiante', lazy=True)
 
     @property
     def nombre_completo(self):
@@ -153,12 +170,45 @@ class Estudiante(db.Model):
     def __repr__(self):
         return f'<Estudiante {self.cedula} - {self.nombre} {self.apellido}>'
 
+class Inscripcion(db.Model):
+    __tablename__ = 'inscripcion'
+
+    id_inscripcion = db.Column(db.Integer, primary_key=True)
+    id_estudiante = db.Column(db.Integer, db.ForeignKey('estudiante.id_estudiante', ondelete='RESTRICT'), nullable=False)
+    id_seccion = db.Column(db.Integer, db.ForeignKey('seccion.id_seccion', ondelete='RESTRICT'), nullable=False)
+    id_anio_escolar = db.Column(db.Integer, db.ForeignKey('anio_escolar.id_anio_escolar', ondelete='RESTRICT'), nullable=False)
+    estado = db.Column(db.Enum('activo', 'promovido', 'graduado', 'retirado', 'inactivo'), nullable=False, default='activo')
+    origen = db.Column(db.String(50))
+    fecha_registro = db.Column(db.TIMESTAMP, default=datetime.utcnow)
+    fecha_actualizacion = db.Column(db.TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    anio_escolar = db.relationship('AnioEscolar', backref='inscripciones', lazy=True)
+
+    __table_args__ = (
+        db.UniqueConstraint('id_estudiante', 'id_anio_escolar', name='unique_inscripcion_estudiante_anio'),
+        db.UniqueConstraint('id_estudiante', 'id_inscripcion', name='unique_inscripcion_estudiante'),
+        db.Index('idx_inscripcion_anio_seccion_estado', 'id_anio_escolar', 'id_seccion', 'estado'),
+        db.Index('idx_inscripcion_seccion', 'id_seccion'),
+    )
+
+    @property
+    def genero(self):
+        return self.estudiante.genero
+
+    @property
+    def nombre_completo(self):
+        return self.estudiante.nombre_completo
+
+    def __repr__(self):
+        return f'<Inscripcion {self.id_inscripcion} - Estudiante:{self.id_estudiante} {self.estado}>'
+
 # Modelo para asistencia individual por estudiante (V2)
 class AsistenciaEstudiante(db.Model):
     __tablename__ = 'asistencia_estudiante'
 
     id_asistencia_estudiante = db.Column(db.Integer, primary_key=True)
     id_estudiante = db.Column(db.Integer, db.ForeignKey('estudiante.id_estudiante', ondelete='CASCADE'), nullable=False)
+    id_inscripcion = db.Column(db.Integer, nullable=False)
     fecha = db.Column(db.Date, nullable=False, index=True)
     bloque = db.Column(db.Enum('completo', 'bloque_1', 'bloque_2', 'bloque_3', 'bloque_4'), nullable=False, default='completo', comment='Bloque de clase: completo=todo el dia')
     presente = db.Column(db.Boolean, default=False, nullable=False, comment='TRUE=Presente, FALSE=Ausente')
@@ -166,10 +216,19 @@ class AsistenciaEstudiante(db.Model):
     id_usuario = db.Column(db.Integer, db.ForeignKey('usuario.id_usuario', ondelete='SET NULL'), nullable=True, comment='Usuario que registró')
     fecha_registro = db.Column(db.TIMESTAMP, default=datetime.utcnow)
 
+    inscripcion = db.relationship('Inscripcion', backref='asistencias', lazy=True, foreign_keys=[id_inscripcion])
+
     # Constraint único: un estudiante solo puede tener una asistencia por fecha y bloque
     __table_args__ = (
         db.UniqueConstraint('id_estudiante', 'fecha', 'bloque', name='unique_asistencia_estudiante_bloque'),
-        db.Index('idx_fecha_presente', 'fecha', 'presente')
+        db.ForeignKeyConstraint(
+            ['id_estudiante', 'id_inscripcion'],
+            ['inscripcion.id_estudiante', 'inscripcion.id_inscripcion'],
+            name='fk_asistencia_inscripcion_estudiante',
+            ondelete='RESTRICT',
+        ),
+        db.Index('idx_fecha_presente', 'fecha', 'presente'),
+        db.Index('idx_asistencia_inscripcion', 'id_inscripcion'),
     )
 
     @property

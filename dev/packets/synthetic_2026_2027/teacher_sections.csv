@@ -1,0 +1,16 @@
+teacher_profile_id,teacher_name,work_email,grade,section
+SIM-T001,Profesora Synthetic,teacher1@dev.test,Nivel 1 maternal,A
+SIM-T001,Profesora Synthetic,teacher1@dev.test,Nivel 2 maternal,A
+SIM-T001,Profesora Synthetic,teacher1@dev.test,Nivel 3 maternal,A
+SIM-T001,Profesora Synthetic,teacher1@dev.test,1er grado primaria,A
+SIM-T001,Profesora Synthetic,teacher1@dev.test,2do grado primaria,A
+SIM-T001,Profesora Synthetic,teacher1@dev.test,3er grado primaria,A
+SIM-T001,Profesora Synthetic,teacher1@dev.test,4to grado primaria,A
+SIM-T001,Profesora Synthetic,teacher1@dev.test,5to grado primaria,A
+SIM-T002,Profesor Synthetic,teacher2@dev.test,6to grado primaria,A
+SIM-T002,Profesor Synthetic,teacher2@dev.test,1er año secundaria,A
+SIM-T002,Profesor Synthetic,teacher2@dev.test,2do año secundaria,A
+SIM-T002,Profesor Synthetic,teacher2@dev.test,3er año secundaria,A
+SIM-T002,Profesor Synthetic,teacher2@dev.test,4to año secundaria,A
+SIM-T002,Profesor Synthetic,teacher2@dev.test,4to año secundaria,B
+SIM-T002,Profesor Synthetic,teacher2@dev.test,5to año secundaria,A

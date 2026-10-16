@@ -10,8 +10,9 @@ Estructura esperada del Excel:
 """
 
 import pandas as pd
-from models import db, Estudiante, Seccion, Grado, Etapa
+from models import db, Estudiante, Seccion, Grado, Etapa, Inscripcion
 from sqlalchemy import or_
+from utils.academic_year import current_academic_year, sync_current_enrollment
 
 def limpiar_texto(texto):
     """Limpia y normaliza texto"""
@@ -78,19 +79,27 @@ def buscar_seccion(nombre_grado, nombre_seccion):
     
     # Buscar grado que contenga el nombre
     grado = db.session.query(Grado).filter(
-        Grado.nombre_grado.ilike(f'%{nombre_grado}%')
+        Grado.nombre_grado.ilike(f'%{nombre_grado}%'),
+        Grado.activo == True,
     ).first()
     
     if not grado:
         return None
     
     # Buscar sección dentro del grado
-    seccion = db.session.query(Seccion).filter(
+    candidatas = db.session.query(Seccion).filter(
         Seccion.id_grado == grado.id_grado,
-        Seccion.nombre_seccion.ilike(f'%{nombre_seccion}%')
-    ).first()
-    
-    return seccion
+        Seccion.id_anio_escolar == current_academic_year().id_anio_escolar,
+        Seccion.activa == True,
+    ).all()
+    if nombre_seccion in ('u', 'única'):
+        exactas = [s for s in candidatas if s.nombre_seccion.lower() in ('u', 'única')]
+        if exactas:
+            return exactas[0]
+        if len(candidatas) == 1 and candidatas[0].nombre_seccion == 'A':
+            return candidatas[0]
+        return None
+    return next((s for s in candidatas if nombre_seccion in s.nombre_seccion.lower()), None)
 
 def detectar_fila_encabezado(file_path):
     """
@@ -197,6 +206,7 @@ def procesar_excel_estudiantes(file_path, sobrescribir=False):
                         estudiante_existente.genero = genero
                         estudiante_existente.id_seccion = seccion.id_seccion
                         estudiante_existente.activo = True
+                        sync_current_enrollment(estudiante_existente, seccion, origen='excel')
                         
                         estudiantes_actualizados.append({
                             'cedula': cedula,
@@ -225,6 +235,8 @@ def procesar_excel_estudiantes(file_path, sobrescribir=False):
                 )
                 
                 db.session.add(nuevo_estudiante)
+                db.session.flush()
+                sync_current_enrollment(nuevo_estudiante, seccion, origen='excel')
                 
                 estudiantes_procesados.append({
                     'cedula': cedula,
@@ -278,26 +290,37 @@ def obtener_estadisticas_carga():
     Retorna estadísticas generales de estudiantes cargados
     """
     try:
-        total_estudiantes = Estudiante.query.filter_by(activo=True).count()
+        year = current_academic_year()
+        total_estudiantes = Inscripcion.query.filter_by(
+            id_anio_escolar=year.id_anio_escolar,
+            estado='activo',
+        ).count()
         estudiantes_por_genero = db.session.query(
             Estudiante.genero,
-            db.func.count(Estudiante.id_estudiante)
-        ).filter_by(activo=True).group_by(Estudiante.genero).all()
+            db.func.count(Inscripcion.id_inscripcion)
+        ).join(
+            Inscripcion, Inscripcion.id_estudiante == Estudiante.id_estudiante
+        ).filter(
+            Inscripcion.id_anio_escolar == year.id_anio_escolar,
+            Inscripcion.estado == 'activo',
+        ).group_by(Estudiante.genero).all()
         
         estudiantes_por_seccion = db.session.query(
             Seccion.id_seccion,
             Seccion.nombre_seccion,
             Grado.nombre_grado,
             Etapa.nombre_etapa,
-            db.func.count(Estudiante.id_estudiante)
+            db.func.count(Inscripcion.id_inscripcion)
         ).join(
-            Estudiante, Seccion.id_seccion == Estudiante.id_seccion
+            Inscripcion, Seccion.id_seccion == Inscripcion.id_seccion
         ).join(
             Grado, Seccion.id_grado == Grado.id_grado
         ).join(
             Etapa, Grado.id_etapa == Etapa.id_etapa
         ).filter(
-            Estudiante.activo == True
+            Seccion.id_anio_escolar == year.id_anio_escolar,
+            Seccion.activa == True,
+            Inscripcion.estado == 'activo',
         ).group_by(
             Seccion.id_seccion, Seccion.nombre_seccion, Grado.nombre_grado, Etapa.nombre_etapa
         ).all()

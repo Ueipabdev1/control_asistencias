@@ -368,6 +368,10 @@
                     <i class="fas fa-users"></i>
                     <span>Gestión de Matrícula</span>
                 </a>
+                <a href="{{ url_for('structure.gestion_estructura') }}" class="menu-item {% if request.endpoint == 'structure.gestion_estructura' %}active{% endif %}">
+                    <i class="fas fa-sitemap"></i>
+                    <span>Estructura académica</span>
+                </a>
                 <a href="{{ url_for('main.gestion_profesores') }}" class="menu-item {% if request.endpoint == 'main.gestion_profesores' %}active{% endif %}">
                     <i class="fas fa-chalkboard-teacher"></i>
                     <span>Gestión de Profesores</span>

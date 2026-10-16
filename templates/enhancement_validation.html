@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Validación académica</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2rem; background: #f5f7fb; color: #1f2937; }
+        h1 { color: #1e3a8a; }
+        .cards { display: flex; flex-wrap: wrap; gap: 1rem; margin: 1.5rem 0; }
+        .card { background: white; border-radius: 10px; padding: 1rem 1.25rem; min-width: 180px; box-shadow: 0 2px 8px #0001; }
+        .card strong { display: block; font-size: 1.75rem; color: #1e40af; }
+        table { width: 100%; border-collapse: collapse; background: white; margin-bottom: 1.5rem; }
+        th, td { padding: .65rem; border-bottom: 1px solid #e5e7eb; text-align: left; }
+        th { background: #eaf0fb; }
+        .ok { color: #166534; font-weight: bold; }
+        .warning { color: #b45309; font-weight: bold; }
+        .actions { margin-bottom: 1rem; }
+    </style>
+</head>
+<body>
+    <h1>Validación del período académico</h1>
+    <p>Período actual: <strong>{{ current_year.nombre }}</strong></p>
+    <div class="actions">
+        <a href="{{ url_for('main.obtener_secciones') }}">Ver secciones JSON</a> ·
+        <a href="{{ url_for('estadisticas.obtener_estadisticas', fecha_inicio='2026-03-02', fecha_fin='2026-03-03') }}">Ver estadísticas históricas JSON</a> ·
+        <a href="{{ url_for('structure.gestion_estructura') }}">Administrar estructura</a>
+    </div>
+
+    <div class="cards">
+        <div class="card">Secciones actuales<strong>{{ section_rows|length }}</strong></div>
+        <div class="card">Estudiantes activos<strong>{{ years|selectattr('es_actual')|map(attribute='activos')|sum }}</strong></div>
+        <div class="card">Asistencias preservadas<strong>{{ total_asistencias }}</strong></div>
+        <div class="card">Sin inscripción<strong>{{ integrity.asistencias_sin_inscripcion }}</strong></div>
+    </div>
+
+    <h2>Integridad</h2>
+    <table>
+        <tr><th>Comprobación</th><th>Resultado</th></tr>
+        <tr><td>Periodos marcados como actual</td><td class="{{ 'ok' if integrity.periodos_actuales == 1 else 'warning' }}">{{ integrity.periodos_actuales }}</td></tr>
+        <tr><td>Asistencias sin inscripción</td><td class="{{ 'ok' if integrity.asistencias_sin_inscripcion == 0 else 'warning' }}">{{ integrity.asistencias_sin_inscripcion }}</td></tr>
+        <tr><td>Estudiantes activos sin inscripción actual</td><td class="{{ 'ok' if integrity.estudiantes_activos_sin_inscripcion == 0 else 'warning' }}">{{ integrity.estudiantes_activos_sin_inscripcion }}</td></tr>
+    </table>
+
+    <h2>Periodos</h2>
+    <table>
+        <thead><tr><th>Periodo</th><th>Actual</th><th>Secciones</th><th>Inscripciones</th><th>Activos</th><th>Graduados</th><th>Asistencias</th></tr></thead>
+        <tbody>
+        {% for year in years %}
+            <tr>
+                <td>{{ year.nombre }}</td>
+                <td>{{ 'Sí' if year.es_actual else 'No' }}</td>
+                <td>{{ year.secciones }}</td>
+                <td>{{ year.inscripciones }}</td>
+                <td>{{ year.activos }}</td>
+                <td>{{ year.graduados }}</td>
+                <td>{{ year.asistencias }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Secciones del período actual</h2>
+    <table>
+        <thead><tr><th>ID</th><th>Grado ID</th><th>Sección</th><th>Estudiantes activos</th></tr></thead>
+        <tbody>
+        {% for row in section_rows %}
+            <tr><td>{{ row.id_seccion }}</td><td>{{ row.id_grado }}</td><td>{{ row.nombre_seccion }}</td><td>{{ row[3] }}</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

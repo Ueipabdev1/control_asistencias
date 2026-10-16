@@ -138,6 +138,11 @@ celerybeat.pid
 .env
 .envrc
 .venv
+.env.dev
+
+# Local development rehearsal data
+dev/backups/
+dev/reports/
 
 # Git credentials (sensitive)
 git_credentials.json

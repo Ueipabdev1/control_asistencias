@@ -9,8 +9,15 @@ from datetime import datetime, date
 import os
 from werkzeug.utils import secure_filename
 
-from models import db, Estudiante, Seccion, Grado, Etapa, AsistenciaEstudiante, ObservacionSeccion
+from models import db, Estudiante, Seccion, Grado, Etapa, AsistenciaEstudiante, ObservacionSeccion, Inscripcion
 from utils.excel_processor import procesar_excel_estudiantes, obtener_estadisticas_carga
+from utils.academic_year import (
+    current_academic_year,
+    deactivate_current_enrollment,
+    enrollment_for_student_date,
+    section_enrollments,
+    sync_current_enrollment,
+)
 
 # Blueprint para estudiantes
 estudiantes_bp = Blueprint('estudiantes', __name__, url_prefix='/api/estudiantes')
@@ -109,10 +116,9 @@ def obtener_estudiantes_seccion(id_seccion):
             return jsonify({'error': 'Sección no encontrada'}), 404
         
         # Obtener estudiantes activos de la sección
-        estudiantes = Estudiante.query.filter_by(
-            id_seccion=id_seccion,
-            activo=True
-        ).order_by(Estudiante.apellido, Estudiante.nombre).all()
+        estudiantes = section_enrollments(id_seccion, current_only=True).join(
+            Estudiante, Inscripcion.id_estudiante == Estudiante.id_estudiante
+        ).with_entities(Estudiante).order_by(Estudiante.apellido, Estudiante.nombre).all()
         
         return jsonify({
             'seccion': {
@@ -162,9 +168,13 @@ def crear_estudiante():
             return jsonify({'error': 'El género debe ser M o F'}), 400
 
         # Verificar que la sección existe
-        seccion = Seccion.query.get(id_seccion)
+        seccion = Seccion.query.filter_by(
+            id_seccion=id_seccion,
+            id_anio_escolar=current_academic_year().id_anio_escolar,
+            activa=True,
+        ).first()
         if not seccion:
-            return jsonify({'error': 'Sección no encontrada'}), 404
+            return jsonify({'error': 'Sección no encontrada en el período actual'}), 404
 
         # Verificar que la cédula no esté duplicada
         existente = Estudiante.query.filter_by(cedula=cedula, activo=True).first()
@@ -182,6 +192,8 @@ def crear_estudiante():
         )
 
         db.session.add(nuevo_estudiante)
+        db.session.flush()
+        sync_current_enrollment(nuevo_estudiante, seccion, origen='manual')
         db.session.commit()
 
         return jsonify({
@@ -265,11 +277,25 @@ def actualizar_estudiante(id_estudiante):
             estudiante.cedula = data['cedula'].strip()
         if 'genero' in data and data['genero'] in ['M', 'F']:
             estudiante.genero = data['genero']
+        nueva_seccion = None
         if 'id_seccion' in data:
-            estudiante.id_seccion = data['id_seccion']
+            nueva_seccion = Seccion.query.filter_by(
+                id_seccion=data['id_seccion'],
+                id_anio_escolar=current_academic_year().id_anio_escolar,
+                activa=True,
+            ).first()
+            if not nueva_seccion:
+                return jsonify({'error': 'Sección no encontrada en el período actual'}), 404
+        nuevo_estado = 'activo' if estudiante.activo else 'retirado'
         if 'activo' in data:
-            estudiante.activo = bool(data['activo'])
-        
+            nuevo_estado = 'activo' if data['activo'] else 'retirado'
+        sync_current_enrollment(
+            estudiante,
+            nueva_seccion or estudiante.seccion,
+            estado=nuevo_estado,
+            origen='manual',
+        )
+
         db.session.commit()
         
         return jsonify({
@@ -300,7 +326,7 @@ def eliminar_estudiante(id_estudiante):
             return jsonify({'error': 'Estudiante no encontrado'}), 404
         
         # Desactivar en lugar de eliminar
-        estudiante.activo = False
+        deactivate_current_enrollment(estudiante)
         db.session.commit()
         
         return jsonify({
@@ -355,6 +381,8 @@ def registrar_asistencia():
                     errores.append(f'Estudiante {id_estudiante} no encontrado')
                     continue
                 
+                inscripcion = enrollment_for_student_date(id_estudiante, fecha)
+
                 # Buscar asistencia existente
                 asistencia_existente = AsistenciaEstudiante.query.filter_by(
                     id_estudiante=id_estudiante,
@@ -366,11 +394,13 @@ def registrar_asistencia():
                     asistencia_existente.presente = presente
                     asistencia_existente.observaciones = observaciones
                     asistencia_existente.id_usuario = current_user.id_usuario
+                    asistencia_existente.id_inscripcion = inscripcion.id_inscripcion
                     registros_actualizados += 1
                 else:
                     # Crear nuevo registro
                     nueva_asistencia = AsistenciaEstudiante(
                         id_estudiante=id_estudiante,
+                        id_inscripcion=inscripcion.id_inscripcion,
                         fecha=fecha,
                         presente=presente,
                         observaciones=observaciones,
@@ -595,15 +625,7 @@ def guardar_asistencia_individual():
                     continue
 
                 # Verificar que el estudiante existe y pertenece a la sección
-                estudiante = Estudiante.query.filter_by(
-                    id_estudiante=id_estudiante,
-                    id_seccion=id_seccion,
-                    activo=True
-                ).first()
-
-                if not estudiante:
-                    errores.append(f'Estudiante {id_estudiante} no encontrado en esta sección')
-                    continue
+                inscripcion = enrollment_for_student_date(id_estudiante, fecha, id_seccion)
 
                 # Buscar asistencia existente para este bloque
                 asistencia_existente = AsistenciaEstudiante.query.filter_by(
@@ -617,11 +639,13 @@ def guardar_asistencia_individual():
                     asistencia_existente.presente = presente
                     asistencia_existente.observaciones = observaciones
                     asistencia_existente.id_usuario = current_user.id_usuario
+                    asistencia_existente.id_inscripcion = inscripcion.id_inscripcion
                     registros_actualizados += 1
                 else:
                     # Crear nuevo registro
                     nueva_asistencia = AsistenciaEstudiante(
                         id_estudiante=id_estudiante,
+                        id_inscripcion=inscripcion.id_inscripcion,
                         fecha=fecha,
                         bloque=bloque,
                         presente=presente,
