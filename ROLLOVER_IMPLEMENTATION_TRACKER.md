@@ -2,10 +2,11 @@
 
 **Purpose:** Track the database enhancement, application changes, migration rehearsals, and eventual next-grade rollover without risking production data or historical attendance attribution.
 
-**Current phase:** Window A synthetic rehearsal complete — authorized production-copy rehearsal pending
+**Current phase:** Window A real production-copy rehearsal complete — final production execution gates pending
 **Production status:** Untouched
-**Development environment:** Ready
-**Full production-data rehearsal:** Not performed
+**Development environment:** Real-copy app services stopped; only the isolated database is running
+**Window A production-data rehearsal:** Complete, including forced-failure recovery
+**Window B production-data rehearsal:** Not performed
 
 Related documents:
 
@@ -35,9 +36,10 @@ No production schema or data changes have been made.
 | 3. Schema migration in dev | Add academic years, enrollments, year-specific sections, and attendance-to-enrollment relationship | Migration applies cleanly to the as-is development schema without deleting existing records | **Done** |
 | 4. Historical backfill in dev | Enroll existing students in the current academic year and link existing attendance to the correct enrollment | Every attendance row retains its original student, section, and academic year; no orphaned rows | **Done** |
 | 5. Application compatibility | Update attendance writes, logs, statistics, section lists, teacher views, enrollment counts, and Excel import | Current operations work with the new model; historical queries no longer rely on current section or active status | **Done** |
-| 6. Automated regression tests | Test promotions, fourth-year A/B mapping, graduation archiving, historical attribution, imports, structure/period administration, real-extraction mapping, authorization, attendance policy, and Window A migration guards | 94 tests passing; no duplicate promotion, missing student, deleted history, changed historical attribution, or unsafe Window A state transition | **Done** |
-| 7. Full production-copy rehearsal | Restore an authorized current dump into `control_asistencias_dev`, capture baseline aggregates, run the complete migration, and compare results | All students mapped; all attendance and observations preserved; historical reports match before/after | Pending |
-| 8. Production runbook and approval | Document commands, maintenance window, fresh backup, write freeze, validation, and rollback | Window A runbook drafted and synthetically rehearsed; clean release and explicit production execution readiness still pending | **In progress** |
+| 6. Automated regression tests | Test promotions, fourth-year A/B mapping, graduation archiving, historical attribution, imports, structure/period administration, real-extraction mapping, authorization, attendance policy, and Window A migration guards | 95 tests passing; no duplicate promotion, missing student, deleted history, changed historical attribution, or unsafe Window A state transition | **Done** |
+| 7A. Window A production-copy rehearsal | Restore the authorized current dump into `control_asistencias_dev`, capture baselines, run schema/backfill, forced-failure recovery, and HTTP verification | All 227 students, 39,009 attendance rows, observations, assignments, views, and report aggregates preserved; no student movement | **Done** |
+| 7B. Window B production-copy rehearsal | After the packet is strict-ready, run the complete promotion/graduation/teacher-assignment migration against a fresh real copy | Every eligible student mapped; all history preserved; current operations verified | Pending |
+| 8. Production runbook and approval | Document commands, maintenance window, fresh backup, write freeze, validation, and rollback | Window A runbook and real-copy recovery rehearsed; final release SHA and execution approvals still pending | **In progress** |
 | 9. Production schema enhancement | Add the new structure and backfill history without promoting anyone | Enhanced application and historical reports validated; original student pointers and attendance payloads unchanged; no student movement | Pending |
 | 10. Production rollover | In one controlled DML transaction, archive graduates, promote students, create the approved sections, and apply assignments | Approved mappings applied; 11 graduates archived; split totals conserved; all assertions pass | Pending |
 | 11. Post-rollover verification | Test attendance, rosters, statistics, observations, teacher access, imports, and historical reports | Current operations work and historical attribution remains correct | Pending |
@@ -89,9 +91,9 @@ Historical sections, including `1er año Única`, must not be renamed or deleted
 - [x] Applied the Odoo enrollment-journey authority model: 183 students now validate directly through Odoo, and secondary Akdemia/Excel disagreements are warnings only when identity, journey state, name, graduation status, and target grade agree.
 - [x] Added authentication, administrator-API, registration, inactive-session, and current V2 professor-section protections; legacy V1 section-ID authorization remains a documented separate review.
 - [x] Added planned-period and retired-enrollment attendance write guards, plus the dedicated Window A runner and `WINDOW_A_PRODUCTION_RUNBOOK.md`.
-- [x] Passed 94 automated tests and a live synthetic Window A rehearsal: apply, independent verify, no-op rerun, forced partial-DDL detection, recovery reset, reapply, and HTTP smoke checks.
+- [x] Passed 95 automated tests and a live synthetic Window A rehearsal: apply, independent verify, no-op rerun, forced partial-DDL detection, recovery reset, reapply, and HTTP smoke checks.
+- [x] Completed the authorized Window A real production-copy rehearsal, including full table/view reconciliation, 7,873 historical attendance aggregate comparisons, inactive-student reporting, no-op rerun, forced-failure recovery, and authenticated HTTP checks.
 - [ ] Resolve the remaining 47 student review rows and 30 teacher-group pairs blocked by unmatched local emails for Window B; detailed identities remain only in the ignored secure reconciliation.
-- [ ] Perform the authorized Window A production-copy rehearsal; this schema/app track does not require the Window B packet to be strict-ready.
 - [ ] Perform the complete production-copy rollover rehearsal after the real packet passes strict validation and before Window B.
 
 ## Production safety gates
@@ -100,11 +102,11 @@ Do not authorize the production rollover until all of these are checked:
 
 - [ ] All Phase 2 decisions are resolved and recorded.
 - [x] Synthetic migration and regression tests pass repeatedly.
-- [ ] A separately authorized current production copy has been restored into the development container.
-- [ ] Full-data rehearsal passes with no missing students or changed historical reports.
-- [ ] Every production attendance row remains linked to its original enrollment after the rehearsal.
+- [x] A separately authorized current production copy has been restored into the development container for Window A; a fresh copy is still required for Window B.
+- [ ] Full-data rollover rehearsal passes with no missing students or changed historical reports.
+- [x] Every production attendance row remains linked to its original enrollment after the Window A rehearsal; repeat this gate after Window B.
 - [ ] Every eligible student has exactly one approved next-year destination or a graduated result.
-- [ ] A fresh production backup and verified restoration procedure are ready.
+- [ ] A fresh production backup and verified restoration procedure are ready for the relevant execution window.
 - [ ] A maintenance write freeze and explicit production authorization are recorded.
 
 ## Window A production-readiness gates
@@ -113,12 +115,13 @@ Window A is limited to schema, 2025-2026 backfill, compatible application deploy
 
 - [x] Complete the required authentication, administrator-API, inactive-account, registration, and current V2 professor-section security fixes.
 - [x] Complete a dedicated production runner with read-only preflight, explicit apply authorization, partial-state rejection, and independent verification. The destructive development-database guard remains unchanged.
-- [x] Prove the runner against synthetic MariaDB, including forced partial-DDL detection, recovery, no-op rerun, and HTTP smoke checks; 94 automated tests pass.
-- [ ] Pin a clean reviewed release containing the compatible application, security fixes, runner, tests, and runbook.
-- [ ] Rehearse Window A and forced-failure recovery against an authorized current production copy in the isolated environment.
-- [ ] Prepare a fresh full backup, isolated restore verification, write freeze, old-worker shutdown, and combined database/application recovery procedure.
+- [x] Prove the runner against synthetic MariaDB, including forced partial-DDL detection, recovery, no-op rerun, and HTTP smoke checks; 95 automated tests pass.
+- [x] Pin a clean reviewed release containing the compatible application, security fixes, runner, tests, and runbook.
+- [x] Rehearse Window A and forced-failure recovery against an authorized current production copy in the isolated environment.
+- [x] Verify the full-backup, isolated-restore, and combined database/application recovery procedure with the real copy; real-copy app services and the temporary synthetic admin were removed afterward.
+- [ ] Schedule the production maintenance write freeze, stop all old writers/workers, and take a fresh execution-time full backup with isolated restore verification.
 - [ ] Confirm that no attendance dated 2026-09-01 or later must be recorded before Window B. Window A intentionally creates no target-year enrollments, and the enhanced app now rejects planned-period writes rather than reattributing them.
-- [ ] Verify expected application/report differences against real data, including inactive-student behavior and enrollment-based section counts.
+- [x] Verify expected application/report differences against real data, including inactive-student behavior and enrollment-based section counts; retired enrollments now retain their 20 historical attendance rows in statistics.
 
 Read-only evidence on 2026-10-17 found zero attendance rows dated 2026-09-01 or later and a latest attendance write of 2026-07-17. This supports rehearsal but does not remove the operational go/no-go confirmation before production writes are reopened.
 
@@ -153,9 +156,10 @@ Synthetic login: `admin@dev.test` / `dev-only`
 | 2026-10-17 | Production | Read-only post-extraction count verification | Unchanged: 227 students and 39,009 attendance rows | No production action authorized |
 | 2026-10-17 | Read-only sources / development | Refreshed extraction and classified the unresolved rows into a secure action file | 57 tests passed; 47 student rows and 9 teacher profiles remain blocked; production counts unchanged; `strict_ready=false` | Resolve the source/account actions in ignored `review_actions.json` |
 | 2026-10-17 | Development / synthetic MariaDB | Implemented Window A security and attendance safeguards, dedicated runner, and production runbook; completed live synthetic migration and recovery rehearsal | 94 tests passed; apply/verify/no-op/forced-failure/recovery/reapply and HTTP smoke passed; 30 students and 90 attendance rows preserved; production untouched | Authorize and perform the Window A production-copy rehearsal |
+| 2026-10-17 | Authorized real copy in development | Created a consistent full production dump, restored it only into `control_asistencias_dev`, and completed Window A migration, verification, no-op, forced-failure recovery, report comparison, and authenticated HTTP rehearsal | 95 tests passed; 227 students, 39,009 attendance rows, 1,253 observations, 84 assignments, 15 tables, and 2 views preserved; 7,873 aggregate groups matched; temporary admin removed; app services stopped; production unchanged | Schedule the maintenance write freeze and execution-time backup; confirm the attendance-date boundary |
 
 ## Current next action
 
-For **Window A**, pin the reviewed release candidate and obtain authorization to restore a current production dump into `control_asistencias_dev`; then follow `WINDOW_A_PRODUCTION_RUNBOOK.md` through the real-data rehearsal, independent verification, and forced-failure recovery before considering production execution. Confirm the operational rule that no attendance dated 2026-09-01 or later will be written before Window B.
+For **Window A**, the real-copy rehearsal is complete. Remaining execution gates are operational: record the final release approval, schedule the maintenance write freeze, stop every old writer/worker, take and restore-verify a fresh execution-time backup, and confirm with the release/attendance owners that no attendance dated 2026-09-01 or later will be written before Window B. Do not open production writes without that confirmation. The real-copy app and validation services remain stopped while the migrated copy is retained in the isolated database.
 
 For **Window B**, continue the authorized human review in ignored `dev/backups/real_2026_2027/review_actions.json`: 47 student rows and 9 teacher profiles remain unresolved, and the cutoff/final mapping are not approved. The Window B packet remains `strict_ready=false`; no rollover or period activation is authorized.

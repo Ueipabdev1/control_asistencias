@@ -116,3 +116,26 @@ def test_retired_enrollment_cannot_write_attendance(client):
         enrollment.estado = "activo"
         student.activo = True
         db.session.commit()
+
+
+def test_historical_statistics_include_retired_enrollments(client):
+    student = Estudiante.query.filter_by(activo=True).first()
+    enrollment = Inscripcion.query.filter_by(
+        id_estudiante=student.id_estudiante,
+        id_anio_escolar=1,
+        estado="activo",
+    ).one()
+    enrollment.estado = "retirado"
+    student.activo = False
+    db.session.commit()
+    try:
+        admin_login(client)
+        response = client.get("/admin/estadisticas?fecha_inicio=2026-03-02&fecha_fin=2026-03-03")
+        assert response.status_code == 200
+        statistics = response.get_json()["estadisticas_generales"]
+        assert statistics["total_estudiantes"] == 30
+        assert statistics["total_asistencias"] == 90
+    finally:
+        enrollment.estado = "activo"
+        student.activo = True
+        db.session.commit()

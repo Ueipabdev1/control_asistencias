@@ -1,6 +1,6 @@
 # Next-grade rollover, section split, and graduation archive
 
-**Status:** WINDOW A SYNTHETIC REHEARSAL COMPLETE; WINDOW B MAPPING STILL BLOCKED. The enhancement, synthetic rollover, security safeguards, dedicated Window A runner, and forced-failure recovery drill are implemented and tested in the isolated environment. Production remains unchanged; an authorized production-copy rehearsal and clean release are pending for Window A, while final mapping approval and a strict-ready packet remain pending for Window B.
+**Status:** WINDOW A REAL-COPY REHEARSAL COMPLETE; WINDOW B MAPPING STILL BLOCKED. The authorized production copy passed schema/backfill, independent verification, historical report comparison, inactive-student reporting, no-op rerun, and forced-failure recovery in the isolated environment. Production remains unchanged; only execution-time operational gates remain for Window A, while final mapping approval and a strict-ready packet remain pending for Window B.
 
 ## Recommendation
 
@@ -152,10 +152,10 @@ Rollback:
 | Final per-student section roster | Pending | 47 student rows carry review reasons in the secure reconciliation |
 | Treatment of roster exceptions | Pending | Includes exact-ID, population, section, and teacher-email mismatches |
 | Teacher-assignment rollover policy | Confirmed | Latest Kampus/Odoo assignments, matched by `work_email` |
-| Synthetic development validation | Complete | 94 automated tests pass; public validation, browser-driven period activation, security safeguards, and live Window A migration/recovery rehearsal verified |
+| Synthetic development validation | Complete | 95 automated tests pass; public validation, browser-driven period activation, security safeguards, and Window A migration/recovery rehearsals verified |
 | Real minimal-data extraction | Draft complete; strict not ready | Odoo authority validates 183 students; 47 reviews and 30 teacher-group pairs remain blocked |
-| Backup and full production-copy rehearsal | Pending | Window A requires separate dump/restore authorization; Window B additionally requires a strict-ready packet |
-| Production execution authorization | Window A track selected; readiness pending | Production remains unchanged; Window B is not authorized |
+| Backup and full production-copy rehearsal | Window A complete; Window B pending | Real-copy schema/backfill, reports, no-op, and forced-failure recovery passed; Window B additionally requires a strict-ready packet |
+| Production execution authorization | Window A track selected; execution-time gates pending | Production remains unchanged; Window B is not authorized |
 
 ## Execution log
 
@@ -169,7 +169,8 @@ Rollback:
 | 2026-10-17 | Read-only sources | Applied Odoo enrollment-journey authority rules | 57 tests passed; 183 students Odoo-authoritative; review rows reduced from 58 to 47; 30 teacher-group pairs still blocked | Aggregate `dev/reports/real_2026_2027_extraction.json` |
 | 2026-10-17 | Production | Read-only post-extraction count check | Unchanged: 227 students and 39,009 attendance rows | No production action authorized |
 | 2026-10-17 | Development / synthetic MariaDB | Added Window A security/attendance safeguards and dedicated runner; completed migration, no-op, forced-failure, recovery, and HTTP rehearsal | 94 tests passed; all 30 fictional students and 90 attendance rows preserved; 2025-2026 remained current; no target-year movement | `WINDOW_A_PRODUCTION_RUNBOOK.md` |
+| 2026-10-17 | Authorized real copy in development | Completed Window A migration, independent verification, report comparison, no-op, forced-failure recovery, and authenticated HTTP checks | 95 tests passed; 227 students, 39,009 attendance rows, 1,253 observations, 84 assignments, 15 tables, and 2 views preserved; 7,873 aggregate groups matched; production unchanged | Ignored `dev/backups/window_a_rehearsal_20261017T183421Z.sql` and aggregate baseline files |
 
 ## Current safety conclusion
 
-A no-delete migration can avoid foreign-key and cascade damage, but a DB-only in-place rollover is **not safe for historical reporting**. The history-safe design and dedicated Window A runner are validated with synthetic data, and the real draft uses Odoo as the conditional academic authority without production writes. Window A production execution remains blocked by a clean pinned release, an authorized real-data backup/restore rehearsal, and the operational attendance-date confirmation. Window B additionally remains blocked by 47 student review rows, 30 unmatched teacher-group pairs, final cutoff/map approval, and a strict-ready packet. Production remains unchanged.
+A no-delete migration can avoid foreign-key and cascade damage, but a DB-only in-place rollover is **not safe for historical reporting**. The history-safe design and dedicated Window A runner are validated with synthetic and real production-copy data, and the real draft uses Odoo as the conditional academic authority without production writes. Window A production execution remains blocked only by execution-time operational gates: final release approval, maintenance write freeze, old-worker shutdown, a fresh restore-verified backup, and the release/attendance-owner confirmation that no target-year attendance is needed before Window B. Window B additionally remains blocked by 47 student review rows, 30 unmatched teacher-group pairs, final cutoff/map approval, and a strict-ready packet. Production remains unchanged.

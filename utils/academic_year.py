@@ -1,6 +1,6 @@
 from models import AnioEscolar, Estudiante, Inscripcion, Seccion, db
 
-HISTORICAL_STATUSES = ("activo", "promovido", "graduado")
+HISTORICAL_STATUSES = ("activo", "promovido", "graduado", "retirado", "inactivo")
 
 
 def current_academic_year():

@@ -114,15 +114,15 @@ The 2026-10-17 draft is structurally valid but not migration-ready: 224 current 
 
 ## Academic-year validation site
 
-The enhanced synthetic validation environment is available at:
+The enhanced synthetic validation environment can be rebuilt at:
 
 ```text
 https://dev.ueipab.edu.ve/control_asistencias_enhance/
 ```
 
-Synthetic login: `admin@dev.test` / `dev-only`. The site uses Gunicorn on loopback port 5018 and the isolated `control_asistencias_dev` database. It is separate from the existing `/control_asistencias/` service on port 5006.
+Synthetic login after a synthetic reset: `admin@dev.test` / `dev-only`. The site uses Gunicorn on loopback port 5018 and the isolated `control_asistencias_dev` database. It is separate from the existing `/control_asistencias/` service on port 5006. **The app and validation services are currently stopped because the database contains the authorized real-copy Window A rehearsal; do not expose that copy through the public URL.**
 
-Rebuild the enhanced development database to the 2025-2026 baseline and start the isolated services:
+After the real-copy evidence is no longer needed, rebuild the enhanced development database to the synthetic 2025-2026 baseline and restart the isolated services. This permanently replaces the current development database:
 
 ```bash
 docker compose -f compose.dev.yaml stop app validation
@@ -136,13 +136,15 @@ The admin validation page is `/admin/validacion-matricula`. The academic-structu
 
 The academic-period manager is `/admin/periodos`, linked as **Períodos académicos** in the admin sidebar. It lists historical/current/planned periods, creates only non-current successor periods, reviews the bundled packet and database preflight, and performs the confirmed close-and-activate rollover. Mutations require `ENABLE_ACADEMIC_PERIOD_ADMIN=1`, an isolated dev/test database, a session-bound CSRF token, the reviewed packet fingerprint, and typed target-period confirmation. There is no direct `es_actual` editor or arbitrary packet-path input.
 
-Previous end-to-end rollover verification activated 2026-2027 from 2025-2026 with 28 promotions, 2 graduates, and all 90 attendance links preserved. The combined suite now has 94 passing tests, including authorization, inactive sessions, assigned-section enforcement, planned-period attendance rejection, and Window A migration guards.
+Previous end-to-end rollover verification activated 2026-2027 from 2025-2026 with 28 promotions, 2 graduates, and all 90 attendance links preserved. The combined suite now has 95 passing tests, including authorization, inactive sessions, assigned-section enforcement, planned-period attendance rejection, retired-enrollment historical reporting, and Window A migration guards.
 
-## Window A runner and synthetic rehearsal
+## Window A runner and rehearsals
 
 `window_a_migration.py` is the dedicated schema/backfill runner for Window A; `WINDOW_A_PRODUCTION_RUNBOOK.md` defines its authorization, backup, recovery, and deployment gates. It defaults to read-only preflight and is separate from the rollover-packet runner. Do not use it for Window B.
 
-The synthetic MariaDB rehearsal passed legacy preflight, apply, independent verification, complete-state no-op, forced partial-DDL detection, recovery reset, reapplication, and HTTP smoke checks. It preserved all 30 fictional students and 90 attendance rows, kept 2025-2026 current, and created no target-year sections or enrollments. The current development database is in this Window A state. A real production-copy rehearsal has not been performed and requires separate authorization.
+The synthetic MariaDB rehearsal passed legacy preflight, apply, independent verification, complete-state no-op, forced partial-DDL detection, recovery reset, reapplication, and HTTP smoke checks. It preserved all 30 fictional students and 90 attendance rows, kept 2025-2026 current, and created no target-year sections or enrollments.
+
+The authorized real production-copy rehearsal then passed with 227 students, 39,009 attendance rows, 1,253 observations, 84 teacher assignments, 15 original tables, and 2 views preserved. All 7,873 historical attendance aggregate groups and 18 roster groups matched. Forced-failure recovery, no-op rerun, and authenticated HTTP checks also passed; historical statistics now include 20 attendance rows belonging to inactive students. The temporary synthetic admin was removed and the real-copy app/validation services remain stopped. Secure dump and aggregate evidence remains Git-ignored under `dev/backups/` with owner-only permissions.
 
 ## Enhancement workflow
 
