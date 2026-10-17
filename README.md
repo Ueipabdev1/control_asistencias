@@ -171,7 +171,7 @@ Estos archivos existen solo en el servidor de producción.
 ### Autenticación
 - `GET/POST /auth/login` - Inicio de sesión
 - `GET /auth/logout` - Cerrar sesión
-- `GET/POST /auth/registro` - Registro de usuarios
+- `GET/POST /auth/registro` - Registro de usuarios (solo administradores autenticados)
 
 ### Principal
 - `GET /` - Dashboard principal

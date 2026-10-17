@@ -54,6 +54,10 @@ class Usuario(UserMixin, db.Model):
         return str(self.id_usuario)
 
     @property
+    def is_active(self):
+        return bool(self.activo)
+
+    @property
     def is_admin(self):
         return self.rol == 'administrador'
 

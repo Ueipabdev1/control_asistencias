@@ -30,6 +30,17 @@ def profesor_or_admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def verificar_acceso_seccion(id_seccion):
+    if current_user.is_admin:
+        return None
+    asignacion = ProfesorSeccion.query.filter_by(
+        id_profesor=current_user.id_usuario,
+        id_seccion=id_seccion,
+    ).first()
+    if not asignacion:
+        return jsonify({'error': 'Acceso denegado. Sección no asignada'}), 403
+    return None
+
 # Blueprint para las rutas principales
 main_bp = Blueprint('main', __name__)
 
@@ -333,6 +344,8 @@ def gestion_profesores():
 # ==================== API ENDPOINTS PARA USUARIOS ====================
 
 @main_bp.route('/api/usuario', methods=['POST'])
+@login_required
+@admin_required
 def crear_usuario():
     """API para crear un nuevo usuario (profesor o administrador)"""
     try:
@@ -381,6 +394,8 @@ def crear_usuario():
         return jsonify({'error': f'Error al crear usuario: {str(e)}'}), 500
 
 @main_bp.route('/api/usuarios', methods=['GET'])
+@login_required
+@admin_required
 def obtener_usuarios():
     """API para obtener todos los usuarios con sus roles"""
     try:
@@ -398,6 +413,8 @@ def obtener_usuarios():
         return jsonify({'error': f'Error al obtener usuarios: {str(e)}'}), 500
 
 @main_bp.route('/api/usuario/<int:usuario_id>/rol', methods=['PUT'])
+@login_required
+@admin_required
 def actualizar_rol_usuario(usuario_id):
     """API para actualizar el rol de un usuario"""
     try:
@@ -434,6 +451,8 @@ def actualizar_rol_usuario(usuario_id):
 # ==================== API ENDPOINTS PARA PROFESORES ====================
 
 @main_bp.route('/api/profesores', methods=['GET'])
+@login_required
+@admin_required
 def obtener_profesores():
     """API para obtener todos los profesores"""
     try:
@@ -450,6 +469,8 @@ def obtener_profesores():
         return jsonify({'error': f'Error al obtener profesores: {str(e)}'}), 500
 
 @main_bp.route('/api/profesor/<int:profesor_id>', methods=['DELETE'])
+@login_required
+@admin_required
 def eliminar_profesor(profesor_id):
     """API para eliminar un profesor"""
     try:
@@ -477,6 +498,8 @@ def eliminar_profesor(profesor_id):
         return jsonify({'error': f'Error al eliminar profesor: {str(e)}'}), 500
 
 @main_bp.route('/api/secciones/<etapa>', methods=['GET'])
+@login_required
+@admin_required
 def obtener_secciones_por_etapa(etapa):
     """API para obtener secciones por etapa educativa"""
     try:
@@ -499,6 +522,8 @@ def obtener_secciones_por_etapa(etapa):
         return jsonify({'error': f'Error al obtener secciones: {str(e)}'}), 500
 
 @main_bp.route('/api/profesor/<int:profesor_id>/secciones', methods=['GET'])
+@login_required
+@admin_required
 def obtener_secciones_profesor(profesor_id):
     """API para obtener las secciones asignadas a un profesor"""
     try:
@@ -539,6 +564,8 @@ def obtener_secciones_profesor(profesor_id):
         return jsonify({'error': f'Error al obtener secciones del profesor: {str(e)}'}), 500
 
 @main_bp.route('/api/profesor/<int:profesor_id>/seccion/<int:seccion_id>', methods=['DELETE'])
+@login_required
+@admin_required
 def desasignar_seccion_profesor(profesor_id, seccion_id):
     """API para desasignar una sección específica de un profesor"""
     try:
@@ -573,6 +600,8 @@ def desasignar_seccion_profesor(profesor_id, seccion_id):
         return jsonify({'error': f'Error al desasignar la sección: {str(e)}'}), 500
 
 @main_bp.route('/api/profesor/asignar-secciones', methods=['POST'])
+@login_required
+@admin_required
 def asignar_secciones_profesor():
     """API para asignar secciones a un profesor"""
     try:
@@ -617,6 +646,8 @@ def asignar_secciones_profesor():
         return jsonify({'error': f'Error al asignar secciones: {str(e)}'}), 500
 
 @main_bp.route('/api/profesores/asignaciones', methods=['GET'])
+@login_required
+@admin_required
 def obtener_todas_asignaciones():
     """API para obtener todas las asignaciones de profesores"""
     try:
@@ -658,6 +689,8 @@ def obtener_todas_asignaciones():
         return jsonify({'error': f'Error al obtener asignaciones: {str(e)}'}), 500
 
 @main_bp.route('/api/profesor/<int:profesor_id>/secciones', methods=['DELETE'])
+@login_required
+@admin_required
 def eliminar_asignaciones_profesor(profesor_id):
     """API para eliminar todas las asignaciones de un profesor"""
     try:
@@ -674,6 +707,8 @@ def eliminar_asignaciones_profesor(profesor_id):
 # ==================== API ENDPOINTS PARA MATRÍCULA ====================
 
 @main_bp.route('/api/matriculas', methods=['GET'])
+@login_required
+@admin_required
 def obtener_matriculas():
     """API para obtener matrículas por género calculadas desde estudiantes"""
     try:
@@ -704,6 +739,8 @@ def obtener_matriculas():
         return jsonify({'error': f'Error al obtener matrículas: {str(e)}'}), 500
 
 @main_bp.route('/api/matricula', methods=['POST'])
+@login_required
+@admin_required
 def crear_matricula():
     try:
         
@@ -747,6 +784,8 @@ def crear_matricula():
         return jsonify({'error': str(e)}), 500
 
 @main_bp.route('/api/matricula/<int:id>', methods=['GET'])
+@login_required
+@admin_required
 def obtener_matricula(id):
     """API para obtener una matrícula específica"""
     try:
@@ -771,6 +810,8 @@ def obtener_matricula(id):
         return jsonify({'error': f'Error al obtener matrícula: {str(e)}'}), 500
 
 @main_bp.route('/api/matricula/<int:id>', methods=['PUT'])
+@login_required
+@admin_required
 def actualizar_matricula(id):
     """API para actualizar una matrícula"""
     try:
@@ -793,6 +834,8 @@ def actualizar_matricula(id):
         return jsonify({'error': f'Error al actualizar matrícula: {str(e)}'}), 500
 
 @main_bp.route('/api/matricula/<int:id>', methods=['DELETE'])
+@login_required
+@admin_required
 def eliminar_matricula(id):
     """API para eliminar una matrícula"""
     try:
@@ -859,6 +902,8 @@ def sincronizar_matriculas():
         return jsonify({'error': f'Error al sincronizar matrículas: {str(e)}'}), 500
 
 @admin_bp.route('/estadisticas-legacy')
+@login_required
+@admin_required
 def obtener_estadisticas_legacy():
     """API para obtener estadísticas detalladas (legacy - basadas en asistencia por sección)"""
     try:
@@ -1084,6 +1129,8 @@ def obtener_estadisticas_legacy():
         return jsonify({'success': False, 'message': f'Error al obtener estadísticas: {str(e)}'})
 
 @main_bp.route('/matricula', methods=['GET', 'POST'])
+@login_required
+@admin_required
 def gestionar_matricula():
     """Gestión de matrícula por sección"""
     if request.method == 'POST':
@@ -1181,8 +1228,7 @@ def login():
         
         usuario = Usuario.query.filter_by(email=email).first()
         
-        if usuario and bcrypt.check_password_hash(usuario.contraseña, password):
-            login_user(usuario, remember=remember)
+        if usuario and usuario.is_active and bcrypt.check_password_hash(usuario.contraseña, password) and login_user(usuario, remember=remember):
             next_page = request.args.get('next')
             
             if request.is_json:
@@ -1216,11 +1262,10 @@ def logout():
     return redirect(url_for('auth.login'))
 
 @auth_bp.route('/registro', methods=['GET', 'POST'])
+@login_required
+@admin_required
 def registro():
     """Ruta de registro de nuevos usuarios"""
-    if current_user.is_authenticated:
-        return redirect(url_for('main.index'))
-    
     if request.method == 'POST':
         from app import bcrypt
         

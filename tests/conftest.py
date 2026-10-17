@@ -8,6 +8,7 @@ compose_url = os.environ.get("DATABASE_URL") if os.environ.get("APP_ENV") == "te
 os.environ["DATABASE_URL"] = os.environ.get("TEST_DATABASE_URL") or compose_url or DEFAULT_TEST_URL
 os.environ["APP_ENV"] = "testing"
 os.environ["SECRET_KEY"] = "test_only_secret"
+os.environ["ENABLE_ACADEMIC_PERIOD_ADMIN"] = "1"
 
 
 @pytest.fixture(scope="session")

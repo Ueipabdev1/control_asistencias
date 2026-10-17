@@ -98,6 +98,20 @@ venv/bin/python -m dev.build_synthetic_packet
 
 The generated files live in `dev/packets/synthetic_2026_2027/` and contain only fictional identities. The packet has 30 students (28 continuing and 2 graduates), 15 sections, and 15 teacher-section assignments. Single-section grades use `A`; only 4to año has A/B. Real future extracts must use the same minimal fields and manifest version metadata.
 
+## Read-only real draft extraction
+
+Run the authorized minimal extraction with the system Python used by the existing Odoo/Google read-only wrappers:
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 python3 -m dev.extract_real_rollover_packet
+```
+
+The extractor uses a read-only application-database transaction, Odoo `fields_get`/`search_read`, the read-only Academic Team roster scope, offline Akdemia exports, and the latest cached Kampus publication. It has no rollover-apply path.
+
+Real artifacts are written only to the Git-ignored `dev/backups/real_2026_2027/` directory with owner-only permissions. Row-level reconciliation stays there; `dev/reports/real_2026_2027_extraction.json` contains aggregate counts only. Never move these files into `dev/packets/` or commit them.
+
+The 2026-10-17 draft is structurally valid but not migration-ready: 224 current students (213 continuing and 11 graduates), 47 student rows requiring review, 15 sections, and 86 teacher assignments across 23 matched profiles. The Odoo enrollment-journey authority rule validates 183 students directly and converts only secondary Akdemia/Excel disagreements into warnings when identity, journey state, name, graduation status, and target grade agree. Thirty Kampus teacher-group pairs remain blocked because their emails do not match an active local professor. Review the secure reconciliation and obtain a strict-ready packet before attempting a full production-copy rehearsal.
+
 ## Academic-year validation site
 
 The enhanced synthetic validation environment is available at:
@@ -108,17 +122,27 @@ https://dev.ueipab.edu.ve/control_asistencias_enhance/
 
 Synthetic login: `admin@dev.test` / `dev-only`. The site uses Gunicorn on loopback port 5018 and the isolated `control_asistencias_dev` database. It is separate from the existing `/control_asistencias/` service on port 5006.
 
-Rebuild the enhanced development database and apply the synthetic rollover:
+Rebuild the enhanced development database to the 2025-2026 baseline and start the isolated services:
 
 ```bash
+docker compose -f compose.dev.yaml stop app validation
 bash dev/scripts/reset_dev.sh
-docker compose -f compose.dev.yaml run --rm --no-deps app python -m dev.apply_migration_packet
-docker compose -f compose.dev.yaml up -d validation
+docker compose -f compose.dev.yaml up -d app validation
 ```
+
+Open `/admin/periodos` to review and activate the synthetic 2026-2027 packet through the browser. For the CLI alternative, run `docker compose -f compose.dev.yaml run --rm --no-deps app python -m dev.apply_migration_packet` after the reset and before starting the services.
 
 The admin validation page is `/admin/validacion-matricula`. The academic-structure management page is `/admin/estructura`, with grade and current-year section creation/editing, duplicate protection, no deletes, and no historical rewrites. Deactivation is blocked for sections with active enrollments, and used grade/section names are protected. Admins can open it from **Estructura académica** in the main sidebar; the entry is hidden from professors.
 
-Verified end to end: 39 automated tests pass, current sections return 15 sections and 28 active students, historical statistics retain their original enrollment, a real attendance write stores the target enrollment, and the public grade/section management flow works.
+The academic-period manager is `/admin/periodos`, linked as **Períodos académicos** in the admin sidebar. It lists historical/current/planned periods, creates only non-current successor periods, reviews the bundled packet and database preflight, and performs the confirmed close-and-activate rollover. Mutations require `ENABLE_ACADEMIC_PERIOD_ADMIN=1`, an isolated dev/test database, a session-bound CSRF token, the reviewed packet fingerprint, and typed target-period confirmation. There is no direct `es_actual` editor or arbitrary packet-path input.
+
+Previous end-to-end rollover verification activated 2026-2027 from 2025-2026 with 28 promotions, 2 graduates, and all 90 attendance links preserved. The combined suite now has 94 passing tests, including authorization, inactive sessions, assigned-section enforcement, planned-period attendance rejection, and Window A migration guards.
+
+## Window A runner and synthetic rehearsal
+
+`window_a_migration.py` is the dedicated schema/backfill runner for Window A; `WINDOW_A_PRODUCTION_RUNBOOK.md` defines its authorization, backup, recovery, and deployment gates. It defaults to read-only preflight and is separate from the rollover-packet runner. Do not use it for Window B.
+
+The synthetic MariaDB rehearsal passed legacy preflight, apply, independent verification, complete-state no-op, forced partial-DDL detection, recovery reset, reapplication, and HTTP smoke checks. It preserved all 30 fictional students and 90 attendance rows, kept 2025-2026 current, and created no target-year sections or enrollments. The current development database is in this Window A state. A real production-copy rehearsal has not been performed and requires separate authorization.
 
 ## Enhancement workflow
 

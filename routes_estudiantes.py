@@ -10,8 +10,10 @@ import os
 from werkzeug.utils import secure_filename
 
 from models import db, Estudiante, Seccion, Grado, Etapa, AsistenciaEstudiante, ObservacionSeccion, Inscripcion
+from routes import verificar_acceso_seccion
 from utils.excel_processor import procesar_excel_estudiantes, obtener_estadisticas_carga
 from utils.academic_year import (
+    attendance_write_year,
     current_academic_year,
     deactivate_current_enrollment,
     enrollment_for_student_date,
@@ -114,6 +116,9 @@ def obtener_estudiantes_seccion(id_seccion):
         seccion = Seccion.query.get(id_seccion)
         if not seccion:
             return jsonify({'error': 'Sección no encontrada'}), 404
+        acceso_denegado = verificar_acceso_seccion(id_seccion)
+        if acceso_denegado:
+            return acceso_denegado
         
         # Obtener estudiantes activos de la sección
         estudiantes = section_enrollments(id_seccion, current_only=True).join(
@@ -212,6 +217,7 @@ def crear_estudiante():
 
 @estudiantes_bp.route('/<int:id_estudiante>', methods=['GET'])
 @login_required
+@admin_required
 def obtener_estudiante(id_estudiante):
     """
     Obtiene información detallada de un estudiante
@@ -243,6 +249,7 @@ def obtener_estudiante(id_estudiante):
 
 @estudiantes_bp.route('/estadisticas', methods=['GET'])
 @login_required
+@admin_required
 def obtener_estadisticas():
     """
     Obtiene estadísticas generales de estudiantes cargados
@@ -361,7 +368,29 @@ def registrar_asistencia():
             fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
         except ValueError:
             return jsonify({'error': 'Formato de fecha inválido. Use YYYY-MM-DD'}), 400
-        
+
+        try:
+            attendance_write_year(fecha)
+        except RuntimeError as e:
+            return jsonify({'success': False, 'error': str(e)}), 409
+
+        inscripciones = {}
+        for asistencia_data in asistencias_data:
+            id_estudiante = asistencia_data.get('id_estudiante')
+            if not id_estudiante or id_estudiante in inscripciones:
+                continue
+            if not Estudiante.query.get(id_estudiante):
+                continue
+            try:
+                inscripcion = enrollment_for_student_date(id_estudiante, fecha)
+            except Exception as e:
+                inscripciones[id_estudiante] = e
+                continue
+            acceso_denegado = verificar_acceso_seccion(inscripcion.id_seccion)
+            if acceso_denegado:
+                return acceso_denegado
+            inscripciones[id_estudiante] = inscripcion
+
         registros_creados = 0
         registros_actualizados = 0
         errores = []
@@ -381,7 +410,9 @@ def registrar_asistencia():
                     errores.append(f'Estudiante {id_estudiante} no encontrado')
                     continue
                 
-                inscripcion = enrollment_for_student_date(id_estudiante, fecha)
+                inscripcion = inscripciones[id_estudiante]
+                if isinstance(inscripcion, Exception):
+                    raise inscripcion
 
                 # Buscar asistencia existente
                 asistencia_existente = AsistenciaEstudiante.query.filter_by(
@@ -444,6 +475,9 @@ def obtener_asistencia_seccion(fecha, id_seccion):
         seccion = Seccion.query.get(id_seccion)
         if not seccion:
             return jsonify({'error': 'Sección no encontrada'}), 404
+        acceso_denegado = verificar_acceso_seccion(id_seccion)
+        if acceso_denegado:
+            return acceso_denegado
         
         # Obtener estudiantes de la sección
         estudiantes = Estudiante.query.filter_by(
@@ -511,6 +545,9 @@ def verificar_asistencia_existente():
 
         fecha_str = data['fecha']
         id_seccion = data['id_seccion']
+        acceso_denegado = verificar_acceso_seccion(id_seccion)
+        if acceso_denegado:
+            return acceso_denegado
         bloque = data.get('bloque', 'completo')
 
         # Validar bloque
@@ -606,10 +643,18 @@ def guardar_asistencia_individual():
         except ValueError:
             return jsonify({'error': 'Formato de fecha inválido'}), 400
 
+        try:
+            attendance_write_year(fecha)
+        except RuntimeError as e:
+            return jsonify({'success': False, 'error': str(e)}), 409
+
         # Verificar sección
         seccion = Seccion.query.get(id_seccion)
         if not seccion:
             return jsonify({'error': 'Sección no encontrada'}), 404
+        acceso_denegado = verificar_acceso_seccion(id_seccion)
+        if acceso_denegado:
+            return acceso_denegado
 
         registros_creados = 0
         registros_actualizados = 0
@@ -702,6 +747,9 @@ def obtener_estadisticas_asistencia(id_seccion):
         seccion = Seccion.query.get(id_seccion)
         if not seccion:
             return jsonify({'error': 'Sección no encontrada'}), 404
+        acceso_denegado = verificar_acceso_seccion(id_seccion)
+        if acceso_denegado:
+            return acceso_denegado
         
         # Obtener estudiantes
         estudiantes = Estudiante.query.filter_by(

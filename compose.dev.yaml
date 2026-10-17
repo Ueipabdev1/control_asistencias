@@ -46,6 +46,7 @@ services:
       APP_ENV: development
       FLASK_ENV: development
       SECRET_KEY: dev_only_secret
+      ENABLE_ACADEMIC_PERIOD_ADMIN: "1"
       DATABASE_URL: mysql+pymysql://asistencias_dev:dev_user_only@db:3306/control_asistencias_dev?charset=utf8mb4
     depends_on:
       db:

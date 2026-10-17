@@ -1,6 +1,6 @@
 # Next-grade rollover, section split, and graduation archive
 
-**Status:** DEVELOPMENT VALIDATION COMPLETE. The enhancement and synthetic rollover are implemented and tested in the isolated environment. Production remains unchanged; final mapping approval, authorized real-data extraction, and a full production-copy rehearsal are still pending.
+**Status:** WINDOW A SYNTHETIC REHEARSAL COMPLETE; WINDOW B MAPPING STILL BLOCKED. The enhancement, synthetic rollover, security safeguards, dedicated Window A runner, and forced-failure recovery drill are implemented and tested in the isolated environment. Production remains unchanged; an authorized production-copy rehearsal and clean release are pending for Window A, while final mapping approval and a strict-ready packet remain pending for Window B.
 
 ## Recommendation
 
@@ -147,14 +147,15 @@ Rollback:
 | Decision | Result | Date / notes |
 |---|---|---|
 | Academic-year labels | Confirmed: `2025-2026` to `2026-2027` | Exact cutoff still pending |
-| Full production promotion map | Pending | Synthetic working map implemented |
+| Full production promotion map | Pending | Real draft extracted; final review required |
 | Proposed first-year A/B split | Not included in the synthetic design | Only fourth year has A/B; first, second, third, and fifth remain single-section |
-| Final per-student section roster | Pending | Includes fourth-year A/B and cross-stage destinations |
-| Treatment of five roster exceptions | Pending | Production execution blocker |
+| Final per-student section roster | Pending | 47 student rows carry review reasons in the secure reconciliation |
+| Treatment of roster exceptions | Pending | Includes exact-ID, population, section, and teacher-email mismatches |
 | Teacher-assignment rollover policy | Confirmed | Latest Kampus/Odoo assignments, matched by `work_email` |
-| Synthetic development validation | Complete | 39 automated tests pass; public validation flows verified |
-| Backup and full production-copy rehearsal | Pending | Requires separate authorization |
-| Production execution authorization | Pending | Production remains unchanged |
+| Synthetic development validation | Complete | 94 automated tests pass; public validation, browser-driven period activation, security safeguards, and live Window A migration/recovery rehearsal verified |
+| Real minimal-data extraction | Draft complete; strict not ready | Odoo authority validates 183 students; 47 reviews and 30 teacher-group pairs remain blocked |
+| Backup and full production-copy rehearsal | Pending | Window A requires separate dump/restore authorization; Window B additionally requires a strict-ready packet |
+| Production execution authorization | Window A track selected; readiness pending | Production remains unchanged; Window B is not authorized |
 
 ## Execution log
 
@@ -162,8 +163,13 @@ Rollback:
 |---|---|---|---|---|
 | 2026-10-16 | Planning | Created tracking document and read-only impact audit | Complete; no DB changes | `NEXT_GRADE_ROLLOVER.md` |
 | 2026-10-16 | Development | Implemented schema/enrollment history, synthetic rollover, compatible application flows, validation site, and structure manager | 39 tests passed; 28 promoted, 2 graduated, 15 target sections, and 90 historical attendance links preserved | `ROLLOVER_IMPLEMENTATION_TRACKER.md` |
+| 2026-10-16 | Development | Added guarded academic-period administration and completed browser-driven activation | 46 tests passed; public 2025-2026 → 2026-2027 activation preserved all 90 attendance links | `/admin/periodos` |
 | 2026-10-16 | Production | Read-only post-validation count check | Unchanged: 227 students and 39,009 attendance rows | No production action authorized |
+| 2026-10-17 | Read-only sources | Extracted minimal real draft and aggregate reconciliation | 213 continuing, 11 graduated, 58 student reviews, 30 teacher-group pairs blocked; structural validation passed, strict readiness blocked | Ignored `dev/backups/real_2026_2027/`; aggregate `dev/reports/real_2026_2027_extraction.json` |
+| 2026-10-17 | Read-only sources | Applied Odoo enrollment-journey authority rules | 57 tests passed; 183 students Odoo-authoritative; review rows reduced from 58 to 47; 30 teacher-group pairs still blocked | Aggregate `dev/reports/real_2026_2027_extraction.json` |
+| 2026-10-17 | Production | Read-only post-extraction count check | Unchanged: 227 students and 39,009 attendance rows | No production action authorized |
+| 2026-10-17 | Development / synthetic MariaDB | Added Window A security/attendance safeguards and dedicated runner; completed migration, no-op, forced-failure, recovery, and HTTP rehearsal | 94 tests passed; all 30 fictional students and 90 attendance rows preserved; 2025-2026 remained current; no target-year movement | `WINDOW_A_PRODUCTION_RUNBOOK.md` |
 
 ## Current safety conclusion
 
-A no-delete migration can avoid foreign-key and cascade damage, but a DB-only in-place rollover is **not safe for historical reporting**. The history-safe design is now implemented and validated with synthetic data. Production execution remains blocked by the final cutoff/map/roster decisions, five roster exceptions, authorized real-data extraction, and a successful full production-copy rehearsal. Production remains unchanged.
+A no-delete migration can avoid foreign-key and cascade damage, but a DB-only in-place rollover is **not safe for historical reporting**. The history-safe design and dedicated Window A runner are validated with synthetic data, and the real draft uses Odoo as the conditional academic authority without production writes. Window A production execution remains blocked by a clean pinned release, an authorized real-data backup/restore rehearsal, and the operational attendance-date confirmation. Window B additionally remains blocked by 47 student review rows, 30 unmatched teacher-group pairs, final cutoff/map approval, and a strict-ready packet. Production remains unchanged.

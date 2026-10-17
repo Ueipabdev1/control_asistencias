@@ -20,8 +20,16 @@ def academic_year_for_date(fecha):
     return year
 
 
-def enrollment_for_student_date(id_estudiante, fecha, id_seccion=None):
+def attendance_write_year(fecha):
     year = academic_year_for_date(fecha)
+    current_year = current_academic_year()
+    if year.fecha_inicio > current_year.fecha_inicio:
+        raise RuntimeError(f"El período {year.nombre} está planificado y no acepta asistencia")
+    return year
+
+
+def enrollment_for_student_date(id_estudiante, fecha, id_seccion=None):
+    year = attendance_write_year(fecha)
     query = Inscripcion.query.filter_by(
         id_estudiante=id_estudiante,
         id_anio_escolar=year.id_anio_escolar,
@@ -33,7 +41,10 @@ def enrollment_for_student_date(id_estudiante, fecha, id_seccion=None):
         raise RuntimeError(
             f"Expected one enrollment for student {id_estudiante} on {fecha}, found {len(enrollments)}"
         )
-    return enrollments[0]
+    enrollment = enrollments[0]
+    if enrollment.estado in ("retirado", "inactivo"):
+        raise RuntimeError(f"Student {id_estudiante} has no active enrollment for attendance writes")
+    return enrollment
 
 
 def sync_current_enrollment(estudiante, seccion, estado="activo", origen="manual"):

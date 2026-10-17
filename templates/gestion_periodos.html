@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}Períodos académicos{% endblock %}
+
+{% block extra_css %}
+<style>
+    .main-container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+    .page-header { background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-radius: 18px; padding: 24px; margin-bottom: 24px; }
+    .page-header h1 { margin: 0 0 8px; font-size: 1.75rem; }
+    .page-header p { margin: 0; opacity: .9; }
+    .panel { background: rgba(30,30,45,.94); border: 1px solid rgba(255,255,255,.1); border-radius: 15px; padding: 22px; margin-bottom: 22px; }
+    .panel h2 { font-size: 1.25rem; margin-bottom: 18px; color: #fff; }
+    .panel h3 { font-size: 1.05rem; color: #fff; }
+    .form-label { color: #e5e5ef; font-size: .85rem; }
+    .form-control { background: rgba(20,20,35,.8); color: #fff; border: 1px solid rgba(255,255,255,.2); }
+    .form-control:focus { color: #fff; background: rgba(30,30,50,.9); border-color: #667eea; box-shadow: none; }
+    .btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); border: 0; }
+    .table { color: #e5e5ef; margin-bottom: 0; }
+    .table > :not(caption) > * > * { background: transparent; color: inherit; border-bottom-color: rgba(255,255,255,.09); }
+    .table thead { color: #fff; }
+    .small-note { color: #c7c7d8; font-size: .86rem; }
+    .metric-grid { display: grid; grid-template-columns: repeat(6, minmax(100px, 1fr)); gap: 10px; margin: 16px 0; }
+    .metric { background: rgba(50,50,70,.55); border-radius: 10px; padding: 12px; text-align: center; }
+    .metric strong { display: block; color: #fff; font-size: 1.35rem; }
+    .metric span { color: #c7c7d8; font-size: .75rem; }
+    .fingerprint { font-family: monospace; word-break: break-all; color: #c7c7d8; font-size: .8rem; }
+    .actions a { margin-right: 12px; }
+    @media (max-width: 992px) { .metric-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 576px) {
+        .main-container { padding: 10px 0; }
+        .page-header, .panel { padding: 17px; border-radius: 12px; }
+        .metric-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <div class="page-header">
+        <h1>Períodos académicos</h1>
+        <p>Período actual: <strong>{{ current_year.nombre }}</strong>. Los períodos históricos son de solo lectura.</p>
+    </div>
+
+    <div class="actions mb-3">
+        <a class="btn btn-outline-light btn-sm" href="{{ url_for('validation.validacion_matricula') }}">Ver validación e integridad</a>
+        <a class="btn btn-outline-light btn-sm" href="{{ url_for('structure.gestion_estructura') }}">Administrar estructura actual</a>
+    </div>
+
+    {% if not management_enabled %}
+        <div class="alert alert-warning">La creación y activación de períodos está disponible únicamente en el entorno de validación autorizado.</div>
+    {% endif %}
+
+    {% if management_enabled %}
+    <div class="panel">
+        <h2>Crear período planificado</h2>
+        <p class="small-note">Solo se puede crear el sucesor del último período registrado. El nombre y el código se generan desde las fechas; nunca se activa automáticamente.</p>
+        <form method="post" action="{{ url_for('periods.crear_periodo') }}" class="row g-3 align-items-end">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <div class="col-md-4">
+                <label class="form-label" for="fecha_inicio">Fecha de inicio</label>
+                <input class="form-control" id="fecha_inicio" name="fecha_inicio" type="date" required>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="fecha_fin">Fecha de fin</label>
+                <input class="form-control" id="fecha_fin" name="fecha_fin" type="date" required>
+            </div>
+            <div class="col-md-4">
+                <button class="btn btn-primary" type="submit">Crear como planificado</button>
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
+    <div class="panel">
+        <h2>Períodos registrados</h2>
+        <div class="table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr><th>Período</th><th>Estado</th><th>Fechas</th><th>Secciones</th><th>Inscripciones</th><th>Activos</th><th>Graduados</th><th>Asistencias</th></tr>
+                </thead>
+                <tbody>
+                {% for year in years %}
+                    <tr>
+                        <td><strong>{{ year.nombre }}</strong><br><span class="small-note">{{ year.codigo }}</span></td>
+                        <td><span class="badge text-bg-{{ year.color }}">{{ year.state }}</span></td>
+                        <td>{{ year.fecha_inicio.strftime('%d/%m/%Y') }}<br>{{ year.fecha_fin.strftime('%d/%m/%Y') }}</td>
+                        <td>{{ year.secciones }}</td>
+                        <td>{{ year.inscripciones }}</td>
+                        <td>{{ year.activos }}</td>
+                        <td>{{ year.graduados }}</td>
+                        <td>{{ year.asistencias }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% for year in years if year.review %}
+    <div class="panel">
+        <h2>Preparación y activación de {{ year.nombre }}</h2>
+        {% if not year.review.available %}
+            {% if year.review.errors %}
+                <div class="alert alert-danger mb-0">{{ year.review.errors|join('; ') }}</div>
+            {% else %}
+                <p class="small-note mb-0">No hay un paquete de migración aprobado para este período. La activación permanece bloqueada.</p>
+            {% endif %}
+        {% else %}
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <h3>Paquete aprobado</h3>
+                    <p class="small-note mb-1">Calendario: <strong>{{ year.review.manifest.schedule_id }}</strong></p>
+                    <p class="small-note mb-1">Publicado: {{ year.review.manifest.publishedAt }}</p>
+                    <p class="small-note mb-0">Transición: {{ current_year.nombre }} → {{ year.nombre }}</p>
+                </div>
+                <div class="col-md-6">
+                    <h3>Huella del paquete</h3>
+                    <div class="fingerprint">{{ year.review.fingerprint }}</div>
+                </div>
+            </div>
+
+            <div class="metric-grid">
+                <div class="metric"><strong>{{ year.review.counts.students }}</strong><span>Estudiantes</span></div>
+                <div class="metric"><strong>{{ year.review.counts.continuing }}</strong><span>Promovidos</span></div>
+                <div class="metric"><strong>{{ year.review.counts.graduated }}</strong><span>Graduados</span></div>
+                <div class="metric"><strong>{{ year.review.counts.retired }}</strong><span>Retirados</span></div>
+                <div class="metric"><strong>{{ year.review.counts.sections }}</strong><span>Secciones</span></div>
+                <div class="metric"><strong>{{ year.review.counts.teacher_assignments }}</strong><span>Asignaciones</span></div>
+            </div>
+
+            {% if year.review.errors %}
+                <div class="alert alert-danger">
+                    <strong>La activación está bloqueada:</strong>
+                    <ul class="mb-0">{% for error in year.review.errors %}<li>{{ error }}</li>{% endfor %}</ul>
+                </div>
+            {% endif %}
+
+            {% if year.review.ready and management_enabled %}
+                <div class="alert alert-warning">
+                    Esta acción cerrará {{ current_year.nombre }}, promoverá o archivará a los estudiantes según el paquete y activará {{ year.nombre }}. No elimina asistencias ni historial.
+                </div>
+                <form method="post" action="{{ url_for('periods.activar_periodo', id_anio_escolar=year.id) }}" class="row g-3 align-items-end">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <input type="hidden" name="packet_fingerprint" value="{{ year.review.fingerprint }}">
+                    <div class="col-md-6">
+                        <label class="form-label" for="confirmacion-{{ year.id }}">Escribe <strong>{{ year.nombre }}</strong> para confirmar</label>
+                        <input class="form-control" id="confirmacion-{{ year.id }}" name="confirmacion" autocomplete="off" required>
+                    </div>
+                    <div class="col-md-6">
+                        <button class="btn btn-warning" type="submit">Cerrar período actual y activar {{ year.nombre }}</button>
+                    </div>
+                </form>
+            {% endif %}
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

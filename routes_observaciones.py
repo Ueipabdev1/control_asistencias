@@ -7,6 +7,7 @@ from flask_login import login_required, current_user
 from datetime import datetime
 
 from models import db, ObservacionSeccion, Seccion
+from routes import verificar_acceso_seccion
 
 # Blueprint para observaciones
 observaciones_bp = Blueprint('observaciones', __name__, url_prefix='/api/observaciones')
@@ -26,6 +27,9 @@ def verificar_observacion_existente():
         
         fecha_str = data['fecha']
         id_seccion = data['id_seccion']
+        acceso_denegado = verificar_acceso_seccion(id_seccion)
+        if acceso_denegado:
+            return acceso_denegado
         
         # Convertir fecha
         try:
@@ -80,6 +84,9 @@ def guardar_observacion():
         seccion = Seccion.query.get(id_seccion)
         if not seccion:
             return jsonify({'error': 'Sección no encontrada'}), 404
+        acceso_denegado = verificar_acceso_seccion(id_seccion)
+        if acceso_denegado:
+            return acceso_denegado
         
         # Buscar observación existente
         observacion = ObservacionSeccion.query.filter_by(
@@ -134,6 +141,9 @@ def obtener_observacion(fecha, id_seccion):
         seccion = Seccion.query.get(id_seccion)
         if not seccion:
             return jsonify({'error': 'Sección no encontrada'}), 404
+        acceso_denegado = verificar_acceso_seccion(id_seccion)
+        if acceso_denegado:
+            return acceso_denegado
         
         # Buscar observación
         observacion = ObservacionSeccion.query.filter_by(

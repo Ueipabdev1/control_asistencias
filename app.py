@@ -38,6 +38,7 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'tu_clave_secreta_aqui')
 app.config['APP_ENV'] = os.environ.get('APP_ENV', os.environ.get('FLASK_ENV', 'production'))
 app.config['TESTING'] = app.config['APP_ENV'] == 'testing'
+app.config['ACADEMIC_PERIOD_ADMIN_ENABLED'] = os.environ.get('ENABLE_ACADEMIC_PERIOD_ADMIN') == '1'
 
 # Inicializar Flask-Login
 login_manager.init_app(app)
@@ -74,7 +75,8 @@ db.init_app(app)
 # User loader para Flask-Login
 @login_manager.user_loader
 def load_user(user_id):
-    return Usuario.query.get(int(user_id))
+    user = db.session.get(Usuario, int(user_id))
+    return user if user and user.is_active else None
 
 # Registrar blueprints
 from routes import main_bp, admin_bp, auth_bp
@@ -84,6 +86,7 @@ from routes_estadisticas import estadisticas_bp
 from routes_calendario import calendario_bp
 from routes_validation import validation_bp
 from routes_structure import structure_bp
+from routes_periods import period_bp
 
 app.register_blueprint(main_bp)
 app.register_blueprint(admin_bp)
@@ -95,6 +98,7 @@ app.register_blueprint(estadisticas_bp)
 app.register_blueprint(calendario_bp)
 app.register_blueprint(validation_bp)
 app.register_blueprint(structure_bp)
+app.register_blueprint(period_bp)
 
 if __name__ == '__main__':
     try:
