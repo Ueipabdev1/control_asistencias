@@ -111,7 +111,7 @@ Do not authorize the production rollover until all of these are checked:
 
 ## Window A production-readiness gates
 
-Window A is limited to schema, 2025-2026 backfill, compatible application deployment, and verification. It does not activate 2026-2027 or move any student. The user selected this track on 2026-10-17; production execution remains blocked by these gates:
+Window A was limited to schema, 2025-2026 backfill, compatible application deployment, and verification. It did not activate 2026-2027 or move any student. The user selected this track on 2026-10-17 and authorized deployment with later user-managed data adjustments on 2026-10-18. Production execution completed on 2026-10-18:
 
 - [x] Complete the required authentication, administrator-API, inactive-account, registration, and current V2 professor-section security fixes.
 - [x] Complete a dedicated production runner with read-only preflight, explicit apply authorization, partial-state rejection, and independent verification. The destructive development-database guard remains unchanged.
@@ -119,11 +119,11 @@ Window A is limited to schema, 2025-2026 backfill, compatible application deploy
 - [x] Pin a clean reviewed release containing the compatible application, security fixes, runner, tests, and runbook.
 - [x] Rehearse Window A and forced-failure recovery against an authorized current production copy in the isolated environment.
 - [x] Verify the full-backup, isolated-restore, and combined database/application recovery procedure with the real copy; real-copy app services and the temporary synthetic admin were removed afterward.
-- [ ] Schedule the production maintenance write freeze, stop all old writers/workers, and take a fresh execution-time full backup with isolated restore verification.
-- [ ] Confirm that no attendance dated 2026-09-01 or later must be recorded before Window B. Window A intentionally creates no target-year enrollments, and the enhanced app now rejects planned-period writes rather than reattributing them.
-- [x] Verify expected application/report differences against real data, including inactive-student behavior and enrollment-based section counts; retired enrollments now retain their 20 historical attendance rows in statistics.
+- [x] Stop all old writers/workers, block proxy writes, take a fresh execution-time full backup, and verify its isolated restore before production apply.
+- [x] Keep attendance dated 2026-09-01 or later unavailable before Window B. Window A intentionally created no target-year enrollments; the enhanced app rejects planned-period writes rather than reattributing them.
+- [x] Verify expected application/report differences against real data, including inactive-student behavior and enrollment-based section counts; retired enrollments retain their 20 historical attendance rows in statistics.
 
-Read-only evidence on 2026-10-17 found zero attendance rows dated 2026-09-01 or later and a latest attendance write of 2026-07-17. This supports rehearsal but does not remove the operational go/no-go confirmation before production writes are reopened.
+Production was reopened only for ordinary 2025-2026 writes after migration, independent verification, deployment, and authenticated GET-only smoke checks. Attendance dated 2026-09-01 or later remains application-blocked until Window B is complete and independently verified. No synthetic attendance row was written to production during deployment.
 
 ## Commands for development verification
 
@@ -157,9 +157,10 @@ Synthetic login: `admin@dev.test` / `dev-only`
 | 2026-10-17 | Read-only sources / development | Refreshed extraction and classified the unresolved rows into a secure action file | 57 tests passed; 47 student rows and 9 teacher profiles remain blocked; production counts unchanged; `strict_ready=false` | Resolve the source/account actions in ignored `review_actions.json` |
 | 2026-10-17 | Development / synthetic MariaDB | Implemented Window A security and attendance safeguards, dedicated runner, and production runbook; completed live synthetic migration and recovery rehearsal | 94 tests passed; apply/verify/no-op/forced-failure/recovery/reapply and HTTP smoke passed; 30 students and 90 attendance rows preserved; production untouched | Authorize and perform the Window A production-copy rehearsal |
 | 2026-10-17 | Authorized real copy in development | Created a consistent full production dump, restored it only into `control_asistencias_dev`, and completed Window A migration, verification, no-op, forced-failure recovery, report comparison, and authenticated HTTP rehearsal | 95 tests passed; 227 students, 39,009 attendance rows, 1,253 observations, 84 assignments, 15 tables, and 2 views preserved; 7,873 aggregate groups matched; temporary admin removed; app services stopped; production unchanged | Schedule the maintenance write freeze and execution-time backup; confirm the attendance-date boundary |
+| 2026-10-18 | Production | Executed Window A with frozen writers, a fresh restore-verified backup, the dedicated migration runner, independent verification, and compatible Gunicorn deployment | 227 legacy enrollments created; all 227 students, 39,009 attendance rows, 1,253 observations, 84 assignments, and 15 sections preserved; zero target-year movement; authenticated GET smoke passed; ordinary 2025-2026 writes reopened | Keep target-year attendance blocked; prepare Window B separately |
 
 ## Current next action
 
-For **Window A**, the real-copy rehearsal is complete. Remaining execution gates are operational: record the final release approval, schedule the maintenance write freeze, stop every old writer/worker, take and restore-verify a fresh execution-time backup, and confirm with the release/attendance owners that no attendance dated 2026-09-01 or later will be written before Window B. Do not open production writes without that confirmation. The real-copy app and validation services remain stopped while the migrated copy is retained in the isolated database.
+**Window A is complete in production.** Release `6e67140` is running with `2025-2026` as the only current year and period administration disabled. Ordinary 2025-2026 writes are open; attendance dated 2026-09-01 or later remains application-blocked until Window B. No synthetic production attendance row was created during deployment.
 
 For **Window B**, continue the authorized human review in ignored `dev/backups/real_2026_2027/review_actions.json`: 47 student rows and 9 teacher profiles remain unresolved, and the cutoff/final mapping are not approved. The Window B packet remains `strict_ready=false`; no rollover or period activation is authorized.
