@@ -1,5 +1,6 @@
 import os
 import re
+import shutil
 
 import pytest
 
@@ -22,10 +23,14 @@ def reset_baseline():
     backfill()
 
 
-@pytest.fixture(scope="module")
-def period_db(app):
+@pytest.fixture
+def period_db(app, tmp_path, monkeypatch):
     with app.app_context():
-        yield
+        reset_baseline()
+        packet_directory = tmp_path / "packet"
+        shutil.copytree(OUTPUT_DIRECTORY, packet_directory)
+        monkeypatch.setattr("routes_periods.DEFAULT_PACKET_DIRECTORY", packet_directory)
+        yield packet_directory
         reset_baseline()
 
 
@@ -48,7 +53,26 @@ def period_page(client):
     return html, hidden_value(html, "csrf_token")
 
 
+def draft_form(client):
+    target = AnioEscolar.query.filter_by(nombre="2026-2027").one()
+    response = client.get(f"/admin/periodos/{target.id_anio_escolar}/borrador")
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    return html, hidden_value(html, "csrf_token"), hidden_value(html, "packet_fingerprint")
+
+
+def validate_current_draft(client):
+    _, csrf_token, fingerprint = draft_form(client)
+    target = AnioEscolar.query.filter_by(nombre="2026-2027").one()
+    return client.post(f"/admin/periodos/{target.id_anio_escolar}/borrador/validar", data={
+        "csrf_token": csrf_token,
+        "packet_fingerprint": fingerprint,
+    }, follow_redirects=True)
+
+
 def activation_form(client):
+    response = validate_current_draft(client)
+    assert "Borrador validado." in response.get_data(as_text=True)
     html, csrf_token = period_page(client)
     return html, csrf_token, hidden_value(html, "packet_fingerprint")
 
@@ -60,7 +84,7 @@ def test_period_page_and_menu_are_admin_only(period_db, client):
     assert "2026-2027" in html
     assert "Actual" in html
     assert "Planificado" in html
-    assert "Paquete aprobado" in html
+    assert "Borrador pendiente de validación" in html
 
     response = client.get("/")
     html = response.get_data(as_text=True)
@@ -158,7 +182,7 @@ def test_activation_requires_confirmation_and_reviewed_fingerprint(period_db, cl
 
 
 def test_missing_active_source_student_blocks_preflight(period_db):
-    packet = load_packet(OUTPUT_DIRECTORY)
+    packet = load_packet(period_db)
     incomplete = MigrationPacket(
         students=packet.students[:-1],
         sections=packet.sections,
@@ -187,7 +211,7 @@ def test_target_with_enrollments_blocks_activation(period_db, client):
     html, csrf_token = period_page(client)
     assert "already has enrollments" in html
     assert 'name="confirmacion"' not in html
-    packet = load_packet(OUTPUT_DIRECTORY)
+    packet = load_packet(period_db)
     response = client.post(f"/admin/periodos/{target.id_anio_escolar}/activar", data={
         "csrf_token": csrf_token,
         "packet_fingerprint": packet_fingerprint(packet),

@@ -20,10 +20,16 @@ def attendance_ids(student_id, attendance_date):
 
 
 def test_planned_year_attendance_is_rejected_before_rollover(client):
+    from models import Asistencia
+
     admin_login(client)
     student = Estudiante.query.filter_by(activo=True).first()
     attendance_date = date(2026, 9, 1)
     before = attendance_ids(student.id_estudiante, attendance_date)
+    legacy_before = Asistencia.query.filter_by(
+        id_seccion_legacy=student.id_seccion,
+        fecha=attendance_date,
+    ).count()
 
     responses = [
         client.post("/api/asistencia-individual/registrar", json={
@@ -36,6 +42,12 @@ def test_planned_year_attendance_is_rejected_before_rollover(client):
             "bloque": "completo",
             "asistencias": [{"id_estudiante": student.id_estudiante, "presente": True}],
         }),
+        client.post("/guardar_asistencia", json={
+            "fecha": attendance_date.isoformat(),
+            "id_seccion": student.id_seccion,
+            "masculinos": 1,
+            "femeninos": 0,
+        }),
     ]
 
     for response in responses:
@@ -43,6 +55,10 @@ def test_planned_year_attendance_is_rejected_before_rollover(client):
         assert response.get_json()["success"] is False
         assert "2026-2027" in response.get_json()["error"]
     assert attendance_ids(student.id_estudiante, attendance_date) == before
+    assert Asistencia.query.filter_by(
+        id_seccion_legacy=student.id_seccion,
+        fecha=attendance_date,
+    ).count() == legacy_before
 
 
 def test_current_year_boundary_attendance_is_allowed(client):

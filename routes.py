@@ -5,7 +5,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from functools import wraps
 from models import db, Etapa, Grado, Usuario, Seccion, ProfesorSeccion, Matricula, Asistencia, Calendario, Estudiante, AsistenciaEstudiante, SeccionLegacy, Inscripcion
 from app import bcrypt
-from utils.academic_year import current_academic_year
+from utils.academic_year import attendance_write_year, current_academic_year
 
 # Decorador para verificar roles
 def admin_required(f):
@@ -121,6 +121,10 @@ def guardar_asistencia():
         
         # Convertir fecha string a objeto date
         fecha = datetime.strptime(fecha_str, '%Y-%m-%d').date()
+        try:
+            attendance_write_year(fecha)
+        except RuntimeError as e:
+            return jsonify({'success': False, 'error': str(e)}), 409
         
         # Verificar que la sección existe
         seccion = Seccion.query.get(id_seccion)

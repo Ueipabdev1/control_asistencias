@@ -113,7 +113,7 @@ def validate_packet(students, sections, teacher_sections, manifest, require_read
     section_keys = set()
     active_section_keys = set()
     for row in sections:
-        location = f"sections.csv:{row['_line']}"
+        location = f"sections.csv:{row.get('_line', '?')}"
         grade = row["grade"]
         section = row["section"]
         active = _boolean(row["active"])
@@ -131,7 +131,7 @@ def validate_packet(students, sections, teacher_sections, manifest, require_read
     student_ids = set()
     match_keys = set()
     for row in students:
-        location = f"students.csv:{row['_line']}"
+        location = f"students.csv:{row.get('_line', '?')}"
         source_id = row["source_student_id"]
         status = row["status"]
         match_key = row["match_key"].upper()
@@ -170,7 +170,7 @@ def validate_packet(students, sections, teacher_sections, manifest, require_read
     email_ids = {}
     assignments = set()
     for row in teacher_sections:
-        location = f"teacher_sections.csv:{row['_line']}"
+        location = f"teacher_sections.csv:{row.get('_line', '?')}"
         teacher_id = row["teacher_profile_id"]
         email = row["work_email"].lower()
         if not teacher_id or not row["teacher_name"]:
@@ -259,4 +259,9 @@ def synthetic_manifest():
         "schedule_id": "SIM-2627-V1",
         "publishedAt": "2026-09-16T12:00:00Z",
         "extractedAt": "2026-10-16T00:00:00Z",
+        "readiness": {
+            "structural_valid": True,
+            "strict_ready": False,
+            "blockers": {},
+        },
     }

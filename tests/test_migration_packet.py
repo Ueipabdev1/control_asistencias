@@ -46,6 +46,8 @@ def test_manifest_counts_and_hashes():
     assert packet.manifest["schema"] == "migration-packet-v1"
     assert packet.manifest["academic_period"] == "2026-2027"
     assert packet.manifest["schedule_id"] == "SIM-2627-V1"
+    assert packet.manifest["readiness"]["strict_ready"] is False
+    assert packet.manifest["readiness"]["blockers"] == {}
     for filename, rows in (
         ("students.csv", 30),
         ("sections.csv", 15),

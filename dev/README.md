@@ -120,9 +120,9 @@ The enhanced synthetic validation environment can be rebuilt at:
 https://dev.ueipab.edu.ve/control_asistencias_enhance/
 ```
 
-Synthetic login after a synthetic reset: `admin@dev.test` / `dev-only`. The site uses Gunicorn on loopback port 5018 and the isolated `control_asistencias_dev` database. It is separate from the existing `/control_asistencias/` service on port 5006. **The app and validation services are currently stopped because the database contains the authorized real-copy Window A rehearsal; do not expose that copy through the public URL.**
+Synthetic login after a synthetic reset: `admin@dev.test` / `dev-only`. The site uses Gunicorn on loopback port 5018 and the isolated `control_asistencias_dev` database. It is separate from the existing `/control_asistencias/` service on port 5006. **The app and validation services are currently running with only the synthetic 2025-2026 baseline. Never expose a restored real production copy through this URL.**
 
-After the real-copy evidence is no longer needed, rebuild the enhanced development database to the synthetic 2025-2026 baseline and restart the isolated services. This permanently replaces the current development database:
+After any real-copy rehearsal, rebuild the enhanced development database to the synthetic baseline before restarting the public validation services. This permanently replaces the current development database:
 
 ```bash
 docker compose -f compose.dev.yaml stop app validation
@@ -130,13 +130,15 @@ bash dev/scripts/reset_dev.sh
 docker compose -f compose.dev.yaml up -d app validation
 ```
 
-Open `/admin/periodos` to review and activate the synthetic 2026-2027 packet through the browser. For the CLI alternative, run `docker compose -f compose.dev.yaml run --rm --no-deps app python -m dev.apply_migration_packet` after the reset and before starting the services.
+Open `/admin/periodos` and then **Revisar y editar borrador** to review the synthetic 2026-2027 roster. The packet-backed draft editor supports student continuing/graduated/retired decisions, target sections and review flags, section definitions, teacher emails, and teacher-section assignments. It does not create live sections, enrollments, assignments, or attendance, and it does not edit global student identities or create new intake. Every edit invalidates validation and changes the packet fingerprint; existing reconciliation blockers remain blocking.
+
+Use **Validar borrador completo** for strict packet validation and database preflight. Only a validated packet can be activated from the period page with its current fingerprint and typed confirmation. For the CLI alternative, first validate through the browser, then run `docker compose -f compose.dev.yaml run --rm --no-deps app python -m dev.apply_migration_packet` before starting the services.
 
 The admin validation page is `/admin/validacion-matricula`. The academic-structure management page is `/admin/estructura`, with grade and current-year section creation/editing, duplicate protection, no deletes, and no historical rewrites. Deactivation is blocked for sections with active enrollments, and used grade/section names are protected. Admins can open it from **Estructura académica** in the main sidebar; the entry is hidden from professors.
 
-The academic-period manager is `/admin/periodos`, linked as **Períodos académicos** in the admin sidebar. It lists historical/current/planned periods, creates only non-current successor periods, reviews the bundled packet and database preflight, and performs the confirmed close-and-activate rollover. Mutations require `ENABLE_ACADEMIC_PERIOD_ADMIN=1`, an isolated dev/test database, a session-bound CSRF token, the reviewed packet fingerprint, and typed target-period confirmation. There is no direct `es_actual` editor or arbitrary packet-path input.
+The academic-period manager is `/admin/periodos`, linked as **Períodos académicos** in the admin sidebar. It lists historical/current/planned periods, creates only non-current successor periods, reviews the bundled packet and database preflight, and performs the confirmed close-and-activate rollover. Draft and period mutations require `ENABLE_ACADEMIC_PERIOD_ADMIN=1`, an isolated dev/test database, a session-bound CSRF token, and the current packet fingerprint. Activation additionally requires a validated packet and typed target-period confirmation. There is no direct `es_actual` editor or arbitrary packet-path input.
 
-Previous end-to-end rollover verification activated 2026-2027 from 2025-2026 with 28 promotions, 2 graduates, and all 90 attendance links preserved. The combined suite now has 95 passing tests, including authorization, inactive sessions, assigned-section enforcement, planned-period attendance rejection, retired-enrollment historical reporting, and Window A migration guards.
+The complete suite now has 100 passing tests. Actual HTTP verification through the validation URL passed draft edit → validation → activation with 28 promotions, 2 graduates, and all 90 attendance links preserved. The demo was then reset to a clean unvalidated synthetic draft with 30 fictional students. Planned-period attendance rejection covers both individual and legacy aggregate write endpoints.
 
 ## Window A runner and rehearsals
 
@@ -144,7 +146,7 @@ Previous end-to-end rollover verification activated 2026-2027 from 2025-2026 wit
 
 The synthetic MariaDB rehearsal passed legacy preflight, apply, independent verification, complete-state no-op, forced partial-DDL detection, recovery reset, reapplication, and HTTP smoke checks. It preserved all 30 fictional students and 90 attendance rows, kept 2025-2026 current, and created no target-year sections or enrollments.
 
-The authorized real production-copy rehearsal then passed with 227 students, 39,009 attendance rows, 1,253 observations, 84 teacher assignments, 15 original tables, and 2 views preserved. All 7,873 historical attendance aggregate groups and 18 roster groups matched. Forced-failure recovery, no-op rerun, and authenticated HTTP checks also passed; historical statistics now include 20 attendance rows belonging to inactive students. The temporary synthetic admin was removed and the real-copy app/validation services remain stopped. Secure dump and aggregate evidence remains Git-ignored under `dev/backups/` with owner-only permissions.
+The authorized real production-copy rehearsal then passed with 227 students, 39,009 attendance rows, 1,253 observations, 84 assignments, 15 original tables, and 2 views preserved. All 7,873 historical attendance aggregate groups and 18 roster groups matched. Forced-failure recovery, no-op rerun, and authenticated HTTP checks also passed; historical statistics now include 20 attendance rows belonging to inactive students. Secure dump and aggregate evidence remains Git-ignored under `dev/backups/` with owner-only permissions; the current public development database was subsequently restored to synthetic data.
 
 ## Enhancement workflow
 

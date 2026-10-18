@@ -125,6 +125,18 @@ Window A was limited to schema, 2025-2026 backfill, compatible application deplo
 
 Production was reopened only for ordinary 2025-2026 writes after migration, independent verification, deployment, and authenticated GET-only smoke checks. Attendance dated 2026-09-01 or later remains application-blocked until Window B is complete and independently verified. No synthetic attendance row was written to production during deployment.
 
+## Window B synthetic draft-roster workflow
+
+- [x] Add a packet-backed admin draft editor for student rollover decisions, target sections, review flags, section definitions, teacher emails, and teacher-section assignments; draft edits create no live database rows or historical changes.
+- [x] Require admin authentication, the dev/test feature flag and database guard, CSRF, current fingerprints, strict validation, database preflight, and recorded validator identity/time before browser or CLI activation. Every edit invalidates validation; existing reconciliation blockers remain blocking.
+- [x] Reject planned-period attendance in the legacy aggregate endpoint as well as both individual attendance endpoints.
+- [x] Pass 100 automated tests and the actual HTTP draft edit → validation → activation flow; 28 students promoted, 2 graduated, and all 90 attendance links preserved.
+- [x] Reset the public validation environment to a clean unvalidated draft with only 30 fictional students; production was not restarted or modified.
+- [ ] Connect the secure real packet to the reviewed draft workflow and resolve its source/reconciliation blockers without silently clearing them.
+- [ ] Complete a full real-copy Window B rehearsal and obtain separate production authorization.
+
+Validation URL: `https://dev.ueipab.edu.ve/control_asistencias_enhance/` with synthetic admin `admin@dev.test` / `dev-only`.
+
 ## Commands for development verification
 
 ```bash
@@ -158,9 +170,10 @@ Synthetic login: `admin@dev.test` / `dev-only`
 | 2026-10-17 | Development / synthetic MariaDB | Implemented Window A security and attendance safeguards, dedicated runner, and production runbook; completed live synthetic migration and recovery rehearsal | 94 tests passed; apply/verify/no-op/forced-failure/recovery/reapply and HTTP smoke passed; 30 students and 90 attendance rows preserved; production untouched | Authorize and perform the Window A production-copy rehearsal |
 | 2026-10-17 | Authorized real copy in development | Created a consistent full production dump, restored it only into `control_asistencias_dev`, and completed Window A migration, verification, no-op, forced-failure recovery, report comparison, and authenticated HTTP rehearsal | 95 tests passed; 227 students, 39,009 attendance rows, 1,253 observations, 84 assignments, 15 tables, and 2 views preserved; 7,873 aggregate groups matched; temporary admin removed; app services stopped; production unchanged | Schedule the maintenance write freeze and execution-time backup; confirm the attendance-date boundary |
 | 2026-10-18 | Production | Executed Window A with frozen writers, a fresh restore-verified backup, the dedicated migration runner, independent verification, and compatible Gunicorn deployment | 227 legacy enrollments created; all 227 students, 39,009 attendance rows, 1,253 observations, 84 assignments, and 15 sections preserved; zero target-year movement; authenticated GET smoke passed; ordinary 2025-2026 writes reopened | Keep target-year attendance blocked; prepare Window B separately |
+| 2026-10-18 | Development / synthetic MariaDB | Added packet-backed draft editing, validation-gated activation, and legacy future-attendance protection; completed actual HTTP draft edit → validation → activation rehearsal | 100 tests passed; 28 promoted, 2 graduated, 90 attendance links preserved; clean synthetic demo restored; production verified unchanged | Connect the secure real packet without clearing reconciliation blockers |
 
 ## Current next action
 
-**Window A is complete in production.** Release `6e67140` is running with `2025-2026` as the only current year and period administration disabled. Ordinary 2025-2026 writes are open; attendance dated 2026-09-01 or later remains application-blocked until Window B. No synthetic production attendance row was created during deployment.
+**Window A is complete in production.** Release `6e67140` is running with `2025-2026` as the only current year and period administration disabled. Ordinary 2025-2026 writes are open; attendance dated 2026-09-01 or later remains application-blocked until Window B. No synthetic production attendance row was created during deployment. The subsequent synthetic draft-roster work was not deployed to production.
 
-For **Window B**, continue the authorized human review in ignored `dev/backups/real_2026_2027/review_actions.json`: 47 student rows and 9 teacher profiles remain unresolved, and the cutoff/final mapping are not approved. The Window B packet remains `strict_ready=false`; no rollover or period activation is authorized.
+For **Window B**, use the synthetic draft editor at `https://dev.ueipab.edu.ve/control_asistencias_enhance/admin/periodos` for staff workflow validation. Then connect the secure real packet and continue the authorized human review in ignored `dev/backups/real_2026_2027/review_actions.json`: 47 student rows and 9 teacher profiles remain unresolved, and the cutoff/final mapping are not approved. The real Window B packet remains `strict_ready=false`; no real rollover or production period activation is authorized.

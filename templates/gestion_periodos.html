@@ -103,21 +103,27 @@
             {% if year.review.errors %}
                 <div class="alert alert-danger mb-0">{{ year.review.errors|join('; ') }}</div>
             {% else %}
-                <p class="small-note mb-0">No hay un paquete de migración aprobado para este período. La activación permanece bloqueada.</p>
+                <p class="small-note mb-0">No hay un borrador de migración para este período. La activación permanece bloqueada.</p>
             {% endif %}
         {% else %}
             <div class="row mb-3">
                 <div class="col-md-6">
-                    <h3>Paquete aprobado</h3>
+                    <h3>{% if year.review.validated %}Borrador validado{% else %}Borrador pendiente de validación{% endif %}</h3>
                     <p class="small-note mb-1">Calendario: <strong>{{ year.review.manifest.schedule_id }}</strong></p>
                     <p class="small-note mb-1">Publicado: {{ year.review.manifest.publishedAt }}</p>
                     <p class="small-note mb-0">Transición: {{ current_year.nombre }} → {{ year.nombre }}</p>
+                    {% if year.review.validated %}
+                        <p class="small-note mb-0">Validado por {{ year.review.manifest.readiness.validated_by }} el {{ year.review.manifest.readiness.validated_at_utc }}</p>
+                    {% endif %}
                 </div>
                 <div class="col-md-6">
                     <h3>Huella del paquete</h3>
                     <div class="fingerprint">{{ year.review.fingerprint }}</div>
                 </div>
             </div>
+            {% if management_enabled %}
+                <a class="btn btn-outline-light btn-sm mb-3" href="{{ url_for('periods.gestion_borrador', id_anio_escolar=year.id) }}">Revisar y editar borrador</a>
+            {% endif %}
 
             <div class="metric-grid">
                 <div class="metric"><strong>{{ year.review.counts.students }}</strong><span>Estudiantes</span></div>

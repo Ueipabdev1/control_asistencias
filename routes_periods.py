@@ -11,8 +11,19 @@ from dev.apply_migration_packet import (
     preflight_packet,
 )
 from dev.database import DEVELOPMENT_DATABASE, TEST_DATABASE, database_settings
+from dev.draft_roster import (
+    DraftApprovalError,
+    delete_teacher_assignment,
+    edit_student,
+    load_draft,
+    require_activation_ready,
+    save_section,
+    save_teacher_assignment,
+    set_teacher_email,
+    validate_draft,
+)
 from dev.migration_packet import load_packet
-from models import db, AnioEscolar, AsistenciaEstudiante, Inscripcion, Seccion
+from models import db, AnioEscolar, AsistenciaEstudiante, Grado, Inscripcion, Seccion, Usuario
 from routes import admin_required
 from utils.academic_year import current_academic_year
 
@@ -68,13 +79,14 @@ def _packet_review(year, state):
     review = {
         'available': False,
         'ready': False,
+        'validated': False,
         'errors': [],
         'fingerprint': None,
         'manifest': None,
         'counts': None,
     }
     try:
-        packet = load_packet(DEFAULT_PACKET_DIRECTORY)
+        packet = load_draft(DEFAULT_PACKET_DIRECTORY)
     except Exception as exc:
         review['errors'].append(str(exc))
         return review
@@ -82,21 +94,49 @@ def _packet_review(year, state):
     if packet.manifest.get('academic_period') != year.nombre:
         return review
 
+    readiness = packet.manifest.get('readiness') or {}
     review.update({
         'available': True,
+        'validated': readiness.get('strict_ready') is True,
         'fingerprint': packet_fingerprint(packet),
         'manifest': packet.manifest,
         'counts': _packet_counts(packet),
     })
     try:
+        load_packet(DEFAULT_PACKET_DIRECTORY)
         context = preflight_packet(packet)
         if context['target_year'].id_anio_escolar != year.id_anio_escolar:
             raise RuntimeError('The packet target does not match this academic period')
+        require_activation_ready(packet)
         review['counts'] = context['counts']
         review['ready'] = True
     except Exception as exc:
         review['errors'].append(str(exc))
     return review
+
+
+def _draft_target(id_anio_escolar):
+    target_year = db.session.get(AnioEscolar, id_anio_escolar)
+    if not target_year:
+        abort(404)
+    current_year = current_academic_year()
+    if target_year.es_actual or target_year.fecha_inicio != current_year.fecha_fin + timedelta(days=1):
+        abort(400, description='Solo se puede editar el sucesor planificado del período actual')
+    packet = load_draft(DEFAULT_PACKET_DIRECTORY)
+    if packet.manifest.get('academic_period') != target_year.nombre:
+        abort(409, description='El borrador no corresponde al período seleccionado')
+    return target_year, packet
+
+
+def _destination(value):
+    grade, separator, section = (value or '').partition('|')
+    if not separator or not grade or not section:
+        raise ValueError('Selecciona una sección de destino válida')
+    return grade, section
+
+
+def _draft_redirect(target_year):
+    return redirect(url_for('periods.gestion_borrador', id_anio_escolar=target_year.id_anio_escolar))
 
 
 def _form_date(field):
@@ -178,6 +218,186 @@ def crear_periodo():
     return redirect(url_for('periods.gestion_periodos'))
 
 
+@period_bp.route('/periodos/<int:id_anio_escolar>/borrador')
+@login_required
+@admin_required
+def gestion_borrador(id_anio_escolar):
+    _require_management_enabled()
+    target_year, packet = _draft_target(id_anio_escolar)
+    readiness = packet.manifest.get('readiness') or {}
+    teacher_profiles = {}
+    for row in packet.teacher_sections:
+        profile = teacher_profiles.setdefault(row['teacher_profile_id'], {
+            'teacher_name': row['teacher_name'],
+            'work_email': row['work_email'],
+            'assignments': 0,
+        })
+        profile['assignments'] += 1
+    grades = Grado.query.filter_by(activo=True).order_by(Grado.orden, Grado.nombre_grado).all()
+    professors = Usuario.query.filter_by(rol='profesor', activo=True).order_by(
+        Usuario.apellido,
+        Usuario.nombre,
+    ).all()
+    return render_template(
+        'gestion_borrador_matricula.html',
+        year=target_year,
+        packet=packet,
+        counts=_packet_counts(packet),
+        fingerprint=packet_fingerprint(packet),
+        readiness=readiness,
+        blockers=readiness.get('blockers') or {},
+        teacher_profiles=teacher_profiles,
+        grades=grades,
+        professors=professors,
+        csrf_token=_csrf_token(),
+    )
+
+
+@period_bp.route('/periodos/<int:id_anio_escolar>/borrador/estudiantes/<source_student_id>', methods=['POST'])
+@login_required
+@admin_required
+def editar_estudiante_borrador(id_anio_escolar, source_student_id):
+    _require_management_enabled()
+    _validate_csrf()
+    target_year, packet = _draft_target(id_anio_escolar)
+    try:
+        status = request.form.get('status', '')
+        target_grade = section = ''
+        if status == 'continuing':
+            target_grade, section = _destination(request.form.get('destination'))
+        edit_student(
+            DEFAULT_PACKET_DIRECTORY,
+            packet,
+            request.form.get('packet_fingerprint'),
+            source_student_id,
+            status,
+            target_grade,
+            section,
+            request.form.get('review_required') == '1',
+        )
+        flash('Decisión del estudiante actualizada en el borrador', 'success')
+    except Exception as exc:
+        flash(str(exc), 'danger')
+    return _draft_redirect(target_year)
+
+
+@period_bp.route('/periodos/<int:id_anio_escolar>/borrador/secciones/guardar', methods=['POST'])
+@login_required
+@admin_required
+def guardar_seccion_borrador(id_anio_escolar):
+    _require_management_enabled()
+    _validate_csrf()
+    target_year, packet = _draft_target(id_anio_escolar)
+    try:
+        save_section(
+            DEFAULT_PACKET_DIRECTORY,
+            packet,
+            request.form.get('packet_fingerprint'),
+            request.form.get('original_grade', ''),
+            request.form.get('original_section', ''),
+            request.form.get('grade', ''),
+            request.form.get('section', ''),
+            request.form.get('group_label', ''),
+            request.form.get('active') == '1',
+        )
+        flash('Sección actualizada en el borrador', 'success')
+    except Exception as exc:
+        flash(str(exc), 'danger')
+    return _draft_redirect(target_year)
+
+
+@period_bp.route('/periodos/<int:id_anio_escolar>/borrador/profesores/<teacher_profile_id>/correo', methods=['POST'])
+@login_required
+@admin_required
+def guardar_correo_profesor_borrador(id_anio_escolar, teacher_profile_id):
+    _require_management_enabled()
+    _validate_csrf()
+    target_year, packet = _draft_target(id_anio_escolar)
+    try:
+        set_teacher_email(
+            DEFAULT_PACKET_DIRECTORY,
+            packet,
+            request.form.get('packet_fingerprint'),
+            teacher_profile_id,
+            request.form.get('work_email', ''),
+        )
+        flash('Correo docente actualizado en todas sus asignaciones del borrador', 'success')
+    except Exception as exc:
+        flash(str(exc), 'danger')
+    return _draft_redirect(target_year)
+
+
+@period_bp.route('/periodos/<int:id_anio_escolar>/borrador/asignaciones/guardar', methods=['POST'])
+@login_required
+@admin_required
+def guardar_asignacion_borrador(id_anio_escolar):
+    _require_management_enabled()
+    _validate_csrf()
+    target_year, packet = _draft_target(id_anio_escolar)
+    try:
+        grade, section = _destination(request.form.get('destination'))
+        save_teacher_assignment(
+            DEFAULT_PACKET_DIRECTORY,
+            packet,
+            request.form.get('packet_fingerprint'),
+            request.form.get('original_teacher_profile_id', ''),
+            request.form.get('original_grade', ''),
+            request.form.get('original_section', ''),
+            request.form.get('teacher_profile_id', ''),
+            grade,
+            section,
+        )
+        flash('Asignación docente actualizada en el borrador', 'success')
+    except Exception as exc:
+        flash(str(exc), 'danger')
+    return _draft_redirect(target_year)
+
+
+@period_bp.route('/periodos/<int:id_anio_escolar>/borrador/asignaciones/eliminar', methods=['POST'])
+@login_required
+@admin_required
+def eliminar_asignacion_borrador(id_anio_escolar):
+    _require_management_enabled()
+    _validate_csrf()
+    target_year, packet = _draft_target(id_anio_escolar)
+    try:
+        delete_teacher_assignment(
+            DEFAULT_PACKET_DIRECTORY,
+            packet,
+            request.form.get('packet_fingerprint'),
+            request.form.get('teacher_profile_id', ''),
+            request.form.get('grade', ''),
+            request.form.get('section', ''),
+        )
+        flash('Asignación docente eliminada del borrador', 'success')
+    except Exception as exc:
+        flash(str(exc), 'danger')
+    return _draft_redirect(target_year)
+
+
+@period_bp.route('/periodos/<int:id_anio_escolar>/borrador/validar', methods=['POST'])
+@login_required
+@admin_required
+def validar_borrador(id_anio_escolar):
+    _require_management_enabled()
+    _validate_csrf()
+    target_year, packet = _draft_target(id_anio_escolar)
+    try:
+        from flask_login import current_user
+        validate_draft(
+            DEFAULT_PACKET_DIRECTORY,
+            packet,
+            request.form.get('packet_fingerprint'),
+            current_user.email,
+        )
+        flash('Borrador validado. Ya puede revisarse para la activación confirmada', 'success')
+    except DraftApprovalError as exc:
+        flash('La validación sigue bloqueada: ' + '; '.join(exc.errors), 'danger')
+    except Exception as exc:
+        flash(str(exc), 'danger')
+    return _draft_redirect(target_year)
+
+
 @period_bp.route('/periodos/<int:id_anio_escolar>/activar', methods=['POST'])
 @login_required
 @admin_required
@@ -190,7 +410,7 @@ def activar_periodo(id_anio_escolar):
     try:
         packet = load_packet(DEFAULT_PACKET_DIRECTORY)
         if packet.manifest.get('academic_period') != target_year.nombre:
-            raise ValueError('No hay un paquete aprobado para este período')
+            raise ValueError('No hay un borrador para este período')
         if request.form.get('packet_fingerprint') != packet_fingerprint(packet):
             raise ValueError('El paquete cambió desde la revisión; vuelve a validarlo')
         if request.form.get('confirmacion') != target_year.nombre:
@@ -198,6 +418,7 @@ def activar_periodo(id_anio_escolar):
         context = preflight_packet(packet)
         if context['target_year'].id_anio_escolar != target_year.id_anio_escolar:
             raise ValueError('El paquete no corresponde al período seleccionado')
+        require_activation_ready(packet)
         result = apply_packet(packet)
         flash(
             f"Período {target_year.nombre} activado: {result['continuing']} promovidos, "

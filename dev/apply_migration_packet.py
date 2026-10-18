@@ -256,6 +256,8 @@ def main():
         raise RuntimeError("DATABASE_URL is required")
     database_settings(database_url, (DEVELOPMENT_DATABASE, TEST_DATABASE))
     packet = load_packet(DEFAULT_PACKET_DIRECTORY)
+    from dev.draft_roster import require_activation_ready
+    require_activation_ready(packet)
 
     from app import app
 

@@ -16,6 +16,11 @@
     }
   },
   "publishedAt": "2026-09-16T12:00:00Z",
+  "readiness": {
+    "blockers": {},
+    "strict_ready": false,
+    "structural_valid": true
+  },
   "schedule_id": "SIM-2627-V1",
   "schema": "migration-packet-v1",
   "sources": {

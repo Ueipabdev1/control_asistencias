@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+
+{% block title %}Borrador de matrícula {{ year.nombre }}{% endblock %}
+
+{% macro destination_select(sections, selected_grade='', selected_section='') %}
+<select class="form-control form-select" name="destination">
+    <option value="">Selecciona una sección...</option>
+    {% for item in sections if item.active == 'true' %}
+    <option value="{{ item.grade }}|{{ item.section }}" {% if item.grade == selected_grade and item.section == selected_section %}selected{% endif %}>
+        {{ item.grade }} / {{ item.section }}
+    </option>
+    {% endfor %}
+</select>
+{% endmacro %}
+
+{% block extra_css %}
+<style>
+    .main-container { max-width: 1500px; margin: 0 auto; padding: 20px; }
+    .page-header { background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-radius: 18px; padding: 24px; margin-bottom: 22px; }
+    .page-header h1 { margin: 0 0 8px; font-size: 1.7rem; }
+    .page-header p { margin: 0; opacity: .92; }
+    .panel { background: rgba(30,30,45,.94); border: 1px solid rgba(255,255,255,.1); border-radius: 15px; padding: 22px; margin-bottom: 22px; }
+    .panel h2 { color: #fff; font-size: 1.2rem; }
+    .panel h3 { color: #fff; font-size: 1rem; }
+    .form-label, .form-text { color: #d5d5e2; }
+    .form-control, .form-select { background: rgba(20,20,35,.85); color: #fff; border: 1px solid rgba(255,255,255,.2); }
+    .form-control:focus, .form-select:focus { color: #fff; background: rgba(30,30,50,.95); border-color: #667eea; box-shadow: none; }
+    .form-control[readonly] { opacity: .75; }
+    .table { color: #e5e5ef; }
+    .table > :not(caption) > * > * { background: transparent; color: inherit; border-bottom-color: rgba(255,255,255,.09); vertical-align: middle; }
+    .table thead { color: #fff; }
+    .review-row { box-shadow: inset 3px 0 #f0ad4e; }
+    .metric-grid { display: grid; grid-template-columns: repeat(7, minmax(90px, 1fr)); gap: 10px; margin: 16px 0; }
+    .metric { background: rgba(50,50,70,.55); border-radius: 10px; padding: 12px; text-align: center; }
+    .metric strong { display: block; color: #fff; font-size: 1.3rem; }
+    .metric span { color: #c7c7d8; font-size: .74rem; }
+    .fingerprint { font-family: monospace; word-break: break-all; color: #c7c7d8; font-size: .78rem; }
+    .small-note { color: #c7c7d8; font-size: .85rem; }
+    .inline-form { min-width: 210px; }
+    .compact-input { min-width: 140px; }
+    .btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); border: 0; }
+    details > summary { cursor: pointer; color: #fff; font-weight: 600; }
+    @media (max-width: 1100px) { .metric-grid { grid-template-columns: repeat(4, 1fr); } }
+    @media (max-width: 576px) {
+        .main-container { padding: 10px 0; }
+        .page-header, .panel { padding: 16px; border-radius: 12px; }
+        .metric-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <div class="page-header">
+        <h1>Borrador de matrícula {{ year.nombre }}</h1>
+        <p>Edita decisiones futuras sin crear inscripciones ni cambiar el período actual o el historial.</p>
+    </div>
+
+    <div class="mb-3">
+        <a class="btn btn-outline-light btn-sm" href="{{ url_for('periods.gestion_periodos') }}">Volver a períodos académicos</a>
+    </div>
+
+    <div class="panel">
+        <h2>Estado del borrador</h2>
+        {% if readiness.strict_ready %}
+            <div class="alert alert-success">
+                Validado por <strong>{{ readiness.validated_by }}</strong> el {{ readiness.validated_at_utc }}. Vuelve a períodos académicos para revisar la activación confirmada.
+            </div>
+        {% else %}
+            <div class="alert alert-warning">El borrador requiere validación antes de poder activar {{ year.nombre }}.</div>
+        {% endif %}
+        {% if blockers %}
+            <div class="alert alert-danger">
+                <strong>Bloqueos de reconciliación que no se pueden omitir:</strong>
+                <ul class="mb-0">{% for name, total in blockers|dictsort %}<li>{{ name }}: {{ total }}</li>{% endfor %}</ul>
+            </div>
+        {% endif %}
+        <div class="fingerprint mb-3">Huella actual: {{ fingerprint }}</div>
+        <form method="post" action="{{ url_for('periods.validar_borrador', id_anio_escolar=year.id_anio_escolar) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="packet_fingerprint" value="{{ fingerprint }}">
+            <button class="btn btn-primary" type="submit">Validar borrador completo</button>
+        </form>
+    </div>
+
+    {% set review_count = packet.students|selectattr('review_required', 'eq', 'true')|list|count %}
+    <div class="metric-grid">
+        <div class="metric"><strong>{{ counts.students }}</strong><span>Estudiantes</span></div>
+        <div class="metric"><strong>{{ counts.continuing }}</strong><span>Promovidos</span></div>
+        <div class="metric"><strong>{{ counts.graduated }}</strong><span>Graduados</span></div>
+        <div class="metric"><strong>{{ counts.retired }}</strong><span>Retirados</span></div>
+        <div class="metric"><strong>{{ review_count }}</strong><span>Por revisar</span></div>
+        <div class="metric"><strong>{{ counts.sections }}</strong><span>Secciones</span></div>
+        <div class="metric"><strong>{{ counts.teacher_assignments }}</strong><span>Asignaciones</span></div>
+    </div>
+
+    <details class="panel" open>
+        <summary><h2 class="d-inline">1. Estudiantes y destino</h2></summary>
+        <p class="small-note">Nombre e identificador son de solo lectura. Las identidades globales y los nuevos ingresos no se editan en este borrador.</p>
+        <input class="form-control mb-3" id="student-filter" type="search" placeholder="Filtrar por nombre o identificador...">
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead><tr><th>Estudiante</th><th>Decisión</th><th>Destino si continúa</th><th>Revisión</th><th>Acción</th></tr></thead>
+                <tbody>
+                {% for row in packet.students %}
+                    <tr class="student-row {% if row.review_required == 'true' %}review-row{% endif %}" data-search="{{ (row.student_name ~ ' ' ~ row.source_student_id)|lower }}">
+                        <td><strong>{{ row.student_name }}</strong><br><span class="small-note">{{ row.source_student_id }}</span></td>
+                        <td colspan="4">
+                            <form class="row g-2 align-items-end" method="post" action="{{ url_for('periods.editar_estudiante_borrador', id_anio_escolar=year.id_anio_escolar, source_student_id=row.source_student_id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <input type="hidden" name="packet_fingerprint" value="{{ fingerprint }}">
+                                <div class="col-xl-2 col-lg-3">
+                                    <label class="form-label">Decisión</label>
+                                    <select class="form-control form-select" name="status" required>
+                                        <option value="continuing" {% if row.status == 'continuing' %}selected{% endif %}>Continúa</option>
+                                        <option value="graduated" {% if row.status == 'graduated' %}selected{% endif %}>Graduado</option>
+                                        <option value="retired" {% if row.status == 'retired' %}selected{% endif %}>Retirado</option>
+                                    </select>
+                                </div>
+                                <div class="col-xl-4 col-lg-4">
+                                    <label class="form-label">Grado / sección</label>
+                                    {{ destination_select(packet.sections, row.target_grade, row.section) }}
+                                </div>
+                                <div class="col-xl-3 col-lg-3">
+                                    <label class="form-check form-label mt-4">
+                                        <input class="form-check-input" type="checkbox" name="review_required" value="1" {% if row.review_required == 'true' %}checked{% endif %}>
+                                        Requiere revisión
+                                    </label>
+                                </div>
+                                <div class="col-xl-2 col-lg-2"><button class="btn btn-outline-light btn-sm" type="submit">Guardar</button></div>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </details>
+
+    <details class="panel">
+        <summary><h2 class="d-inline">2. Secciones planificadas</h2></summary>
+        <p class="small-note">Renombrar una sección también actualiza sus referencias en estudiantes y docentes del borrador.</p>
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead><tr><th>Grado</th><th>Sección</th><th>Etiqueta de grupo</th><th>Activa</th><th>Acción</th></tr></thead>
+                <tbody>
+                {% for row in packet.sections %}
+                    <tr>
+                        <td colspan="5">
+                            <form class="row g-2 align-items-center" method="post" action="{{ url_for('periods.guardar_seccion_borrador', id_anio_escolar=year.id_anio_escolar) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <input type="hidden" name="packet_fingerprint" value="{{ fingerprint }}">
+                                <input type="hidden" name="original_grade" value="{{ row.grade }}">
+                                <input type="hidden" name="original_section" value="{{ row.section }}">
+                                <input type="hidden" name="grade" value="{{ row.grade }}">
+                                <div class="col-lg-3">{{ row.grade }}</div>
+                                <div class="col-lg-2"><input class="form-control" name="section" value="{{ row.section }}" required></div>
+                                <div class="col-lg-4"><input class="form-control" name="group_label" value="{{ row.group_label }}" required></div>
+                                <div class="col-lg-1"><input class="form-check-input" type="checkbox" name="active" value="1" {% if row.active == 'true' %}checked{% endif %}></div>
+                                <div class="col-lg-2"><button class="btn btn-outline-light btn-sm" type="submit">Guardar</button></div>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <h3 class="mt-4">Agregar sección</h3>
+        <form class="row g-2 align-items-end" method="post" action="{{ url_for('periods.guardar_seccion_borrador', id_anio_escolar=year.id_anio_escolar) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="packet_fingerprint" value="{{ fingerprint }}">
+            <input type="hidden" name="original_grade" value="">
+            <input type="hidden" name="original_section" value="">
+            <div class="col-md-3"><label class="form-label">Grado</label><select class="form-control form-select" name="grade" required>{% for grade in grades %}<option value="{{ grade.nombre_grado }}">{{ grade.nombre_grado }}</option>{% endfor %}</select></div>
+            <div class="col-md-2"><label class="form-label">Sección</label><input class="form-control" name="section" required></div>
+            <div class="col-md-4"><label class="form-label">Etiqueta de grupo</label><input class="form-control" name="group_label" required></div>
+            <div class="col-md-1"><label class="form-check form-label mt-4"><input class="form-check-input" type="checkbox" name="active" value="1" checked> Activa</label></div>
+            <div class="col-md-2"><button class="btn btn-outline-light" type="submit">Agregar</button></div>
+        </form>
+    </details>
+
+    <details class="panel">
+        <summary><h2 class="d-inline">3. Docentes y asignaciones</h2></summary>
+        <p class="small-note">Un cambio de correo se aplica a todas las asignaciones del mismo perfil. La validación exige un profesor local activo por correo.</p>
+        <datalist id="profesor-emails">{% for professor in professors %}<option value="{{ professor.email }}">{% endfor %}</datalist>
+        <div class="table-responsive mb-4">
+            <table class="table table-sm">
+                <thead><tr><th>Perfil</th><th>Correo institucional</th><th>Asignaciones</th><th>Acción</th></tr></thead>
+                <tbody>
+                {% for teacher_id, profile in teacher_profiles.items() %}
+                    <tr>
+                        <td colspan="4">
+                            <form class="row g-2 align-items-center" method="post" action="{{ url_for('periods.guardar_correo_profesor_borrador', id_anio_escolar=year.id_anio_escolar, teacher_profile_id=teacher_id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                <input type="hidden" name="packet_fingerprint" value="{{ fingerprint }}">
+                                <div class="col-lg-4"><strong>{{ profile.teacher_name }}</strong><br><span class="small-note">{{ teacher_id }}</span></div>
+                                <div class="col-lg-5"><input class="form-control" type="email" name="work_email" list="profesor-emails" value="{{ profile.work_email }}" required></div>
+                                <div class="col-lg-1">{{ profile.assignments }}</div>
+                                <div class="col-lg-2"><button class="btn btn-outline-light btn-sm" type="submit">Guardar correo</button></div>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <h3>Asignaciones por sección</h3>
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead><tr><th>Docente</th><th>Destino</th><th>Guardar</th><th>Eliminar</th></tr></thead>
+                <tbody>
+                {% for row in packet.teacher_sections %}
+                    <tr>
+                        <td colspan="4">
+                            <div class="row g-2 align-items-center">
+                                <div class="col-lg-4">{{ row.teacher_name }}<br><span class="small-note">{{ row.teacher_profile_id }}</span></div>
+                                <div class="col-lg-5">
+                                    <form class="row g-2" method="post" action="{{ url_for('periods.guardar_asignacion_borrador', id_anio_escolar=year.id_anio_escolar) }}">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                        <input type="hidden" name="packet_fingerprint" value="{{ fingerprint }}">
+                                        <input type="hidden" name="original_teacher_profile_id" value="{{ row.teacher_profile_id }}">
+                                        <input type="hidden" name="original_grade" value="{{ row.grade }}">
+                                        <input type="hidden" name="original_section" value="{{ row.section }}">
+                                        <input type="hidden" name="teacher_profile_id" value="{{ row.teacher_profile_id }}">
+                                        <div class="col-9">{{ destination_select(packet.sections, row.grade, row.section) }}</div>
+                                        <div class="col-3"><button class="btn btn-outline-light btn-sm" type="submit">Guardar</button></div>
+                                    </form>
+                                </div>
+                                <div class="col-lg-3">
+                                    <form method="post" action="{{ url_for('periods.eliminar_asignacion_borrador', id_anio_escolar=year.id_anio_escolar) }}">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                                        <input type="hidden" name="packet_fingerprint" value="{{ fingerprint }}">
+                                        <input type="hidden" name="teacher_profile_id" value="{{ row.teacher_profile_id }}">
+                                        <input type="hidden" name="grade" value="{{ row.grade }}">
+                                        <input type="hidden" name="section" value="{{ row.section }}">
+                                        <button class="btn btn-outline-danger btn-sm" type="submit">Eliminar asignación</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <h3 class="mt-4">Agregar asignación</h3>
+        <form class="row g-2 align-items-end" method="post" action="{{ url_for('periods.guardar_asignacion_borrador', id_anio_escolar=year.id_anio_escolar) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="packet_fingerprint" value="{{ fingerprint }}">
+            <input type="hidden" name="original_teacher_profile_id" value="">
+            <input type="hidden" name="original_grade" value="">
+            <input type="hidden" name="original_section" value="">
+            <div class="col-md-5"><label class="form-label">Perfil docente</label><select class="form-control form-select" name="teacher_profile_id" required>{% for teacher_id, profile in teacher_profiles.items() %}<option value="{{ teacher_id }}">{{ profile.teacher_name }} / {{ teacher_id }}</option>{% endfor %}</select></div>
+            <div class="col-md-5"><label class="form-label">Destino</label>{{ destination_select(packet.sections) }}</div>
+            <div class="col-md-2"><button class="btn btn-outline-light" type="submit">Agregar</button></div>
+        </form>
+    </details>
+</div>
+
+<script>
+document.getElementById('student-filter').addEventListener('input', function() {
+    const query = this.value.toLowerCase().trim();
+    document.querySelectorAll('.student-row').forEach(function(row) {
+        row.style.display = row.dataset.search.includes(query) ? '' : 'none';
+    });
+});
+</script>
+{% endblock %}
