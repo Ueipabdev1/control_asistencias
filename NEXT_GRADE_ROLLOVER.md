@@ -1,6 +1,6 @@
 # Next-grade rollover, section split, and graduation archive
 
-**Status:** WINDOW A REAL-COPY REHEARSAL COMPLETE; WINDOW B MAPPING STILL BLOCKED. The authorized production copy passed schema/backfill, independent verification, historical report comparison, inactive-student reporting, no-op rerun, and forced-failure recovery in the isolated environment. Production remains unchanged; only execution-time operational gates remain for Window A, while final mapping approval and a strict-ready packet remain pending for Window B.
+**Status:** WINDOW A DEPLOYED 2026-10-18; WINDOW B EXECUTED IN PRODUCTION AS-IS 2026-11-03. 2026-2027 is the current year. The real draft packet was applied by explicit user authorization without strict readiness; 47 review-flagged students are being corrected in-app. See `ROLLOVER_IMPLEMENTATION_TRACKER.md` → "Window B production execution".
 
 ## Recommendation
 
@@ -154,8 +154,8 @@ Rollback:
 | Teacher-assignment rollover policy | Confirmed | Latest Kampus/Odoo assignments, matched by `work_email` |
 | Synthetic development validation | Complete | 100 automated tests pass; packet-backed draft editing, validation-gated activation, browser rollover, security safeguards, and Window A migration/recovery rehearsals verified |
 | Real minimal-data extraction | Draft complete; strict not ready | Odoo authority validates 183 students; 47 reviews and 30 teacher-group pairs remain blocked |
-| Backup and full production-copy rehearsal | Window A complete; Window B pending | Real-copy schema/backfill, reports, no-op, and forced-failure recovery passed; Window B additionally requires a strict-ready packet |
-| Production execution | Window A deployed 2026-10-18; Window B not authorized | Production runs release `6e67140`; 2025-2026 remains current and target-year attendance is blocked until Window B |
+| Backup and full production-copy rehearsal | Window A and Window B complete | Window B rehearsed on a fresh production copy on 2026-11-03 immediately before execution |
+| Production execution | Window A deployed 2026-10-18; Window B executed 2026-11-03 (as-is) | 2026-2027 current; 213 promoted, 11 graduated, history preserved; service runs from working tree `69b5d9e` |
 
 ## Execution log
 
@@ -177,4 +177,4 @@ Rollback:
 
 Window A is complete in production. The compatible application is live with `2025-2026` as the only current year, `2026-2027` present only as a planned year, and period administration disabled. Ordinary 2025-2026 writes are open; attendance dated 2026-09-01 or later is rejected until Window B is complete and independently verified. No student was promoted, graduated, or moved, and no synthetic attendance row was created during deployment.
 
-Window B now has a validated synthetic draft-editing workflow. It lets administrators correct packet decisions without creating live enrollments or changing history, and every edit invalidates activation readiness. The public demo contains only synthetic data. Production Window B remains unauthorized and blocked by 47 student review rows, 30 unmatched teacher-group pairs, final cutoff/map approval, source/reconciliation resolution, a strict-ready real packet, a full real-copy rehearsal, fresh execution-time backup, writer freeze, and independent verification.
+Window B now has a validated synthetic draft-editing workflow. It lets administrators correct packet decisions without creating live enrollments or changing history, and every edit invalidates activation readiness. The public demo contains only synthetic data. **Update 2026-11-03:** Window B was executed in production as-is at the user's explicit request, because 2026-2027 attendance had been blocked since 2026-09-01. All 86 teacher pairs matched local accounts. The 47 student review rows were applied at their draft destinations and are being corrected in-app. Details, backups, and rollback are recorded in `ROLLOVER_IMPLEMENTATION_TRACKER.md`.

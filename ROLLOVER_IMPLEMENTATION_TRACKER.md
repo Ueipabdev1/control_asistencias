@@ -2,16 +2,17 @@
 
 **Purpose:** Track the database enhancement, application changes, migration rehearsals, and eventual next-grade rollover without risking production data or historical attendance attribution.
 
-**Current phase:** Window A real production-copy rehearsal complete — final production execution gates pending
-**Production status:** Untouched
+**Current phase:** Window B executed in production (as-is) on 2026-11-03 — post-rollover data corrections in progress
+**Production status:** 2026-2027 is the current academic year; Window A (2026-10-18) and Window B (2026-11-03) applied
 **Development environment:** Real-copy app services stopped; only the isolated database is running
 **Window A production-data rehearsal:** Complete, including forced-failure recovery
-**Window B production-data rehearsal:** Not performed
+**Window B production-data rehearsal:** Complete on a fresh production copy on 2026-11-03, immediately before execution
 
 Related documents:
 
 - `NEXT_GRADE_ROLLOVER.md` — detailed migration design, constraints, and rollback requirements.
 - `WINDOW_A_PRODUCTION_RUNBOOK.md` — dedicated Window A preflight, apply, verification, backup, recovery, and deployment runbook.
+- `window_b_asis_migration.py` — the one-off Window B runner executed in production on 2026-11-03 (see "Window B production execution" below).
 - `dev/README.md` — isolated development/test environment instructions.
 
 ## Safety baseline
@@ -32,18 +33,18 @@ No production schema or data changes have been made.
 | Phase | Work | Exit criteria | Status |
 |---|---|---|---|
 | 1. Development environment | Create isolated MariaDB 11.8 and Python 3.11 stack, as-is schema baseline, synthetic data, safety guards, and automated tests | Isolated environment verified; production counts unchanged | **Done** |
-| 2. Confirm rollover rules | Finalize the cutoff, full promotion map, final section rosters, and roster exceptions | Approved source-to-target mapping with exactly one destination per eligible student and no unresolved section assignments | **In progress** |
+| 2. Confirm rollover rules | Finalize the cutoff, full promotion map, final section rosters, and roster exceptions | Approved source-to-target mapping with exactly one destination per eligible student and no unresolved section assignments | **Superseded** — user authorized the draft mapping as-is on 2026-11-03; 47 flagged rows to be corrected in-app |
 | 3. Schema migration in dev | Add academic years, enrollments, year-specific sections, and attendance-to-enrollment relationship | Migration applies cleanly to the as-is development schema without deleting existing records | **Done** |
 | 4. Historical backfill in dev | Enroll existing students in the current academic year and link existing attendance to the correct enrollment | Every attendance row retains its original student, section, and academic year; no orphaned rows | **Done** |
 | 5. Application compatibility | Update attendance writes, logs, statistics, section lists, teacher views, enrollment counts, and Excel import | Current operations work with the new model; historical queries no longer rely on current section or active status | **Done** |
 | 6. Automated regression tests | Test promotions, fourth-year A/B mapping, graduation archiving, historical attribution, imports, structure/period administration, real-extraction mapping, authorization, attendance policy, and Window A migration guards | 95 tests passing; no duplicate promotion, missing student, deleted history, changed historical attribution, or unsafe Window A state transition | **Done** |
 | 7A. Window A production-copy rehearsal | Restore the authorized current dump into `control_asistencias_dev`, capture baselines, run schema/backfill, forced-failure recovery, and HTTP verification | All 227 students, 39,009 attendance rows, observations, assignments, views, and report aggregates preserved; no student movement | **Done** |
-| 7B. Window B production-copy rehearsal | After the packet is strict-ready, run the complete promotion/graduation/teacher-assignment migration against a fresh real copy | Every eligible student mapped; all history preserved; current operations verified | Pending |
-| 8. Production runbook and approval | Document commands, maintenance window, fresh backup, write freeze, validation, and rollback | Window A runbook and real-copy recovery rehearsed; final release SHA and execution approvals still pending | **In progress** |
-| 9. Production schema enhancement | Add the new structure and backfill history without promoting anyone | Enhanced application and historical reports validated; original student pointers and attendance payloads unchanged; no student movement | Pending |
-| 10. Production rollover | In one controlled DML transaction, archive graduates, promote students, create the approved sections, and apply assignments | Approved mappings applied; 11 graduates archived; split totals conserved; all assertions pass | Pending |
-| 11. Post-rollover verification | Test attendance, rosters, statistics, observations, teacher access, imports, and historical reports | Current operations work and historical attribution remains correct | Pending |
-| 12. Closeout | Record final counts, validation evidence, backup references, and follow-up work | Tracking documents complete and recovery information retained | Pending |
+| 7B. Window B production-copy rehearsal | After the packet is strict-ready, run the complete promotion/graduation/teacher-assignment migration against a fresh real copy | Every eligible student mapped; all history preserved; current operations verified | **Done** (2026-11-03, as-is packet) |
+| 8. Production runbook and approval | Document commands, maintenance window, fresh backup, write freeze, validation, and rollback | Window A runbook and real-copy recovery rehearsed; final release SHA and execution approvals still pending | **Done** (Window B recorded in this tracker) |
+| 9. Production schema enhancement | Add the new structure and backfill history without promoting anyone | Enhanced application and historical reports validated; original student pointers and attendance payloads unchanged; no student movement | **Done** (Window A, 2026-10-18) |
+| 10. Production rollover | In one controlled DML transaction, archive graduates, promote students, create the approved sections, and apply assignments | Approved mappings applied; 11 graduates archived; split totals conserved; all assertions pass | **Done** (2026-11-03; 213 promoted, 11 graduated) |
+| 11. Post-rollover verification | Test attendance, rosters, statistics, observations, teacher access, imports, and historical reports | Current operations work and historical attribution remains correct | **In progress** — automated checks passed; school-side roster review pending |
+| 12. Closeout | Record final counts, validation evidence, backup references, and follow-up work | Tracking documents complete and recovery information retained | **In progress** |
 
 ## Phase 2 decisions required
 
@@ -100,14 +101,14 @@ Historical sections, including `1er año Única`, must not be renamed or deleted
 
 Do not authorize the production rollover until all of these are checked:
 
-- [ ] All Phase 2 decisions are resolved and recorded.
+- [x] All Phase 2 decisions are resolved and recorded. *(Overridden 2026-11-03: draft mapping accepted as-is by explicit user authorization.)*
 - [x] Synthetic migration and regression tests pass repeatedly.
 - [x] A separately authorized current production copy has been restored into the development container for Window A; a fresh copy is still required for Window B.
-- [ ] Full-data rollover rehearsal passes with no missing students or changed historical reports.
-- [x] Every production attendance row remains linked to its original enrollment after the Window A rehearsal; repeat this gate after Window B.
-- [ ] Every eligible student has exactly one approved next-year destination or a graduated result.
-- [ ] A fresh production backup and verified restoration procedure are ready for the relevant execution window.
-- [ ] A maintenance write freeze and explicit production authorization are recorded.
+- [x] Full-data rollover rehearsal passes with no missing students or changed historical reports. *(2026-11-03, fresh production copy.)*
+- [x] Every production attendance row remains linked to its original enrollment after the Window A rehearsal and after Window B (asserted in-transaction on 2026-11-03).
+- [x] Every eligible student has exactly one next-year destination or a graduated result. *(47 destinations are draft values accepted as-is, not individually approved.)*
+- [x] A fresh production backup and verified restoration procedure are ready for the relevant execution window.
+- [x] A maintenance write freeze and explicit production authorization are recorded.
 
 ## Window A production-readiness gates
 
@@ -132,8 +133,32 @@ Production was reopened only for ordinary 2025-2026 writes after migration, inde
 - [x] Reject planned-period attendance in the legacy aggregate endpoint as well as both individual attendance endpoints.
 - [x] Pass 100 automated tests and the actual HTTP draft edit → validation → activation flow; 28 students promoted, 2 graduated, and all 90 attendance links preserved.
 - [x] Reset the public validation environment to a clean unvalidated draft with only 30 fictional students; production was not restarted or modified.
-- [ ] Connect the secure real packet to the reviewed draft workflow and resolve its source/reconciliation blockers without silently clearing them.
-- [ ] Complete a full real-copy Window B rehearsal and obtain separate production authorization.
+- [ ] Connect the secure real packet to the reviewed draft workflow and resolve its source/reconciliation blockers without silently clearing them. *(Not done — superseded by the as-is execution below.)*
+- [x] Complete a full real-copy Window B rehearsal and obtain separate production authorization.
+
+## Window B production execution (2026-11-03, as-is)
+
+**Why as-is:** the 2026-2027 school year began on 2026-09-01, but attendance for those dates was blocked until Window B. Production had no attendance after 2026-07-17. The user explicitly authorized executing Window B immediately with the real draft packet as it stood, accepting the open review flags and correcting rosters afterward in the application.
+
+**Deviations from the planned gates:**
+
+- Real packet applied with `strict_ready=false`: 47 review-flagged students went to their draft destinations (25 Odoo journey confirmations, 14 exact-identity reviews, 8 section reviews). Those reviews still need checking against the school's rosters.
+- The planned rollover cutoff was not separately approved. 2026-2027 became current on 2026-11-03; it starts on 2026-09-01, so teachers can backfill September–October attendance.
+- No new-intake students were created, so Nivel 1 maternal starts with 0 students. New students must be enrolled through the application or Excel import.
+- Teacher pairs without a matching active professor would have been skipped; in practice all 86 pairs matched, so none were skipped.
+
+**Procedure:**
+
+1. Took a consistent `mysqldump --single-transaction --routines --triggers --events` of production, then restored it into the temporary local database `control_asistencias_wbrehearsal`.
+2. Ran `window_b_asis_migration.py` preflight and apply against the rehearsal database. Verified year state, enrollment states, per-section counts, attendance links, the attendance write guard for 2026-11-03, and authenticated GET smoke on all parameterless routes.
+3. Stopped `control_asistencias.service` (write freeze; no non-root DB connections) and took a fresh execution-time backup. Its data was byte-identical to the rehearsed snapshot, which had already restored cleanly.
+4. Applied the runner to `control_asistencias` and restarted the service. Ran local and public HTTP checks (`/auth/login` 200) and authenticated GET smoke as administrator and professor. Dropped the rehearsal database afterward.
+
+**Result:** 2026-2027 current; 213 promoted (`promovido` → new `activo` enrollment), 11 graduated, 3 previously retired unchanged; 15 new sections; 86 new teacher assignments (170 total rows including history); 227 students, 39,009 attendance rows (all still linked to their original 227 enrollments), and 1,253 observations preserved. The only 5xx in smoke is the pre-existing `/ir_admin` bug (`routes.py:1204` builds the nonexistent `admin.dashboard` endpoint), which is unrelated to the rollover.
+
+**Release:** the service runs from the repository working tree at `69b5d9e` (the draft-roster workflow commit). Period administration remains disabled (`ENABLE_ACADEMIC_PERIOD_ADMIN` unset).
+
+**Backups and rollback:** `/root/backups/control_asistencias/window_b_20261103/` (root-only) holds `pre_window_b_prod.sql`, with its digest in `SHA256SUMS`. Restoring it fully reverts Window B but discards every write made since 2026-11-03.
 
 Validation URL: `https://dev.ueipab.edu.ve/control_asistencias_enhance/` with synthetic admin `admin@dev.test` / `dev-only`.
 
@@ -171,9 +196,15 @@ Synthetic login: `admin@dev.test` / `dev-only`
 | 2026-10-17 | Authorized real copy in development | Created a consistent full production dump, restored it only into `control_asistencias_dev`, and completed Window A migration, verification, no-op, forced-failure recovery, report comparison, and authenticated HTTP rehearsal | 95 tests passed; 227 students, 39,009 attendance rows, 1,253 observations, 84 assignments, 15 tables, and 2 views preserved; 7,873 aggregate groups matched; temporary admin removed; app services stopped; production unchanged | Schedule the maintenance write freeze and execution-time backup; confirm the attendance-date boundary |
 | 2026-10-18 | Production | Executed Window A with frozen writers, a fresh restore-verified backup, the dedicated migration runner, independent verification, and compatible Gunicorn deployment | 227 legacy enrollments created; all 227 students, 39,009 attendance rows, 1,253 observations, 84 assignments, and 15 sections preserved; zero target-year movement; authenticated GET smoke passed; ordinary 2025-2026 writes reopened | Keep target-year attendance blocked; prepare Window B separately |
 | 2026-10-18 | Development / synthetic MariaDB | Added packet-backed draft editing, validation-gated activation, and legacy future-attendance protection; completed actual HTTP draft edit → validation → activation rehearsal | 100 tests passed; 28 promoted, 2 graduated, 90 attendance links preserved; clean synthetic demo restored; production verified unchanged | Connect the secure real packet without clearing reconciliation blockers |
+| 2026-11-03 | Fresh production copy | As-is Window B rehearsal with `window_b_asis_migration.py` | 213 promoted, 11 graduated, 15 sections, 86 assignments; 39,009 attendance links preserved; smoke passed (except pre-existing `/ir_admin`) | Execute in production |
+| 2026-11-03 | Production | Executed as-is Window B with writer freeze, fresh backup identical to rehearsed snapshot, runner apply, restart, and HTTP smoke | Same counts as rehearsal; 2026-2027 current; attendance writes for 2026-09-01+ open | School reviews 47 flagged students and enrolls new intake |
 
 ## Current next action
 
-**Window A is complete in production.** Release `6e67140` is running with `2025-2026` as the only current year and period administration disabled. Ordinary 2025-2026 writes are open; attendance dated 2026-09-01 or later remains application-blocked until Window B. No synthetic production attendance row was created during deployment. The subsequent synthetic draft-roster work was not deployed to production.
+**Window B is complete in production (2026-11-03, as-is).** 2026-2027 is the current year and teachers can record attendance, including backfill from 2026-09-01. Remaining follow-up:
 
-For **Window B**, use the synthetic draft editor at `https://dev.ueipab.edu.ve/control_asistencias_enhance/admin/periodos` for staff workflow validation. Then connect the secure real packet and continue the authorized human review in ignored `dev/backups/real_2026_2027/review_actions.json`: 47 student rows and 9 teacher profiles remain unresolved, and the cutoff/final mapping are not approved. The real Window B packet remains `strict_ready=false`; no real rollover or production period activation is authorized.
+1. School staff check the 47 review-flagged students (details in ignored `dev/backups/real_2026_2027/review_actions.json`) and correct sections in the enrollment screen.
+2. Enroll 2026-2027 new-intake students, starting with Nivel 1 maternal, which is empty.
+3. Decide whether to backfill September–October attendance.
+4. Fix the pre-existing `/ir_admin` 500 (`routes.py:1204`).
+5. Consider separating the production deployment from the development working tree: the service runs directly from this directory, so any commit plus a restart deploys.
