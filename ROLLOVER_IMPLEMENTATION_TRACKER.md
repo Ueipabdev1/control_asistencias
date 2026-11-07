@@ -198,13 +198,14 @@ Synthetic login: `admin@dev.test` / `dev-only`
 | 2026-10-18 | Development / synthetic MariaDB | Added packet-backed draft editing, validation-gated activation, and legacy future-attendance protection; completed actual HTTP draft edit → validation → activation rehearsal | 100 tests passed; 28 promoted, 2 graduated, 90 attendance links preserved; clean synthetic demo restored; production verified unchanged | Connect the secure real packet without clearing reconciliation blockers |
 | 2026-11-03 | Fresh production copy | As-is Window B rehearsal with `window_b_asis_migration.py` | 213 promoted, 11 graduated, 15 sections, 86 assignments; 39,009 attendance links preserved; smoke passed (except pre-existing `/ir_admin`) | Execute in production |
 | 2026-11-03 | Production | Executed as-is Window B with writer freeze, fresh backup identical to rehearsed snapshot, runner apply, restart, and HTTP smoke | Same counts as rehearsal; 2026-2027 current; attendance writes for 2026-09-01+ open | School reviews 47 flagged students and enrolls new intake |
+| 2026-11-07 | Production | Synced the 2026-2027 roster to Akdemia (live API) with `scripts/control_asistencias_akdemia_sync_2627.py` from the odoo-dev repo: fresh mysqldump, one transaction, gates checked before any write | 1er año B created (section 31, teachers copied from 1er año A); 15 cédulas + 2 names fixed; 46 new-intake students enrolled; 32 enrolments retired (28 declined in Odoo, 2 Akdemia «Retirado», 2 in neither system), nothing deleted; independently verified 227 activo = 227 Akdemia, 0 attendance rows touched | Add Sharlotte Velásquez when Akdemia loads her; decide París section and Sept–Oct backfill |
 
 ## Current next action
 
 **Window B is complete in production (2026-11-03, as-is).** 2026-2027 is the current year and teachers can record attendance, including backfill from 2026-09-01. Remaining follow-up:
 
-1. School staff check the 47 review-flagged students (details in ignored `dev/backups/real_2026_2027/review_actions.json`) and correct sections in the enrollment screen.
-2. Enroll 2026-2027 new-intake students, starting with Nivel 1 maternal, which is empty.
+1. ~~School staff check the 47 review-flagged students~~ and ~~enroll 2026-2027 new-intake students~~ — **done 2026-11-07** by syncing to Akdemia: 227 active = Akdemia. Still open: París Yelena Gutiérrez González is 4to año B here but A in Akdemia; Thalia Gutiérrez (M) and Fabricio Martínez Rodríguez (F) genders come from Akdemia and look wrong there; confirm the 1er año B teacher list; add Sharlotte Velásquez (2do grado) once Akdemia has her cédula.
+2. Pre-sync backup: `backups/pre_akdemia_sync_20261107_135750.sql` (not committed — minors' data).
 3. Decide whether to backfill September–October attendance.
 4. Fix the pre-existing `/ir_admin` 500 (`routes.py:1204`).
 5. Consider separating the production deployment from the development working tree: the service runs directly from this directory, so any commit plus a restart deploys.
