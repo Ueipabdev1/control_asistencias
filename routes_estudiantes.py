@@ -13,6 +13,8 @@ from models import db, Estudiante, Seccion, Grado, Etapa, AsistenciaEstudiante, 
 from routes import verificar_acceso_seccion
 from utils.excel_processor import procesar_excel_estudiantes, obtener_estadisticas_carga
 from utils.academic_year import (
+    HISTORICAL_STATUSES,
+    academic_year_for_date,
     attendance_write_year,
     current_academic_year,
     deactivate_current_enrollment,
@@ -479,19 +481,38 @@ def obtener_asistencia_seccion(fecha, id_seccion):
         if acceso_denegado:
             return acceso_denegado
         
-        # Obtener estudiantes de la sección
-        estudiantes = Estudiante.query.filter_by(
-            id_seccion=id_seccion,
-            activo=True
-        ).order_by(Estudiante.apellido, Estudiante.nombre).all()
-        
-        # Obtener asistencias del día
-        asistencias = AsistenciaEstudiante.query.filter_by(fecha=fecha_obj).filter(
-            AsistenciaEstudiante.id_estudiante.in_([e.id_estudiante for e in estudiantes])
+        # Matrícula de la sección en el período académico de la fecha solicitada:
+        # inscripciones activas o con asistencia registrada ese día
+        try:
+            year = academic_year_for_date(fecha_obj)
+        except RuntimeError as e:
+            return jsonify({'error': str(e)}), 400
+
+        inscripciones = Inscripcion.query.filter(
+            Inscripcion.id_seccion == id_seccion,
+            Inscripcion.id_anio_escolar == year.id_anio_escolar,
+            Inscripcion.estado.in_(HISTORICAL_STATUSES),
         ).all()
-        
+
+        # Obtener asistencias del día
+        asistencias = AsistenciaEstudiante.query.filter(
+            AsistenciaEstudiante.fecha == fecha_obj,
+            AsistenciaEstudiante.id_inscripcion.in_([i.id_inscripcion for i in inscripciones]),
+        ).all()
+
         # Crear diccionario de asistencias
-        asistencias_dict = {a.id_estudiante: a for a in asistencias}
+        asistencias_dict = {}
+        for asistencia in asistencias:
+            asistencias_dict.setdefault(asistencia.id_estudiante, asistencia)
+
+        estudiantes_ids = [
+            i.id_estudiante
+            for i in inscripciones
+            if i.estado == 'activo' or i.id_estudiante in asistencias_dict
+        ]
+        estudiantes = Estudiante.query.filter(
+            Estudiante.id_estudiante.in_(estudiantes_ids)
+        ).order_by(Estudiante.apellido, Estudiante.nombre).all() if estudiantes_ids else []
         
         # Construir respuesta
         resultado = []
@@ -524,6 +545,7 @@ def obtener_asistencia_seccion(fecha, id_seccion):
             'total_presentes': total_presentes,
             'total_ausentes': len(estudiantes) - total_presentes,
             'porcentaje_asistencia': round((total_presentes / len(estudiantes) * 100) if estudiantes else 0, 2),
+            'anio_escolar': year.nombre,
             'estudiantes': resultado
         }), 200
         
@@ -561,13 +583,20 @@ def verificar_asistencia_existente():
         except ValueError:
             return jsonify({'error': 'Formato de fecha inválido'}), 400
 
-        # Obtener estudiantes de la sección
-        estudiantes = Estudiante.query.filter_by(
-            id_seccion=id_seccion,
-            activo=True
-        ).all()
+        # Matrícula activa de la sección en el período académico de la fecha
+        try:
+            year = academic_year_for_date(fecha)
+        except RuntimeError as e:
+            return jsonify({'error': str(e)}), 400
 
-        estudiantes_ids = [e.id_estudiante for e in estudiantes]
+        estudiantes_ids = [
+            i.id_estudiante
+            for i in Inscripcion.query.filter(
+                Inscripcion.id_seccion == id_seccion,
+                Inscripcion.id_anio_escolar == year.id_anio_escolar,
+                Inscripcion.estado == 'activo',
+            ).all()
+        ]
 
         # Buscar asistencias existentes para este bloque
         asistencias = AsistenciaEstudiante.query.filter(
@@ -588,7 +617,8 @@ def verificar_asistencia_existente():
         if not asistencias:
             return jsonify({
                 'existe': False,
-                'total_estudiantes': len(estudiantes),
+                'total_estudiantes': len(estudiantes_ids),
+                'anio_escolar': year.nombre,
                 'bloques_registrados': bloques_registrados
             }), 200
 
@@ -604,9 +634,10 @@ def verificar_asistencia_existente():
 
         return jsonify({
             'existe': True,
-            'total_estudiantes': len(estudiantes),
+            'total_estudiantes': len(estudiantes_ids),
             'total_presentes': total_presentes,
-            'total_ausentes': len(estudiantes) - total_presentes,
+            'total_ausentes': len(estudiantes_ids) - total_presentes,
+            'anio_escolar': year.nombre,
             'asistencias': asistencias_list,
             'bloques_registrados': bloques_registrados
         }), 200
@@ -751,17 +782,24 @@ def obtener_estadisticas_asistencia(id_seccion):
         if acceso_denegado:
             return acceso_denegado
         
-        # Obtener estudiantes
-        estudiantes = Estudiante.query.filter_by(
-            id_seccion=id_seccion,
-            activo=True
+        # Período académico: el de fecha_inicio si se indica, si no el actual
+        try:
+            year = academic_year_for_date(fecha_inicio) if fecha_inicio else current_academic_year()
+            if fecha_fin and academic_year_for_date(fecha_fin).id_anio_escolar != year.id_anio_escolar:
+                return jsonify({'error': 'El rango de fechas debe pertenecer al mismo período académico'}), 400
+        except RuntimeError as e:
+            return jsonify({'error': str(e)}), 400
+
+        # Inscripciones de la sección en ese período (incluye retirados con historial)
+        inscripciones = Inscripcion.query.filter(
+            Inscripcion.id_seccion == id_seccion,
+            Inscripcion.id_anio_escolar == year.id_anio_escolar,
+            Inscripcion.estado.in_(HISTORICAL_STATUSES),
         ).all()
-        
-        estudiantes_ids = [e.id_estudiante for e in estudiantes]
-        
-        # Query base de asistencias
+
+        # Query base de asistencias limitada a las inscripciones del período
         query = AsistenciaEstudiante.query.filter(
-            AsistenciaEstudiante.id_estudiante.in_(estudiantes_ids)
+            AsistenciaEstudiante.id_inscripcion.in_([i.id_inscripcion for i in inscripciones])
         )
         
         if fecha_inicio:
@@ -781,7 +819,8 @@ def obtener_estadisticas_asistencia(id_seccion):
                 'id': seccion.id_seccion,
                 'nombre': seccion.nombre_completo
             },
-            'total_estudiantes': len(estudiantes),
+            'anio_escolar': year.nombre,
+            'total_estudiantes': len(inscripciones),
             'total_registros': total_registros,
             'total_presentes': total_presentes,
             'total_ausentes': total_ausentes,

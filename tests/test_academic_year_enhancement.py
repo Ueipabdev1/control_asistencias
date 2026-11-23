@@ -161,6 +161,73 @@ def test_graduate_cannot_write_target_attendance(rolled_over, client):
     assert data["errores"]
 
 
+def test_attendance_reads_use_enrollment_not_legacy_pointer(rolled_over, client):
+    admin_login(client)
+    estudiante = Estudiante.query.filter_by(activo=True).first()
+    enrollment = Inscripcion.query.filter_by(
+        id_estudiante=estudiante.id_estudiante,
+        id_anio_escolar=2,
+        estado="activo",
+    ).one()
+    seccion_id = enrollment.id_seccion
+    esperados = Inscripcion.query.filter_by(
+        id_seccion=seccion_id, id_anio_escolar=2, estado="activo"
+    ).count()
+
+    def roster_ids():
+        response = client.get(f"/api/asistencia-individual/2026-09-01/{seccion_id}")
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["anio_escolar"] == "2026-2027"
+        return {e["id_estudiante"] for e in data["estudiantes"]}
+
+    def total_verificar():
+        response = client.post("/api/asistencia-individual/verificar", json={
+            "fecha": "2026-09-01",
+            "id_seccion": seccion_id,
+            "bloque": "completo",
+        })
+        assert response.status_code == 200
+        return response.get_json()["total_estudiantes"]
+
+    assert estudiante.id_estudiante in roster_ids()
+    assert total_verificar() == esperados
+
+    # Con la ficha legacy apuntando a otra sección, las lecturas siguen la inscripción
+    otra_seccion = Seccion.query.filter(
+        Seccion.id_anio_escolar == 2, Seccion.id_seccion != seccion_id
+    ).first()
+    seccion_original = estudiante.id_seccion
+    try:
+        estudiante.id_seccion = otra_seccion.id_seccion
+        db.session.commit()
+        assert estudiante.id_estudiante in roster_ids()
+        assert total_verificar() == esperados
+    finally:
+        estudiante.id_seccion = seccion_original
+        db.session.commit()
+
+    # Las fechas históricas muestran la matrícula del período de esa fecha
+    response = client.get("/api/asistencia-individual/2026-03-02/1")
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["anio_escolar"] == "2025-2026"
+    assert data["total_estudiantes"] >= 1
+
+    # Las estadísticas de la sección solo cuentan asistencias del período actual
+    response = client.get(f"/api/asistencia-individual/estadisticas/{seccion_id}")
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["anio_escolar"] == "2026-2027"
+    esperado_registros = AsistenciaEstudiante.query.join(
+        Inscripcion, AsistenciaEstudiante.id_inscripcion == Inscripcion.id_inscripcion
+    ).filter(
+        Inscripcion.id_seccion == seccion_id,
+        Inscripcion.id_anio_escolar == 2,
+    ).count()
+    assert data["total_registros"] == esperado_registros
+
+
 def test_excel_section_matching_single_a_vs_split(rolled_over):
     assert buscar_seccion("1er. Año", "U").nombre_seccion == "A"
     assert buscar_seccion("4to. Año", "U") is None
