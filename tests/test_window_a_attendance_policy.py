@@ -134,7 +134,7 @@ def test_retired_enrollment_cannot_write_attendance(client):
         db.session.commit()
 
 
-def test_historical_statistics_include_retired_enrollments(client):
+def test_current_period_statistics_exclude_retired_enrollments(client):
     student = Estudiante.query.filter_by(activo=True).first()
     enrollment = Inscripcion.query.filter_by(
         id_estudiante=student.id_estudiante,
@@ -149,8 +149,14 @@ def test_historical_statistics_include_retired_enrollments(client):
         response = client.get("/admin/estadisticas?fecha_inicio=2026-03-02&fecha_fin=2026-03-03")
         assert response.status_code == 200
         statistics = response.get_json()["estadisticas_generales"]
-        assert statistics["total_estudiantes"] == 30
-        assert statistics["total_asistencias"] == 90
+        # El período vigente reporta solo matrícula activa y su asistencia;
+        # la inclusión de retirados en períodos cerrados la cubre
+        # test_historical_statistics_and_logs_use_original_enrollments (post-rollover)
+        assert statistics["total_estudiantes"] == 29
+        assert statistics["total_asistencias"] == 90 - len(
+            attendance_ids(student.id_estudiante, date(2026, 3, 2))
+            | attendance_ids(student.id_estudiante, date(2026, 3, 3))
+        )
     finally:
         enrollment.estado = "activo"
         student.activo = True

@@ -37,6 +37,10 @@ def _filtered_data(fecha_inicio, fecha_fin, etapa, seccion_id, bloque_filter=Non
     if academic_year_for_date(fecha_fin).id_anio_escolar != year.id_anio_escolar:
         raise ValueError('El rango de fechas debe pertenecer al mismo período académico')
 
+    # El período actual reporta solo la matrícula activa; los períodos cerrados
+    # no tienen inscripciones activas y deben incluir todo su historial
+    estados = ("activo",) if year.es_actual else HISTORICAL_STATUSES
+
     enrollments_query = Inscripcion.query.options(*_enrollment_options()).join(
         Seccion, Inscripcion.id_seccion == Seccion.id_seccion
     ).join(
@@ -45,7 +49,7 @@ def _filtered_data(fecha_inicio, fecha_fin, etapa, seccion_id, bloque_filter=Non
         Etapa, Grado.id_etapa == Etapa.id_etapa
     ).filter(
         Inscripcion.id_anio_escolar == year.id_anio_escolar,
-        Inscripcion.estado.in_(HISTORICAL_STATUSES),
+        Inscripcion.estado.in_(estados),
     )
     if etapa:
         enrollments_query = enrollments_query.filter(Etapa.nombre_etapa == etapa)
@@ -65,7 +69,7 @@ def _filtered_data(fecha_inicio, fecha_fin, etapa, seccion_id, bloque_filter=Non
         AsistenciaEstudiante.fecha >= fecha_inicio,
         AsistenciaEstudiante.fecha <= fecha_fin,
         Inscripcion.id_anio_escolar == year.id_anio_escolar,
-        Inscripcion.estado.in_(HISTORICAL_STATUSES),
+        Inscripcion.estado.in_(estados),
     )
     if etapa:
         attendance_query = attendance_query.filter(Etapa.nombre_etapa == etapa)

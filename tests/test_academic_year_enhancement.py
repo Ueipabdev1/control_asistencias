@@ -228,6 +228,28 @@ def test_attendance_reads_use_enrollment_not_legacy_pointer(rolled_over, client)
     assert data["total_registros"] == esperado_registros
 
 
+def test_current_period_statistics_count_only_active_enrollments(rolled_over, client):
+    admin_login(client)
+    enrollment = Inscripcion.query.filter_by(id_anio_escolar=2, estado="activo").first()
+    total_activos = Inscripcion.query.filter_by(id_anio_escolar=2, estado="activo").count()
+
+    def total_estudiantes():
+        response = client.get("/admin/estadisticas?fecha_inicio=2026-09-01&fecha_fin=2026-09-02")
+        assert response.status_code == 200
+        return response.get_json()["estadisticas_generales"]["total_estudiantes"]
+
+    assert total_estudiantes() == total_activos
+
+    # Un retiro del período actual deja de contar en la matrícula reportada
+    try:
+        enrollment.estado = "retirado"
+        db.session.commit()
+        assert total_estudiantes() == total_activos - 1
+    finally:
+        enrollment.estado = "activo"
+        db.session.commit()
+
+
 def test_excel_section_matching_single_a_vs_split(rolled_over):
     assert buscar_seccion("1er. Año", "U").nombre_seccion == "A"
     assert buscar_seccion("4to. Año", "U") is None
